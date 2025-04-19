@@ -1,43 +1,40 @@
 package frc.robot.subsystems;
 
-import java.lang.module.ModuleDescriptor.Builder;
-
 import com.ctre.phoenix.motorcontrol.ControlMode;
 import com.ctre.phoenix.motorcontrol.can.TalonSRX;
-import com.revrobotics.ColorSensorV3;
-
 import edu.wpi.first.util.sendable.SendableBuilder;
-import edu.wpi.first.wpilibj.AnalogInput;
-import edu.wpi.first.wpilibj.DigitalInput;
-import edu.wpi.first.wpilibj.I2C;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants;
 
-public class AlgaeIntake extends SubsystemBase{
- private TalonSRX m_IntakeMotor = new TalonSRX(Constants.Algae.m_IntakeMtrC);
- public AlgaeIntake(){}
+public class AlgaeIntake extends SubsystemBase {
+    private TalonSRX m_IntakeMotor = new TalonSRX(Constants.Algae.m_IntakeMtrC);
+
+    public AlgaeIntake() {
+    }
 
 
- public void IntakeForward() {
-        m_IntakeMotor.set(ControlMode.PercentOutput,.75);
+    public void IntakeForward() {
+        m_IntakeMotor.set(ControlMode.PercentOutput, .75);
     }
 
     public void IntakeBackward() {
-        m_IntakeMotor.set(ControlMode.PercentOutput,-.85);
+        m_IntakeMotor.set(ControlMode.PercentOutput, -.85);
     }
 
     public void IntakeStop() {
         m_IntakeMotor.set(ControlMode.PercentOutput, 0);
     }
- public Command IntakeForwardCmd() {
+
+    public Command IntakeForwardCmd() {
         return this.runEnd(this::IntakeForward, this::IntakeStop);
     }
-    
+
 
     public Command IntakeBackwardCmd() {
         return this.runEnd(this::IntakeBackward, this::IntakeStop);
     }
+
     public Command IntakeBackwardOnceCmd() {
         return this.runOnce(this::IntakeBackward);
     }
@@ -50,12 +47,13 @@ public class AlgaeIntake extends SubsystemBase{
         return this.runOnce(this::IntakeForward);
     }
 
-    public Command RunIntake(){
+    public Command RunIntake() {
         return this.runEnd(this::IntakeForward, this::IntakeStop);/* .onlyWhile(()-> IntakeFowardIR() == false)*/
     }
-@Override
-public void initSendable(SendableBuilder builder) {
-    
-    super.initSendable(builder);
-}
+
+    @Override
+    public void initSendable(SendableBuilder builder) {
+
+        super.initSendable(builder);
+    }
 }

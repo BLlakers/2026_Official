@@ -56,7 +56,7 @@ public class Telemetry {
         entry.append(value);
     }
 
-    public static void info(final String value){
+    public static void info(final String value) {
         requireNonNull(value, "value cannot be null");
         DataLogManager.log(value);
     }

@@ -1,10 +1,10 @@
 package frc.robot;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** A smoke test to ensure JUnit and the test stage of our GitHub actions execute as expected */
 public class SmokeTest {

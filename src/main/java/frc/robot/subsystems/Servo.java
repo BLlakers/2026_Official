@@ -5,12 +5,13 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 public class Servo extends SubsystemBase {
-     PWM servo = new PWM(9);
+    PWM servo = new PWM(9);
 
-     public Servo(){
+    public Servo() {
 
-     }
-     public void ServoForward() {
+    }
+
+    public void ServoForward() {
         servo.setPosition(.8);
     }
 

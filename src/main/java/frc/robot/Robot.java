@@ -1,19 +1,13 @@
 package frc.robot;
 
 import edu.wpi.first.cameraserver.CameraServer;
-import edu.wpi.first.wpilibj.DriverStation;
-import edu.wpi.first.wpilibj.IterativeRobotBase;
-import edu.wpi.first.wpilibj.PWM;
 import edu.wpi.first.wpilibj.PowerDistribution;
-import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
-import edu.wpi.first.wpilibj2.command.WaitCommand;
 import frc.robot.subsystems.AlgaeMechanism;
 import frc.robot.support.Telemetry;
-import frc.robot.support.limelight.LimelightHelpers;
 import frc.robot.support.limelight.LimelightUtil;
 // some imports no longer needed but leaving them here untill final version
 
@@ -89,10 +83,10 @@ public class Robot extends TimedRobot {
         //     }
         // }
         // AlgaeMechanism.AUTORunning = true;
-        m_robotContainer.m_LimelightBack.SetTagIDToTrack(-1);
-        m_robotContainer.m_LimelightFrl.SetTagIDToTrack(-1);
-        m_robotContainer.m_LimelightFrr.SetTagIDToTrack(-1);
-        m_robotContainer.mLedStrand.changeLed(128, 0, 0);
+        m_robotContainer.getLimelightBack().SetTagIDToTrack(-1);
+        m_robotContainer.getLimelightFrl().SetTagIDToTrack(-1);
+        m_robotContainer.getLimelightFrr().SetTagIDToTrack(-1);
+        m_robotContainer.getLedStrand().changeLed(128, 0, 0);
         try {
             var cam = CameraServer.startAutomaticCapture();
             cam.setResolution(100, 100);
@@ -110,7 +104,7 @@ public class Robot extends TimedRobot {
     public void robotPeriodic() {
         SmartDashboard.putData(PDH);
         CommandScheduler.getInstance().run();
- 
+
     }
 
     @Override
@@ -121,7 +115,7 @@ public class Robot extends TimedRobot {
     @Override
     public void disabledPeriodic() {
         AlgaeMechanism.AUTORunning = true;
-                // TODO 1: READ TAG, turn on bot pushed up against the reef wall. make sure to read tag, then move  
+        // TODO 1: READ TAG, turn on bot pushed up against the reef wall. make sure to read tag, then move
         // 
         // if (LimelightHelpers.getTV("limelight-frl") && navxCalibrated == false){
         //     if (m_robotContainer.m_LimelightFrl.getCurrentAprilTag().ID ==  17){
@@ -173,21 +167,21 @@ public class Robot extends TimedRobot {
         //         navxCalibrated = true;
         //     }
 
-           
+
         // }
         // System.out.println(navxCalibrated);
     }
 
     @Override
     public void autonomousInit() {
-        m_robotContainer.m_DriveTrain.m_FieldRelativeEnable = false;
-        System.out.println(m_robotContainer.m_DriveTrain.m_FieldRelativeEnable);
+        m_robotContainer.getDriveTrain().m_FieldRelativeEnable = false;
+        System.out.println(m_robotContainer.getDriveTrain().m_FieldRelativeEnable);
         m_autonomousCommand = m_robotContainer.getAutonomousCommand();
-        
+
         AlgaeMechanism.AUTORunning = true;
         if (m_autonomousCommand != null) {
             m_autonomousCommand.schedule();
-        
+
         }
     }
 
@@ -196,13 +190,13 @@ public class Robot extends TimedRobot {
     }
 
     @Override
-    public void teleopInit() {  
+    public void teleopInit() {
         // m_robotContainer.m_DriveTrain.ZeroGyro().schedule();
         AlgaeMechanism.AUTORunning = false;
-        m_robotContainer.m_DriveTrain.m_FieldRelativeEnable = true;
-        m_robotContainer.m_LimelightBack.SetTagIDToTrack(-1);
-        m_robotContainer.m_LimelightFrl.SetTagIDToTrack(-1);
-        m_robotContainer.m_LimelightFrr.SetTagIDToTrack(-1);
+        m_robotContainer.getDriveTrain().m_FieldRelativeEnable = true;
+        m_robotContainer.getLimelightBack().SetTagIDToTrack(-1);
+        m_robotContainer.getLimelightFrl().SetTagIDToTrack(-1);
+        m_robotContainer.getLimelightFrr().SetTagIDToTrack(-1);
         if (m_autonomousCommand != null) {
             m_autonomousCommand.cancel();
         }
