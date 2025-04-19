@@ -101,7 +101,7 @@ public class Limelight extends SubsystemBase {
         return Commands.runOnce(() -> LimelightHelpers.setCameraPose_RobotSpace("limelight-frl", .17, 0, .2, 0, 0, 0));
     }
 
-    public Command PriorityIDcmd(int idBlue, int idRed) {
+    public Command getPriorityIDCommand(int idBlue, int idRed) {
         var alliance = DriverStation.getAlliance();
         if (alliance.isPresent() && alliance.get() == DriverStation.Alliance.Red) {
             return this.runOnce(() -> this.SetTagIDToTrack(idRed));

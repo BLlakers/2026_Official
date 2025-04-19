@@ -53,7 +53,7 @@ public class CoralMechanism extends SubsystemBase {
         return this.runEnd(this::CoralBackward, this::CoralStop);
     }
 
-    public Command CoralIntakeAutoCmd() {
+    public Command getCoralIntakeAutoCommand() {
         return this.runEnd(this::CoralForward, this::CoralStop).onlyWhile(() -> !IsCoralLoaded());
     }
 

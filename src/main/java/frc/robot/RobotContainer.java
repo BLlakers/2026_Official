@@ -46,30 +46,30 @@ public class RobotContainer {
 
     private final ElevatorMechanism elevatorMechanism = new ElevatorMechanism();
 
-    private final ElevatorPID elevatorPIDDown = new ElevatorPID(this.elevatorMechanism, ElevatorMechanism.Down);
-    private final ElevatorPID elevatorPIDL2 = new ElevatorPID(this.elevatorMechanism, ElevatorMechanism.L2);
-    private final ElevatorPID elevatorPIDL3 = new ElevatorPID(this.elevatorMechanism, ElevatorMechanism.L3);
-    private final ElevatorPID elevatorPIDL4 = new ElevatorPID(this.elevatorMechanism, ElevatorMechanism.L4);
-    private final ElevatorPID elevatorPIDAlgae3 = new ElevatorPID(this.elevatorMechanism, ElevatorMechanism.AlgaeL3);
+    private final ElevatorPID elevatorPIDDown = new ElevatorPID(this.elevatorMechanism, ElevatorMechanism.DOWN_POSITION);
+    private final ElevatorPID elevatorPIDL2 = new ElevatorPID(this.elevatorMechanism, ElevatorMechanism.L2_POSITION);
+    private final ElevatorPID elevatorPIDL3 = new ElevatorPID(this.elevatorMechanism, ElevatorMechanism.L3_POSITION);
+    private final ElevatorPID elevatorPIDL4 = new ElevatorPID(this.elevatorMechanism, ElevatorMechanism.L4_POSITION);
+    private final ElevatorPID elevatorPIDAlgae3 = new ElevatorPID(this.elevatorMechanism, ElevatorMechanism.ALGAE_L3_POSITION);
 
     private final Servo servo = new Servo();
 
     private final AprilAlignCommand limelightCodeFrontLeft = new AprilAlignCommand(this.limelightFrl::getCurrentAprilTag, this.limelightFrl::getAprilRotation2d, this.driveTrain, new Transform2d(.18, 0.00, new Rotation2d(.15)), false, true, this.ledStrand);
     private final AprilAlignCommand limelightCodeFrontRight = new AprilAlignCommand(this.limelightFrr::getCurrentAprilTag, this.limelightFrr::getAprilRotation2d, this.driveTrain, new Transform2d(.07, 0.00, new Rotation2d(0.17)), false, false, this.ledStrand);
     private final AprilAlignCommand limelightCodeBack = new AprilAlignCommand(this.limelightBack::getCurrentAprilTag, this.limelightBack::getAprilRotation2d, this.driveTrain, new Transform2d(.65, 0.00, new Rotation2d()), true, false, this.ledStrand);
+    // Compose the commands correctly, ensuring that each use is a new composition
+    private final Command runCoralForward = this.coralMechanism.CoralForwardCmd().onlyWhile(() -> !this.coralMechanism.IsCoralLoaded()).withName("RunCoral");
+    private final Command algaeDownAndRunA3 = Commands.race(new AlgaePID(algaeMechanism, AlgaeMechanism.PosDown), algaeIntake.IntakeForwardOnceCmd(), new ElevatorPID(this.elevatorMechanism, ElevatorMechanism.ALGAE_L3_POSITION));
+    private final Command algaeDownAndRunA4 = Commands.race(new AlgaePID(algaeMechanism, AlgaeMechanism.PosDown), algaeIntake.IntakeForwardOnceCmd(), new ElevatorPID(this.elevatorMechanism, ElevatorMechanism.ALGAE_L4_POSITION));
+    private final Command algaeUpAndStop = Commands.race(new AlgaePID(algaeMechanism, AlgaeMechanism.PosUp), algaeIntake.IntakeStopCmd());
+    private final Command algaeMiddleAndStop = Commands.race(new AlgaePID(algaeMechanism, AlgaeMechanism.PosMiddle), algaeIntake.IntakeStopCmd());
+    private final Command algaeGroundCommand = Commands.race(new AlgaePID(algaeMechanism, AlgaeMechanism.PosGround), algaeIntake.IntakeBackwardOnceCmd(), new ElevatorPID(this.elevatorMechanism, ElevatorMechanism.L2_POSITION));
+    private final Command resetPoseAuto = Commands.runOnce(() -> driveTrain.resetPose(this.currentPath.get(0)), this.driveTrain);
 
     private final AlgaePID algaePIDDown = new AlgaePID(algaeMechanism, AlgaeMechanism.PosDown);
     private final AlgaePID algaePIDMiddle = new AlgaePID(algaeMechanism, AlgaeMechanism.PosMiddle);
     private final AlgaePID algaePIDUp = new AlgaePID(algaeMechanism, AlgaeMechanism.PosUp);
     private final AlgaePID algaePIDGround = new AlgaePID(algaeMechanism, AlgaeMechanism.PosGround);
-
-    // Compose the commands correctly, ensuring that each use is a new composition
-    private final Command runCoralForward = this.coralMechanism.CoralForwardCmd().onlyWhile(() -> !this.coralMechanism.IsCoralLoaded()).withName("RunCoral");
-    private final Command algaeDownAndRunA3 = Commands.race(new AlgaePID(algaeMechanism, AlgaeMechanism.PosDown), algaeIntake.IntakeForwardOnceCmd(), new ElevatorPID(this.elevatorMechanism, ElevatorMechanism.AlgaeL3));
-    private final Command algaeDownAndRunA4 = Commands.race(new AlgaePID(algaeMechanism, AlgaeMechanism.PosDown), algaeIntake.IntakeForwardOnceCmd(), new ElevatorPID(this.elevatorMechanism, ElevatorMechanism.AlgaeL4));
-    private final Command algaeUpAndStop = Commands.race(new AlgaePID(algaeMechanism, AlgaeMechanism.PosUp), algaeIntake.IntakeStopCmd());
-    private final Command algaeMiddleAndStop = Commands.race(new AlgaePID(algaeMechanism, AlgaeMechanism.PosMiddle), algaeIntake.IntakeStopCmd());
-    private final Command algaeGroundCommand = Commands.race(new AlgaePID(algaeMechanism, AlgaeMechanism.PosGround), algaeIntake.IntakeBackwardOnceCmd(), new ElevatorPID(this.elevatorMechanism, ElevatorMechanism.L2));
 
     /**
      * Creates buttons and controller for: - the driver controller (port 0) - the manipulator
@@ -85,7 +85,7 @@ public class RobotContainer {
     // Creating 2d field in Sim/ShuffleBoard
     // Trying to get feedback from auto
     private final List<Pose2d> currentPath = new ArrayList<Pose2d>();
-    private final Command resetPoseAuto = Commands.runOnce(() -> driveTrain.resetPose(this.currentPath.get(0)), this.driveTrain);
+
 
     public static final PathConstraints SPEED_CONSTRAINTS = new PathConstraints(2, 1.5, 1.5 * Math.PI, 1 * Math.PI); // The constraints for this path.
 
@@ -141,28 +141,28 @@ public class RobotContainer {
 
     private void registerCommands() {
         NamedCommands.registerCommand("Limelight", this.limelightCodeFrontLeft);
-        NamedCommands.registerCommand("LimelightSetFirstLeftPriority", this.limelightFrl.PriorityIDcmd(22, 9));
-        NamedCommands.registerCommand("LimelightSetSecondLeftPriority", this.limelightFrl.PriorityIDcmd(17, 8));
-        NamedCommands.registerCommand("LimelightSetSecondLeftPriority2", this.limelightFrl.PriorityIDcmd(18, 8));
-        NamedCommands.registerCommand("LimelightSetFirstRightPriority", this.limelightFrl.PriorityIDcmd(20, 11));
-        NamedCommands.registerCommand("LimelightSetSecondRightPriority", this.limelightFrl.PriorityIDcmd(19, 6));
+        NamedCommands.registerCommand("LimelightSetFirstLeftPriority", this.limelightFrl.getPriorityIDCommand(22, 9));
+        NamedCommands.registerCommand("LimelightSetSecondLeftPriority", this.limelightFrl.getPriorityIDCommand(17, 8));
+        NamedCommands.registerCommand("LimelightSetSecondLeftPriority2", this.limelightFrl.getPriorityIDCommand(18, 8));
+        NamedCommands.registerCommand("LimelightSetFirstRightPriority", this.limelightFrl.getPriorityIDCommand(20, 11));
+        NamedCommands.registerCommand("LimelightSetSecondRightPriority", this.limelightFrl.getPriorityIDCommand(19, 6));
         NamedCommands.registerCommand("LimelightBack", this.limelightCodeBack);
         NamedCommands.registerCommand("RobotOrientedLimelight", this.limelightFrl.setLimelightUsageField());
-        NamedCommands.registerCommand("SETPOSEfrl", resetPoseAuto);
+        NamedCommands.registerCommand("SETPOSEfrl", this.resetPoseAuto);
         NamedCommands.registerCommand("PathRESETODMLeft", AutoBuilder.resetOdom(new Pose2d(5.002, 2.806, new Rotation2d(90))));
         NamedCommands.registerCommand("PathRESETODMRight", AutoBuilder.resetOdom(new Pose2d(5.021, 5.253, new Rotation2d(180))));
         NamedCommands.registerCommand("PathRESETODMMiddle", AutoBuilder.resetOdom(new Pose2d(5.802, 3.959, new Rotation2d(180))));
-        NamedCommands.registerCommand("ElevatorL2", new ElevatorPID(this.elevatorMechanism, ElevatorMechanism.L2));
+        NamedCommands.registerCommand("ElevatorL2", new ElevatorPID(this.elevatorMechanism, ElevatorMechanism.L2_POSITION));
         NamedCommands.registerCommand("ElevatorA3", this.algaeDownAndRunA3);
         NamedCommands.registerCommand("ElevatorA4", this.algaeDownAndRunA4);
-        NamedCommands.registerCommand("IntakeCoral", this.coralMechanism.CoralIntakeAutoCmd());
+        NamedCommands.registerCommand("IntakeCoral", this.coralMechanism.getCoralIntakeAutoCommand());
         NamedCommands.registerCommand("ResetOdom", this.driveTrain.resetPose2d());
-        NamedCommands.registerCommand("ElevatorL4", new ElevatorPID(this.elevatorMechanism, ElevatorMechanism.L4).onlyWhile(() -> !this.elevatorMechanism.ElevatorAtPos()));
-        NamedCommands.registerCommand("ElevatorBottom", new ElevatorPID(this.elevatorMechanism, ElevatorMechanism.Down));
-        NamedCommands.registerCommand("ElevatorUp", this.elevatorMechanism.ElevatorUpCmd());
+        NamedCommands.registerCommand("ElevatorL4", new ElevatorPID(this.elevatorMechanism, ElevatorMechanism.L4_POSITION).onlyWhile(() -> !this.elevatorMechanism.isElevatorAtPosition()));
+        NamedCommands.registerCommand("ElevatorBottom", new ElevatorPID(this.elevatorMechanism, ElevatorMechanism.DOWN_POSITION));
+        NamedCommands.registerCommand("ElevatorUp", this.elevatorMechanism.getElevatorUpCommand());
         NamedCommands.registerCommand("ShootCoral", this.coralMechanism.CoralForwardCmd().withTimeout(.5));
         NamedCommands.registerCommand("ToggleFieldRelativel", this.driveTrain.toggleFieldRelativeEnable());
-        NamedCommands.registerCommand("WaitUntilElevatorTop", new WaitUntilCommand(this.elevatorMechanism::ElevatorAtPos));
+        NamedCommands.registerCommand("WaitUntilElevatorTop", new WaitUntilCommand(this.elevatorMechanism::isElevatorAtPosition));
         NamedCommands.registerCommand("StopDrive", this.driveTrain.Break());
     }
 
@@ -217,8 +217,8 @@ public class RobotContainer {
         this.manipController.povDown().whileTrue(this.climbMechanism.WindDownCmd());
         this.servo.setDefaultCommand(this.servo.ServoForwardCommand());
 
-        this.debugController.rightBumper().whileTrue(this.elevatorMechanism.ElevatorDownLimitCmd());
-        this.debugController.leftBumper().whileTrue(this.elevatorMechanism.ElevatorUpLimitCmd());
+        this.debugController.rightBumper().whileTrue(this.elevatorMechanism.getElevatorDownLimitCommand());
+        this.debugController.leftBumper().whileTrue(this.elevatorMechanism.getElevatorUpLimitCommand());
         this.debugController.povUp().onTrue(this.algaeMechanism.resetAlgae());
         this.debugController.a().onTrue(this.algaePIDUp);
         this.debugController.b().onTrue(this.algaePIDMiddle);
