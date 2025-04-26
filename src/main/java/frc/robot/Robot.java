@@ -1,12 +1,13 @@
 package frc.robot;
 
 import edu.wpi.first.cameraserver.CameraServer;
+import edu.wpi.first.cscore.UsbCamera;
 import edu.wpi.first.wpilibj.PowerDistribution;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
-import frc.robot.subsystems.AlgaeMechanism;
+import frc.robot.subsystems.algae.AlgaeMechanism;
 import frc.robot.support.Telemetry;
 import frc.robot.support.limelight.LimelightUtil;
 // some imports no longer needed but leaving them here untill final version
@@ -32,67 +33,17 @@ public class Robot extends TimedRobot {
     // commit
     @Override
     public void robotInit() {
-        // if (LimelightHelpers.getTV("limelight-frl") && navxCalibrated == false){
-        //     if (m_robotContainer.m_LimelightFrl.getCurrentAprilTag().ID ==  17){
-        //         m_robotContainer.m_DriveTrain.navx.setAngleAdjustment(300);
-        //          navxCalibrated = true;
-        //     }
-        //     if (m_robotContainer.m_LimelightFrl.getCurrentAprilTag().ID ==  18){
-        //         m_robotContainer.m_DriveTrain.navx.setAngleAdjustment(0);
-        //         navxCalibrated = true;
-        //     }
-        //     if (m_robotContainer.m_LimelightFrl.getCurrentAprilTag().ID ==  19){
-        //         m_robotContainer.m_DriveTrain.navx.setAngleAdjustment(60);
-        //         navxCalibrated = true;
-        //     }
-        //     if (m_robotContainer.m_LimelightFrl.getCurrentAprilTag().ID ==  20){
-        //         m_robotContainer.m_DriveTrain.navx.setAngleAdjustment(120);
-        //         navxCalibrated = true;
-        //     }
-        //     if (m_robotContainer.m_LimelightFrl.getCurrentAprilTag().ID ==  21){
-        //         m_robotContainer.m_DriveTrain.navx.setAngleAdjustment(180);
-        //         navxCalibrated = true;
-        //     }
-        //     if (m_robotContainer.m_LimelightFrl.getCurrentAprilTag().ID ==  22){
-        //         m_robotContainer.m_DriveTrain.navx.setAngleAdjustment(240);
-        //         navxCalibrated = true;
-        //     }
-        //     if (m_robotContainer.m_LimelightFrl.getCurrentAprilTag().ID ==  6){
-        //         m_robotContainer.m_DriveTrain.navx.setAngleAdjustment(240);
-        //         navxCalibrated = true;
-        //     }
-        //     if (m_robotContainer.m_LimelightFrl.getCurrentAprilTag().ID == 7){
-        //         m_robotContainer.m_DriveTrain.navx.setAngleAdjustment(180);
-        //         navxCalibrated = true;
-        //     }
-        //     if (m_robotContainer.m_LimelightFrl.getCurrentAprilTag().ID ==  8){
-        //         m_robotContainer.m_DriveTrain.navx.setAngleAdjustment(120);
-        //         navxCalibrated = true;
-        //     }
-        //     if (m_robotContainer.m_LimelightFrl.getCurrentAprilTag().ID ==  9){
-        //         m_robotContainer.m_DriveTrain.navx.setAngleAdjustment(60);
-        //         navxCalibrated = true;
-        //     }
-        //     if (m_robotContainer.m_LimelightFrl.getCurrentAprilTag().ID ==  10){
-        //         m_robotContainer.m_DriveTrain.navx.setAngleAdjustment(0);
-        //         navxCalibrated = true;
-        //     }
-        //     if (m_robotContainer.m_LimelightFrl.getCurrentAprilTag().ID ==  11){
-        //         m_robotContainer.m_DriveTrain.navx.setAngleAdjustment(300);
-        //         navxCalibrated = true;
-        //     }
-        // }
-        // AlgaeMechanism.AUTORunning = true;
         m_robotContainer.getLimelightBack().SetTagIDToTrack(-1);
         m_robotContainer.getLimelightFrl().SetTagIDToTrack(-1);
         m_robotContainer.getLimelightFrr().SetTagIDToTrack(-1);
         m_robotContainer.getLedStrand().changeLed(128, 0, 0);
         try {
-            var cam = CameraServer.startAutomaticCapture();
-            cam.setResolution(100, 100);
-            cam.setFPS(60);
+            try (UsbCamera cam = CameraServer.startAutomaticCapture()) {
+                cam.setResolution(100, 100);
+                cam.setFPS(60);
+            }
         } catch (Exception e) {
-            // TODO: handle exception
+            e.printStackTrace();
         }
 
         SmartDashboard.putString("Code Version", codeVersion);
@@ -108,77 +59,17 @@ public class Robot extends TimedRobot {
     }
 
     @Override
-    public void disabledInit() {
-        // AlgaeMechanism.AUTORunning = true;
-    }
-
-    @Override
     public void disabledPeriodic() {
-        AlgaeMechanism.AUTORunning = true;
-        // TODO 1: READ TAG, turn on bot pushed up against the reef wall. make sure to read tag, then move
-        // 
-        // if (LimelightHelpers.getTV("limelight-frl") && navxCalibrated == false){
-        //     if (m_robotContainer.m_LimelightFrl.getCurrentAprilTag().ID ==  17){
-        //         m_robotContainer.m_DriveTrain.navx.setAngleAdjustment(300);
-        //          navxCalibrated = true;
-        //     }
-        //     if (m_robotContainer.m_LimelightFrl.getCurrentAprilTag().ID ==  18){
-        //         m_robotContainer.m_DriveTrain.navx.setAngleAdjustment(0);
-        //         navxCalibrated = true;
-        //     }
-        //     if (m_robotContainer.m_LimelightFrl.getCurrentAprilTag().ID ==  19){
-        //         m_robotContainer.m_DriveTrain.navx.setAngleAdjustment(60);
-        //         navxCalibrated = true;
-        //     }
-        //     if (m_robotContainer.m_LimelightFrl.getCurrentAprilTag().ID ==  20){
-        //         m_robotContainer.m_DriveTrain.navx.setAngleAdjustment(120);
-        //         navxCalibrated = true;
-        //     }
-        //     if (m_robotContainer.m_LimelightFrl.getCurrentAprilTag().ID ==  21){
-        //         m_robotContainer.m_DriveTrain.navx.setAngleAdjustment(180);
-        //         navxCalibrated = true;
-        //     }
-        //     if (m_robotContainer.m_LimelightFrl.getCurrentAprilTag().ID ==  22){
-        //         m_robotContainer.m_DriveTrain.navx.setAngleAdjustment(240);
-        //         navxCalibrated = true;
-        //     }
-        //     if (m_robotContainer.m_LimelightFrl.getCurrentAprilTag().ID ==  6){
-        //         m_robotContainer.m_DriveTrain.navx.setAngleAdjustment(240);
-        //         navxCalibrated = true;
-        //     }
-        //     if (m_robotContainer.m_LimelightFrl.getCurrentAprilTag().ID == 7){
-        //         m_robotContainer.m_DriveTrain.navx.setAngleAdjustment(180);
-        //         navxCalibrated = true;
-        //     }
-        //     if (m_robotContainer.m_LimelightFrl.getCurrentAprilTag().ID ==  8){
-        //         m_robotContainer.m_DriveTrain.navx.setAngleAdjustment(120);
-        //         navxCalibrated = true;
-        //     }
-        //     if (m_robotContainer.m_LimelightFrl.getCurrentAprilTag().ID ==  9){
-        //         m_robotContainer.m_DriveTrain.navx.setAngleAdjustment(60);
-        //         navxCalibrated = true;
-        //     }
-        //     if (m_robotContainer.m_LimelightFrl.getCurrentAprilTag().ID ==  10){
-        //         m_robotContainer.m_DriveTrain.navx.setAngleAdjustment(0);
-        //         navxCalibrated = true;
-        //     }
-        //     if (m_robotContainer.m_LimelightFrl.getCurrentAprilTag().ID ==  11){
-        //         m_robotContainer.m_DriveTrain.navx.setAngleAdjustment(300);
-        //         navxCalibrated = true;
-        //     }
-
-
-        // }
-        // System.out.println(navxCalibrated);
+        AlgaeMechanism.AUTO_RUNNING = true;
     }
 
     @Override
     public void autonomousInit() {
-        m_robotContainer.getDriveTrain().m_FieldRelativeEnable = false;
-        System.out.println(m_robotContainer.getDriveTrain().m_FieldRelativeEnable);
+        m_robotContainer.getDriveTrain().setFieldRelativeEnable(false);
+        System.out.println(m_robotContainer.getDriveTrain().isFieldRelativeEnable());
         m_autonomousCommand = m_robotContainer.getAutonomousCommand();
 
-        AlgaeMechanism.AUTORunning = true;
+        AlgaeMechanism.AUTO_RUNNING = true;
         if (m_autonomousCommand != null) {
             m_autonomousCommand.schedule();
 
@@ -186,14 +77,10 @@ public class Robot extends TimedRobot {
     }
 
     @Override
-    public void autonomousPeriodic() {
-    }
-
-    @Override
     public void teleopInit() {
         // m_robotContainer.m_DriveTrain.ZeroGyro().schedule();
-        AlgaeMechanism.AUTORunning = false;
-        m_robotContainer.getDriveTrain().m_FieldRelativeEnable = true;
+        AlgaeMechanism.AUTO_RUNNING = false;
+        m_robotContainer.getDriveTrain().setFieldRelativeEnable(true);
         m_robotContainer.getLimelightBack().SetTagIDToTrack(-1);
         m_robotContainer.getLimelightFrl().SetTagIDToTrack(-1);
         m_robotContainer.getLimelightFrr().SetTagIDToTrack(-1);
@@ -203,24 +90,7 @@ public class Robot extends TimedRobot {
     }
 
     @Override
-    public void teleopPeriodic() {
-
-    }
-
-    @Override
     public void testInit() {
         CommandScheduler.getInstance().cancelAll();
-    }
-
-    @Override
-    public void testPeriodic() {
-    }
-
-    @Override
-    public void simulationInit() {
-    }
-
-    @Override
-    public void simulationPeriodic() {
     }
 }

@@ -22,6 +22,7 @@ import edu.wpi.first.wpilibj.DutyCycleEncoder;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants;
+import frc.robot.subsystems.drivetrain.Drivetrain;
 
 /**
  * This is the code to run a single swerve module <br>
@@ -38,7 +39,7 @@ public class SwerveModule extends SubsystemBase {
 
     // kWheelCircumference used to be
     public static final double kDriveMaxSpeed = Units.feetToMeters(12.5);
-    public static final double kModuleMaxAngularVelocity = DriveTrain.kMaxAngularSpeed;
+    public static final double kModuleMaxAngularVelocity = Drivetrain.MAX_ANGULAR_SPEED;
     public static final double kModuleMaxAngularAcceleration =
             2 * Math.PI; // radians per second squared
 

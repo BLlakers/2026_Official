@@ -1,0 +1,39 @@
+package frc.robot.subsystems.coral;
+
+import lombok.Builder;
+import lombok.Data;
+
+@Data
+@Builder
+public class CoralMechanismSettings {
+
+    public static CoralMechanismSettings defaults() {
+        return CoralMechanismSettings.builder().build();
+    }
+
+    @Builder.Default
+    private final double advanceIncrement = .60;
+
+    @Builder.Default
+    private double reverseIncrement = -.60 ;
+
+    @Builder.Default
+    private final double advanceRightMotorToTroughIncrement = .95;
+
+    @Builder.Default
+    private final double advanceLeftMotorToTroughIncrement = -.25;
+
+    // TODO: These rear and front channel was never represented within our frc.robot.Constants class. Consider moving the definition
+    // of this channel to frc.robot.Constants once initial refactor is complete
+    @Builder.Default
+    private int rearSensorChannel = 0;
+
+    @Builder.Default
+    private int frontSensorChannel = 1;
+
+    @Builder.Default
+    private int frontSensorLoadedThreshold = 2200;
+
+    @Builder.Default
+    private int rearSensorLoadedThreshold = 1600;
+}

@@ -9,7 +9,7 @@ import edu.wpi.first.math.trajectory.TrapezoidProfile;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
-import frc.robot.subsystems.DriveTrain;
+import frc.robot.subsystems.drivetrain.Drivetrain;
 import frc.robot.subsystems.LedStrand;
 import frc.robot.support.limelight.LimelightHelpers;
 
@@ -37,7 +37,7 @@ public class AprilStrafeCommand extends Command {
     private final ProfiledPIDController Back_yController = new ProfiledPIDController(.8, 0, 0.0, BACK_YCONSTRAINTS);
     private final ProfiledPIDController Back_omegaController = new ProfiledPIDController(4, 0, 0.0, OMEGA_CONSTRAINTS);
 
-    private DriveTrain m_drivetrain;
+    private Drivetrain m_drivetrain;
     private Supplier<AprilTag> m_aprilTagProvider;
     private DoubleSupplier LS;
     //Rotation2d of AprilTag
@@ -49,7 +49,7 @@ public class AprilStrafeCommand extends Command {
     private double m_goalY;
     private double m_goalRot;
 
-    public AprilStrafeCommand(Supplier<AprilTag> aprilTagSupplier, Supplier<Rotation2d> aprilTagRotation2d, DriveTrain drivetrainSubsystem, Transform2d
+    public AprilStrafeCommand(Supplier<AprilTag> aprilTagSupplier, Supplier<Rotation2d> aprilTagRotation2d, Drivetrain drivetrainSubsystem, Transform2d
             goalTransformRelativeToAprilTag, boolean isBackwards, Boolean isLeft, LedStrand leds, DoubleSupplier _LS) {
         m_aprilTagProvider = aprilTagSupplier;
         m_drivetrain = drivetrainSubsystem;
@@ -79,7 +79,7 @@ public class AprilStrafeCommand extends Command {
 
     @Override
     public void execute() {
-        m_drivetrain.m_FieldRelativeEnable = false;
+        m_drivetrain.setFieldRelativeEnable(false);
         AprilTag aprilTag = m_aprilTagProvider.get();
         double aprilSkew;
         if (aprilTag.ID
@@ -174,7 +174,7 @@ public class AprilStrafeCommand extends Command {
     @Override
     public void end(boolean interrupted) {
         m_drivetrain.stopModules();
-        m_drivetrain.m_FieldRelativeEnable = true;
+        m_drivetrain.setFieldRelativeEnable(true);
         mLedStrand.changeLed(128, 0, 0);
     }
 

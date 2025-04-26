@@ -4,7 +4,7 @@ import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.Constants;
-import frc.robot.subsystems.DriveTrain;
+import frc.robot.subsystems.drivetrain.Drivetrain;
 
 import java.util.function.BooleanSupplier;
 import java.util.function.DoubleSupplier;
@@ -14,29 +14,29 @@ public class SwerveDriveCommand extends Command {
     private DoubleSupplier m_leftX;
     private DoubleSupplier m_rightX;
     private DoubleSupplier m_AccelerateRT;
-    private DriveTrain m_DriveTrain;
+    private Drivetrain m_Drivetrain;
     private String Driver;
     private BooleanSupplier m_RunHalfSpeed;
     private DoubleSupplier m_ElevatorDecelerate;
 
-    private static final double kDriveMaxSpeed = 0.95 * DriveTrain.kMaxSpeed;
-    private static final double kTurnMaxSpeed = 0.5 * DriveTrain.kMaxTurnAngularSpeed;
+    private static final double kDriveMaxSpeed = 0.95 * Drivetrain.MAX_SPEED;
+    private static final double kTurnMaxSpeed = 0.5 * Drivetrain.MAX_TURN_ANGULAR_SPEED;
 
     public SwerveDriveCommand(
             DoubleSupplier _leftY,
             DoubleSupplier _leftX,
             DoubleSupplier _rightX,
             DoubleSupplier _AccelerateRT,
-            DriveTrain _dTrain) {
+            Drivetrain _dTrain) {
         m_leftY = _leftY;
         m_leftX = _leftX;
         m_rightX = _rightX;
-        m_DriveTrain = _dTrain;
+        m_Drivetrain = _dTrain;
         m_AccelerateRT = _AccelerateRT;
         m_RunHalfSpeed = () -> false;
         m_ElevatorDecelerate = () -> 1.0;
         Driver = "Ben";
-        addRequirements(m_DriveTrain);
+        addRequirements(m_Drivetrain);
     }
 
     public SwerveDriveCommand(
@@ -44,17 +44,17 @@ public class SwerveDriveCommand extends Command {
             DoubleSupplier _leftX,
             DoubleSupplier _rightX,
             DoubleSupplier _AccelerateRT,
-            DriveTrain _dTrain,
+            Drivetrain _dTrain,
             BooleanSupplier _halfSpeedCondition,
             String d) {
         m_leftY = _leftY;
         m_leftX = _leftX;
         m_rightX = _rightX;
-        m_DriveTrain = _dTrain;
+        m_Drivetrain = _dTrain;
         m_AccelerateRT = _AccelerateRT;
         m_RunHalfSpeed = _halfSpeedCondition;
         m_ElevatorDecelerate = () -> 1.0;
-        addRequirements(m_DriveTrain);
+        addRequirements(m_Drivetrain);
         Driver = d;
     }
 
@@ -64,18 +64,18 @@ public class SwerveDriveCommand extends Command {
             DoubleSupplier _rightX,
             DoubleSupplier _AccelerateRT,
             DoubleSupplier _ElevatorDecelerate,
-            DriveTrain _dTrain,
+            Drivetrain _dTrain,
             BooleanSupplier _halfSpeedCondition,
             String d) {
         m_leftY = _leftY;
         m_leftX = _leftX;
         m_rightX = _rightX;
-        m_DriveTrain = _dTrain;
+        m_Drivetrain = _dTrain;
         m_AccelerateRT = _AccelerateRT;
         m_RunHalfSpeed = _halfSpeedCondition;
         m_ElevatorDecelerate = _ElevatorDecelerate;
         Driver = d;
-        addRequirements(m_DriveTrain);
+        addRequirements(m_Drivetrain);
     }
 
     // Called when the command is initially scheduled.
@@ -136,7 +136,7 @@ public class SwerveDriveCommand extends Command {
         SmartDashboard.putNumber("DriveTrain/Controller/Command/X Speed", xSpeed);
         SmartDashboard.putNumber("DriveTrain/Controller/Command/Y Speed", ySpeed);
 
-        m_DriveTrain.drive(xSpeed, ySpeed, rotSpeed);
+        m_Drivetrain.drive(xSpeed, ySpeed, rotSpeed);
     }
 
     // Called once the command ends or is interrupted.

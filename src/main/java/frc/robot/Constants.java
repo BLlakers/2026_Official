@@ -3,8 +3,6 @@ package frc.robot;
 import com.pathplanner.lib.path.PathConstraints;
 import com.pathplanner.lib.util.FlippingUtil;
 import edu.wpi.first.math.geometry.*;
-import edu.wpi.first.math.trajectory.TrapezoidProfile;
-import frc.robot.subsystems.DriveTrain;
 import frc.robot.support.RobotVersion;
 
 import java.util.Arrays;
@@ -36,10 +34,6 @@ public final class Constants {
                         new Rotation3d(
                                 0, 0,
                                 0)); // we do conversion in limelight. would normally tell robot where the camera
-        // is relative to the center of the bot.
-        public static final TrapezoidProfile.Constraints kthetaController =
-                new TrapezoidProfile.Constraints(
-                        DriveTrain.kMaxAngularSpeed, DriveTrain.kModuleMaxAngularAcceleration);
     }
 
     public static class Conversion {
@@ -103,11 +97,11 @@ public final class Constants {
         public static final int frDriveMtrC = 6;
         public static final int brDriveMtrC = 7;
         public static final int brSteerMtrC = 8;
-        public static final int m_ElevatorMtrC = 11;
-        public static final int m_ClimbMtrC = 12;
-        public static final int m_CoralMtrRC = 13;
-        public static final int m_CoralMtrLC = 14;
-        public static final int m_Follower = 15;
+        public static final int elevatorMotorChannel = 11;
+        public static final int climbMotoChannel = 12;
+        public static final int coralMotorRightChannel = 13;
+        public static final int coralMotorLeftChannel = 14;
+        public static final int elevatorFollowerMotorChannel = 15;
         public static final int blTurnEncoderDIOC = 0;
         public static final int flTurnEncoderDIOC = 1;
         public static final int frTurnEncoderDIOC = 2;
@@ -120,7 +114,7 @@ public final class Constants {
     }
 
     public static class Algae {
-        public static final int m_IntakeMtrC = 9;
+        public static final int intakeMotorChannel = 9;
         public static final int m_AlgaeMtrC = 10;
     }
 

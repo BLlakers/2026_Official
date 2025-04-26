@@ -2,7 +2,7 @@
 // Open Source Software; you can modify and/or share it under the terms of
 // the WPILib BSD license file in the root directory of this project.
 
-package frc.robot.subsystems;
+package frc.robot.subsystems.drivetrain;
 
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.config.PIDConstants;
@@ -33,49 +33,38 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants;
 import frc.robot.RobotContainer;
+import frc.robot.subsystems.SwerveModule;
 import frc.robot.support.RobotVersion;
 import frc.robot.support.limelight.LimelightHelpers;
 
 import java.util.List;
+import java.util.Optional;
+
+import static frc.robot.Constants.Conversion.NeoMaxSpeedRPM;
+import static frc.robot.Constants.Conversion.TurnGearRatio;
 
 /**
  * Represents a swerve drive style drivetrain.
  */
-public class DriveTrain extends SubsystemBase {
-    Field2d field;
-    public SwerveDriveKinematics m_kinematics =
-            new SwerveDriveKinematics(
-                    Constants.Drive.SMFrontLeftLocation,
-                    Constants.Drive.SMFrontRightLocation,
-                    Constants.Drive.SMBackLeftLocation,
-                    Constants.Drive.SMBackRightLocation);
-    public PIDConstants LeftToRight = new PIDConstants(3); //
-    public PIDConstants Rotation = new PIDConstants(3);
-    public boolean m_WheelLock = false;
-    public boolean m_FieldRelativeEnable = true;
-    Pose2d goalPose;
-    public static final double kMaxSpeed =
-            Units.feetToMeters(12.5); // WP this seemed to work don't know why // 3.68
+public class Drivetrain extends SubsystemBase {
+    public static final double MAX_SPEED = Units.feetToMeters(12.5); // WP this seemed to work don't know why // 3.68
+
     // meters per second or 12.1
     // ft/s (max speed of SDS Mk3 with Neo motor) // TODO KMaxSpeed needs to go with
     // enum
-    public static final double kMaxAngularSpeed =
-            Units.rotationsPerMinuteToRadiansPerSecond(
-                    Constants.Conversion.NeoMaxSpeedRPM / Constants.Conversion.TurnGearRatio); // 1/2
-    // rotation
-    // per
-    // second
-    public static final double kMaxTurnAngularSpeed =
-            kMaxSpeed / Constants.Drive.SMBackLeftLocation.getNorm(); // 1/2
-    // rotation
-    // per
-    // second
-    public static final double kModuleMaxAngularAcceleration =
-            Math.PI / 3; // what is this used for again?
+    public static final double MAX_ANGULAR_SPEED = Units.rotationsPerMinuteToRadiansPerSecond(NeoMaxSpeedRPM / TurnGearRatio); // 1/2
 
-    // creates a gyro object. Gyro gives the robots rotation/ where the robot is
-    // pointed.
-    public final AHRS navx = new AHRS(AHRS.NavXComType.kMXP_SPI);
+    // rotation per second
+    public static final double MAX_TURN_ANGULAR_SPEED = MAX_SPEED / Constants.Drive.SMBackLeftLocation.getNorm(); // 1/2
+
+    private final Field2d field;
+    private final SwerveDriveKinematics swerveDriveKinematics;
+    private boolean wheelLock = false;
+    private boolean fieldRelativeEnable = true;
+    private Pose2d goalPose;
+
+    // The gyro object. Gyro gives the robots rotation/ where the robot is pointed.
+    private final AHRS navx;
 
     // Creates each swerve module. Swerve modules have a turning and drive motor + a
     // turning and drive encoder.
@@ -131,14 +120,23 @@ public class DriveTrain extends SubsystemBase {
     StructPublisher<Rotation2d> CurrentRotPublisher = NetworkTableInstance.getDefault()
             .getStructTopic("CurrentRot", Rotation2d.struct).publish();
 
-    public DriveTrain(RobotVersion version) {
+    public Drivetrain() {
+        // TODO: Figure out what to do with these
+        PIDConstants lateralMovementPIDConstants = new PIDConstants(3);
+        PIDConstants rotationPIDConstants = new PIDConstants(3);
+        this.navx = new AHRS(AHRS.NavXComType.kMXP_SPI);
+        this.swerveDriveKinematics = new SwerveDriveKinematics(
+                Constants.Drive.SMFrontLeftLocation,
+                Constants.Drive.SMFrontRightLocation,
+                Constants.Drive.SMBackLeftLocation,
+                Constants.Drive.SMBackRightLocation);
         AutoBuilder.configure(
                 this::getPose2d, // Robot pose supplier NEEDS TO BE POSE2D IF WE ARE USING OLD LIMELIGHT WAY TODO
                 this::resetPose, // Method to reset odometry (will be called if your auto has a starting pose) NEEDS TO BE RESETPOSE2D IF WE ARE USING OLD LIMELIGHT
                 this::getChassisSpeeds,
-                (speeds) -> driveRobotRelative(speeds), // ChassisSpeeds supplier. MUST BE ROBOT RELATIVE
+                this::driveRobotRelative, // ChassisSpeeds supplier. MUST BE ROBOT RELATIVE
                 // Method that will drive the robot given ROBOT RELATIVE ChassisSpeeds. Also optionally outputs individual module feedforwards
-                new PPHolonomicDriveController(LeftToRight, Rotation),
+                new PPHolonomicDriveController(lateralMovementPIDConstants, rotationPIDConstants),
                 //new PPHolonomicDriveController(Translation,Rotation), //PPHolonomicDriveController(Translation, Rotation, .2),
                 config,// The robot configuration
                 () -> {
@@ -146,11 +144,8 @@ public class DriveTrain extends SubsystemBase {
                     // This will flip the path being followed to the red side of the field.
                     // THE ORIGIN WILL REMAIN ON THE BLUE SIDE
 
-                    var alliance = DriverStation.getAlliance();
-                    if (alliance.isPresent()) {
-                        return alliance.get() == DriverStation.Alliance.Red;
-                    }
-                    return false;
+                    Optional<Alliance> alliance = DriverStation.getAlliance();
+                    return alliance.filter(value -> value == Alliance.Red).isPresent();
                 },
                 this); // Reference to this subsystem to set requirements
 
@@ -201,10 +196,10 @@ public class DriveTrain extends SubsystemBase {
         // initializes odometry
         m_odometry =
                 new SwerveDriveOdometry(
-                        this.m_kinematics, navx.getRotation2d(), getSwerveModulePositions());
+                        this.swerveDriveKinematics, navx.getRotation2d(), getSwerveModulePositions());
 
         m_poseEstimator = new SwerveDrivePoseEstimator(
-                m_kinematics,
+                swerveDriveKinematics,
                 navx.getRotation2d(),
                 new SwerveModulePosition[]{
                         m_frontLeft.getModulePosition(),
@@ -225,11 +220,19 @@ public class DriveTrain extends SubsystemBase {
         field = new Field2d();
     }
 
+    public boolean isFieldRelativeEnable() {
+        return this.fieldRelativeEnable;
+    }
+
+    public void setFieldRelativeEnable(boolean enable) {
+        this.fieldRelativeEnable = enable;
+    }
+
     /**
      * Gets our current position in meters on the field.
      *
      * @return A current position on the field.
-     * <p><pi> A translation2d (X and Y on the field) -> {@link #m_kinematics} + A rotation2d (Rot
+     * <p><pi> A translation2d (X and Y on the field) -> {@link #swerveDriveKinematics} + A rotation2d (Rot
      * X and Y on the field) -> {@link #nav}
      */
     public Pose2d getPose2d() {
@@ -269,7 +272,7 @@ public class DriveTrain extends SubsystemBase {
         SmartDashboard.putNumber(getName() + "/Command/X Speed", xSpeed);
         SmartDashboard.putNumber(getName() + "/Command/Y Speed", ySpeed);
         SmartDashboard.putNumber(getName() + "/Command/Rot Speed", rot);
-        SmartDashboard.putBoolean(getName() + "/Command/RobotRelative", m_FieldRelativeEnable);
+        SmartDashboard.putBoolean(getName() + "/Command/RobotRelative", this.fieldRelativeEnable);
 
         var alliance = DriverStation.getAlliance();
         Rotation2d robotRotation;
@@ -282,12 +285,12 @@ public class DriveTrain extends SubsystemBase {
 
         // SmartDashboard.putNumber ( "inputRotiation", robotRotation.getDegrees());
         DesiredStates =
-                m_kinematics.toSwerveModuleStates(
-                        m_FieldRelativeEnable
+                swerveDriveKinematics.toSwerveModuleStates(
+                        this.fieldRelativeEnable
                                 ? ChassisSpeeds.fromFieldRelativeSpeeds(xSpeed, ySpeed, rot, robotRotation)
                                 : new ChassisSpeeds(xSpeed, ySpeed, rot));
 
-        if (!m_WheelLock) {
+        if (!wheelLock) {
             setModuleStates(DesiredStates);
         } else {
             WheelLock();
@@ -334,7 +337,7 @@ public class DriveTrain extends SubsystemBase {
      * Runnable Command.
      *
      * <p>Tells the Wheels when to stop or not based off of a boolean varible named {@link
-     * #m_WheelLock}.
+     * #wheelLock}.
      *
      * <p>Used in drive Method
      */
@@ -345,10 +348,10 @@ public class DriveTrain extends SubsystemBase {
 
                     // one-time action goes here
                     // WP - Add code here to toggle the gripper solenoid
-                    if (m_WheelLock == true) {
-                        m_WheelLock = false;
-                    } else if (m_WheelLock == false) {
-                        m_WheelLock = true;
+                    if (wheelLock == true) {
+                        wheelLock = false;
+                    } else if (wheelLock == false) {
+                        wheelLock = true;
                     }
                 });
     }
@@ -402,7 +405,7 @@ public class DriveTrain extends SubsystemBase {
 
     public void driveRobotRelative(ChassisSpeeds robotRelativeSpeeds) {
         ChassisSpeeds targetSpeeds = ChassisSpeeds.discretize(robotRelativeSpeeds, 0.02);
-        SwerveModuleState[] targetStates = m_kinematics.toSwerveModuleStates(targetSpeeds);
+        SwerveModuleState[] targetStates = swerveDriveKinematics.toSwerveModuleStates(targetSpeeds);
         setModuleStates(targetStates);
     }
 
@@ -436,7 +439,7 @@ public class DriveTrain extends SubsystemBase {
      * @return chassisSpeeds --> A reading of the speed in m/s our robot is going.
      */
     public ChassisSpeeds getChassisSpeeds() {
-        return m_kinematics.toChassisSpeeds(getSwerveModuleStates());
+        return swerveDriveKinematics.toChassisSpeeds(getSwerveModuleStates());
     }
 
     public Command PathFindLeft() {
@@ -589,18 +592,18 @@ public class DriveTrain extends SubsystemBase {
                     // System.out.println("I am Here");
                     // one-time action goes here
                     // WP - Add code here to toggle the gripper solenoid
-                    if (m_FieldRelativeEnable == true) {
-                        m_FieldRelativeEnable = false;
+                    if (this.fieldRelativeEnable) {
+                        fieldRelativeEnable = false;
                         // System.out.println("I am Here 2");
-                    } else if (m_FieldRelativeEnable == false) {
-                        m_FieldRelativeEnable = true;
+                    } else {
+                        fieldRelativeEnable = true;
                         // System.out.println("I am Here 3");
                     }
                 });
     }
 
     public void SetFieldRelativeEnable(boolean fieldRelative) {
-        m_FieldRelativeEnable = fieldRelative;
+        fieldRelativeEnable = fieldRelative;
     }
 
     /**
@@ -710,8 +713,8 @@ public class DriveTrain extends SubsystemBase {
                 "Odometry/navx/Orientation", () -> navx.getRotation2d().getDegrees(), null);
         builder.addBooleanProperty(
                 "FieldRelativeEnabled",
-                () -> this.m_FieldRelativeEnable,
-                (boolean fre) -> m_FieldRelativeEnable = fre);
+                () -> this.fieldRelativeEnable,
+                (boolean fre) -> fieldRelativeEnable = fre);
         builder.addDoubleProperty("EstimatedOdometry/Pose/X", () -> getPose2dEstimator().getX(), null);
         builder.addDoubleProperty("EstimatedOdometry/Pose/Y", () -> getPose2dEstimator().getY(), null);
         builder.addDoubleProperty(

@@ -8,7 +8,7 @@ import edu.wpi.first.math.trajectory.TrapezoidProfile;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
-import frc.robot.subsystems.DriveTrain;
+import frc.robot.subsystems.drivetrain.Drivetrain;
 
 import java.util.function.Supplier;
 
@@ -27,7 +27,7 @@ public class AprilPoseEstimatorCommand extends Command {
     private final ProfiledPIDController m_omegaController =
             new ProfiledPIDController(.1, 0, 0.0, OMEGA_CONSTRAINTS);
 
-    private DriveTrain m_drivetrain;
+    private Drivetrain m_drivetrain;
     private Supplier<Pose2d> m_currentEstimatedPose;
     private Supplier<AprilTag> m_currentAprilTag;
 
@@ -37,7 +37,7 @@ public class AprilPoseEstimatorCommand extends Command {
     private double m_goalY;
     private double m_goalRot;
 
-    public AprilPoseEstimatorCommand(Supplier<Pose2d> currentEstimatedPose, Supplier<AprilTag> currentAprilTag, boolean isLeft, DriveTrain drivetrainSubsystem) {
+    public AprilPoseEstimatorCommand(Supplier<Pose2d> currentEstimatedPose, Supplier<AprilTag> currentAprilTag, boolean isLeft, Drivetrain drivetrainSubsystem) {
         m_currentEstimatedPose = currentEstimatedPose;
         m_currentAprilTag = currentAprilTag;
         m_isLeft = isLeft;
@@ -56,7 +56,7 @@ public class AprilPoseEstimatorCommand extends Command {
 
     @Override
     public void execute() {
-        m_drivetrain.m_FieldRelativeEnable = false;
+        m_drivetrain.setFieldRelativeEnable(false);
         AprilTag aprilTag = m_currentAprilTag.get();
         Pose2d goalPose = getGoalPose(aprilTag.ID);
         m_goalX = goalPose.getX();
@@ -109,7 +109,7 @@ public class AprilPoseEstimatorCommand extends Command {
     @Override
     public void end(boolean interrupted) {
         m_drivetrain.stopModules();
-        m_drivetrain.m_FieldRelativeEnable = true;
+        m_drivetrain.setFieldRelativeEnable(true);
     }
 
     @Override

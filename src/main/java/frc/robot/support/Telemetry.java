@@ -43,14 +43,14 @@ public class Telemetry {
     }
 
     public static void record(final String key, final double value) {
-        requireNonNull(key, "name cannot be null");
+        requireNonNull(key, "key cannot be null");
         DoubleLogEntry entry = doubleLogs.computeIfAbsent(key,
                 (k) -> new DoubleLogEntry(DataLogManager.getLog(), k));
         entry.append(value);
     }
 
     public static void record(final String key, final int value) {
-        requireNonNull(key, "name cannot be null");
+        requireNonNull(key, "key cannot be null");
         IntegerLogEntry entry = intLogs.computeIfAbsent(key,
                 (k) -> new IntegerLogEntry(DataLogManager.getLog(), k));
         entry.append(value);
