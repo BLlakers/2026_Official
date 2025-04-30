@@ -2,6 +2,7 @@ package frc.robot;
 
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.auto.NamedCommands;
+import com.pathplanner.lib.config.RobotConfig;
 import com.pathplanner.lib.path.PathConstraints;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
@@ -17,7 +18,8 @@ import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.commands.AlgaePIDCommand;
 import frc.robot.commands.AprilAlignCommand;
 import frc.robot.commands.ElevatorPIDCommand;
-import frc.robot.commands.SwerveDriveCommand;
+import frc.robot.commands.swervedrive.ControllerDelegate;
+import frc.robot.commands.swervedrive.SwerveDriveCommand;
 import frc.robot.subsystems.*;
 import frc.robot.subsystems.ElevatorMechanism;
 import frc.robot.subsystems.algae.AlgaeIntake;
@@ -29,6 +31,7 @@ import frc.robot.subsystems.climb.ClimbMechanismSettings;
 import frc.robot.subsystems.coral.CoralMechanism;
 import frc.robot.subsystems.coral.CoralMechanismSettings;
 import frc.robot.subsystems.drivetrain.Drivetrain;
+import frc.robot.subsystems.drivetrain.DrivetrainSettings;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -44,7 +47,9 @@ public class RobotContainer {
 
     private final LedStrand ledStrand = new LedStrand();
 
-    private final Drivetrain driveTrain = new Drivetrain();
+    private final DrivetrainSettings drivetrainSettings = DrivetrainSettings.defaults();
+
+    private final Drivetrain driveTrain = new Drivetrain(drivetrainSettings);
 
     private final CoralMechanism coralMechanism = new CoralMechanism(CoralMechanismSettings.defaults());
 
@@ -196,7 +201,19 @@ public class RobotContainer {
          * <p>Controls: - Left Stick: Steering - Right Stick: Rotate the robot - Right Trigger: provide
          * gas - Left Trigger: reduce maximum driving speed by 50% RECOMMENDED TO USE
          */
-        this.driveTrain.setDefaultCommand(new SwerveDriveCommand(this.driverController::getLeftY, this.driverController::getLeftX, this.driverController::getRightX, this.driverController::getRightTriggerAxis, this.elevatorMechanism::getElevatorDecelerateRatio, driveTrain, () -> driverController.getLeftTriggerAxis() >= 0.5, "Asa"));
+        this.driveTrain.setDefaultCommand(
+                new SwerveDriveCommand(
+                        ControllerDelegate.builder()
+                                .leftXSupplier(this.driverController::getLeftX)
+                                .leftYSupplier(this.driverController::getLeftY)
+                                .rightXSupplier(this.driverController::getRightX)
+                                .rightYSupplier(this.driverController::getRightY)
+                                .accelerationSupplier(this.driverController::getRightTriggerAxis)
+                                .elevatorDecelerateRatioSupplier(this.elevatorMechanism::getElevatorDecelerateRatio)
+                                .runHalfSpeedConditionSupplier(() -> driverController.getLeftTriggerAxis() >= 0.5)
+                                .driver(ControllerDelegate.Driver.ASA)
+                                .build(),
+                        driveTrain));
 
 
         // Driver Controller commands

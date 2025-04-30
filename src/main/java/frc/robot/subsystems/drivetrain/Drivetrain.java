@@ -6,19 +6,12 @@ package frc.robot.subsystems.drivetrain;
 
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.config.PIDConstants;
-import com.pathplanner.lib.config.RobotConfig;
 import com.pathplanner.lib.controllers.PPHolonomicDriveController;
-import com.pathplanner.lib.path.GoalEndState;
-import com.pathplanner.lib.path.PathConstraints;
-import com.pathplanner.lib.path.PathPlannerPath;
-import com.pathplanner.lib.path.Waypoint;
-import com.pathplanner.lib.util.FlippingUtil;
 import com.studica.frc.AHRS;
 import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.estimator.SwerveDrivePoseEstimator;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.*;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.networktables.NetworkTableInstance;
@@ -32,192 +25,165 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants;
-import frc.robot.RobotContainer;
-import frc.robot.subsystems.SwerveModule;
-import frc.robot.support.RobotVersion;
 import frc.robot.support.limelight.LimelightHelpers;
 
-import java.util.List;
 import java.util.Optional;
 
-import static frc.robot.Constants.Conversion.NeoMaxSpeedRPM;
-import static frc.robot.Constants.Conversion.TurnGearRatio;
-
 /**
- * Represents a swerve drive style drivetrain.
+ * Represents a swerve drive style drivetrain. In here, we initialize our swerve modules
+ * (example -> {@link #frontLeftSwerveModule}), Get input from autonomous and initialize our
+ * odometry -> {@link #swerveDriveOdometry}. Various other DriveTrain Related thing are initialized here too.
  */
 public class Drivetrain extends SubsystemBase {
-    public static final double MAX_SPEED = Units.feetToMeters(12.5); // WP this seemed to work don't know why // 3.68
 
-    // meters per second or 12.1
-    // ft/s (max speed of SDS Mk3 with Neo motor) // TODO KMaxSpeed needs to go with
-    // enum
-    public static final double MAX_ANGULAR_SPEED = Units.rotationsPerMinuteToRadiansPerSecond(NeoMaxSpeedRPM / TurnGearRatio); // 1/2
+    private final DrivetrainSettings settings;
 
-    // rotation per second
-    public static final double MAX_TURN_ANGULAR_SPEED = MAX_SPEED / Constants.Drive.SMBackLeftLocation.getNorm(); // 1/2
+    private final Field2d field = new Field2d();
 
-    private final Field2d field;
     private final SwerveDriveKinematics swerveDriveKinematics;
-    private boolean wheelLock = false;
-    private boolean fieldRelativeEnable = true;
-    private Pose2d goalPose;
 
     // The gyro object. Gyro gives the robots rotation/ where the robot is pointed.
-    private final AHRS navx;
+    private final AHRS navXSensorModule;
 
-    // Creates each swerve module. Swerve modules have a turning and drive motor + a
-    // turning and drive encoder.
-    public final SwerveModule m_frontRight;
-    public final SwerveModule m_frontLeft;
-    public final SwerveModule m_backLeft;
-    public final SwerveModule m_backRight;
+    public final SwerveModule frontRightSwerveModule;
 
-    // Creates an odometry object. Odometry tells the robot its position on the
-    // field.
-    public RobotConfig config;
+    public final SwerveModule frontLeftSwerveModule;
 
-    {
-        try {
-            config = RobotConfig.fromGUISettings();
-        } catch (Exception e) {
-            // Handle exception as needed
-            e.printStackTrace();
-        }
+    public final SwerveModule rearLeftSwerveModule;
+
+    public final SwerveModule rearRightSwerveModule;
+
+    private final SwerveDriveOdometry swerveDriveOdometry;
+
+    private final SwerveDrivePoseEstimator swerveDrivePoseEstimator;
+
+    private final StructArrayPublisher<SwerveModuleState> desiredStatePublisher;
+
+    private final StructArrayPublisher<SwerveModuleState> currentStatePublisher;
+
+    private final StructPublisher<ChassisSpeeds> currentSpeedsPublisher;
+
+    private final StructPublisher<Pose2d> currentPosePublisher;
+
+    private final StructPublisher<Pose2d> currentPoseEstimatorPublisher;
+
+    private final StructPublisher<Pose2d> goalPosePublisher;
+
+    private final StructPublisher<Rotation2d> currentRotPublisher;
+
+    private boolean wheelLock = false;
+
+    private boolean fieldRelativeEnable = true;
+
+    private Pose2d goalPose;
+
+    private SwerveModuleState[] DesiredStates;
+
+    private SwerveModuleState[] CurrentStates; // TODO: Unused? Eliminate
+
+    /**
+     * Instantiates a new Drivetrain with default {@link DrivetrainSettings}
+     */
+    public Drivetrain() {
+        this(DrivetrainSettings.defaults());
     }
 
-    private final SwerveDriveOdometry m_odometry;
-
-    private final SwerveDrivePoseEstimator m_poseEstimator;
-
-
-    // Constructor
     /**
-     * Our driveTrain Constructor.
+     * Instantiates a new Drivetrain subsystem with the specified settings
      *
-     * <p>In here, we initialize our swerve modules (example -> {@link #m_frontLeft}), Get input from
-     * autonomous and initialize our odometry -> {@link #m_odometry}.
-     *
-     * <p>Various other DriveTrain Related thing are initalized here too.
-     *
-     * @param RobotVersion
+     * @param settings The DrivetrainSettings to apply to this instance
      */
-    SwerveModuleState[] DesiredStates;
-    SwerveModuleState[] CurrentStates;
-    StructArrayPublisher<SwerveModuleState> DesiredStatePublisher = NetworkTableInstance.getDefault()
-            .getStructArrayTopic("DesiredStates", SwerveModuleState.struct).publish();
-    StructArrayPublisher<SwerveModuleState> CurrentStatePublisher = NetworkTableInstance.getDefault()
-            .getStructArrayTopic("CurrentStates", SwerveModuleState.struct).publish();
-    StructPublisher<ChassisSpeeds> CurrentSpeedsPublisher = NetworkTableInstance.getDefault()
-            .getStructTopic("CurrentSpeed", ChassisSpeeds.struct).publish();
-    StructPublisher<Pose2d> CurrentPosePublisher = NetworkTableInstance.getDefault()
-            .getStructTopic("CurrentPose", Pose2d.struct).publish();
-    StructPublisher<Pose2d> CurrentPoseEstimatorPublisher = NetworkTableInstance.getDefault()
-            .getStructTopic("CurrentPoseEstimator", Pose2d.struct).publish();
-    StructPublisher<Pose2d> GoalPosePublisher = NetworkTableInstance.getDefault()
-            .getStructTopic("GoalPoseEstimator", Pose2d.struct).publish();
+    public Drivetrain(final DrivetrainSettings settings) {
 
-    StructPublisher<Rotation2d> CurrentRotPublisher = NetworkTableInstance.getDefault()
-            .getStructTopic("CurrentRot", Rotation2d.struct).publish();
+        this.settings = settings;
 
-    public Drivetrain() {
-        // TODO: Figure out what to do with these
-        PIDConstants lateralMovementPIDConstants = new PIDConstants(3);
-        PIDConstants rotationPIDConstants = new PIDConstants(3);
-        this.navx = new AHRS(AHRS.NavXComType.kMXP_SPI);
+        NetworkTableInstance nti = NetworkTableInstance.getDefault();
+
+        this.desiredStatePublisher = nti.getStructArrayTopic("DesiredStates", SwerveModuleState.struct).publish();
+
+        this.currentStatePublisher = nti.getStructArrayTopic("CurrentStates", SwerveModuleState.struct).publish();
+
+        this.currentSpeedsPublisher = nti.getStructTopic("CurrentSpeed", ChassisSpeeds.struct).publish();
+
+        this.currentPosePublisher = nti.getStructTopic("CurrentPose", Pose2d.struct).publish();
+
+        this.currentPoseEstimatorPublisher = nti.getStructTopic("CurrentPoseEstimator", Pose2d.struct).publish();
+
+        this.goalPosePublisher = nti.getStructTopic("GoalPoseEstimator", Pose2d.struct).publish();
+
+        this.currentRotPublisher = nti.getStructTopic("CurrentRot", Rotation2d.struct).publish();
+
+        this.navXSensorModule = new AHRS(AHRS.NavXComType.kMXP_SPI);
+
+        this.settings.getRobotConfig().ifPresentOrElse(robotConfig -> {
+            AutoBuilder.configure(
+                    this::getPose2d, // Robot pose supplier NEEDS TO BE POSE2D IF WE ARE USING OLD LIMELIGHT WAY TODO
+                    this::resetPose, // Method to reset odometry (will be called if your auto has a starting pose) NEEDS TO BE RESETPOSE2D IF WE ARE USING OLD LIMELIGHT
+                    this::getChassisSpeeds,
+                    this::driveRobotRelative, // ChassisSpeeds supplier. MUST BE ROBOT RELATIVE
+                    // Method that will drive the robot given ROBOT RELATIVE ChassisSpeeds. Also, optionally outputs individual module feedforwards
+                    new PPHolonomicDriveController(
+                            new PIDConstants(this.settings.getLateralMovementPIDSettings().p()),
+                            new PIDConstants(this.settings.getRotationPIDSettings().p())),
+                    //new PPHolonomicDriveController(Translation,Rotation), //PPHolonomicDriveController(Translation, Rotation, .2),
+                    robotConfig,// The robot configuration
+                    () -> {
+                        // Boolean supplier that controls when the path will be mirrored for the red alliance
+                        // This will flip the path being followed to the red side of the field.
+                        // THE ORIGIN WILL REMAIN ON THE BLUE SIDE
+
+                        Optional<Alliance> alliance = DriverStation.getAlliance();
+                        return alliance.filter(value -> value == Alliance.Red).isPresent();
+                    },
+                    this); // Reference to this subsystem to set requirements
+        }, () -> {
+            throw new RuntimeException("Unable to obtain RobotConfig during Drivetrain creation." +
+                    "Path Planning will be fail!");
+        });
+
         this.swerveDriveKinematics = new SwerveDriveKinematics(
                 Constants.Drive.SMFrontLeftLocation,
                 Constants.Drive.SMFrontRightLocation,
                 Constants.Drive.SMBackLeftLocation,
                 Constants.Drive.SMBackRightLocation);
-        AutoBuilder.configure(
-                this::getPose2d, // Robot pose supplier NEEDS TO BE POSE2D IF WE ARE USING OLD LIMELIGHT WAY TODO
-                this::resetPose, // Method to reset odometry (will be called if your auto has a starting pose) NEEDS TO BE RESETPOSE2D IF WE ARE USING OLD LIMELIGHT
-                this::getChassisSpeeds,
-                this::driveRobotRelative, // ChassisSpeeds supplier. MUST BE ROBOT RELATIVE
-                // Method that will drive the robot given ROBOT RELATIVE ChassisSpeeds. Also optionally outputs individual module feedforwards
-                new PPHolonomicDriveController(lateralMovementPIDConstants, rotationPIDConstants),
-                //new PPHolonomicDriveController(Translation,Rotation), //PPHolonomicDriveController(Translation, Rotation, .2),
-                config,// The robot configuration
-                () -> {
-                    // Boolean supplier that controls when the path will be mirrored for the red alliance
-                    // This will flip the path being followed to the red side of the field.
-                    // THE ORIGIN WILL REMAIN ON THE BLUE SIDE
 
-                    Optional<Alliance> alliance = DriverStation.getAlliance();
-                    return alliance.filter(value -> value == Alliance.Red).isPresent();
-                },
-                this); // Reference to this subsystem to set requirements
+        this.frontRightSwerveModule = new SwerveModule(this.settings.getFrontRightSwerveModuleSettings());
+        this.frontLeftSwerveModule = new SwerveModule(this.settings.getFrontLeftSwerveModuleSettings());
+        this.rearLeftSwerveModule = new SwerveModule(this.settings.getRearLeftSwerveModuleSettings());
+        this.rearRightSwerveModule = new SwerveModule(this.settings.getRearRightSwerveModuleSettings());
 
-        // sets our wanted offsets. Varies between 2023 and 2024.
-        double flTurnOffset = 0, frTurnOffset = 0, blTurnOffset = 0, brTurnOffset = 0;
-        if (Constants.defaultRobotVersion == RobotVersion.v2023) {
-            flTurnOffset = Constants.RobotVersion2023.flTurnEncoderOffset;
-            frTurnOffset = Constants.RobotVersion2023.frTurnEncoderOffset;
-            blTurnOffset = Constants.RobotVersion2023.blTurnEncoderOffset;
-            brTurnOffset = Constants.RobotVersion2023.brTurnEncoderOffset;
-        } else if (Constants.defaultRobotVersion == RobotVersion.v2025) {
-            flTurnOffset = Constants.RobotVersion2025.flTurnEncoderOffset;
-            frTurnOffset = Constants.RobotVersion2025.frTurnEncoderOffset;
-            blTurnOffset = Constants.RobotVersion2025.blTurnEncoderOffset;
-            brTurnOffset = Constants.RobotVersion2025.brTurnEncoderOffset;
-        }
-
-
-        m_frontRight =
-                new SwerveModule(
-                        Constants.Port.frDriveMtrC,
-                        Constants.Port.frSteerMtrC,
-                        Constants.Port.frTurnEncoderDIOC,
-                        frTurnOffset);
-        m_frontLeft =
-                new SwerveModule(
-                        Constants.Port.flDriveMtrC,
-                        Constants.Port.flSteerMtrC,
-                        Constants.Port.flTurnEncoderDIOC,
-                        flTurnOffset);
-        m_backLeft =
-                new SwerveModule(
-                        Constants.Port.blDriveMtrC,
-                        Constants.Port.blSteerMtrC,
-                        Constants.Port.blTurnEncoderDIOC,
-                        blTurnOffset);
-        m_backRight =
-                new SwerveModule(
-                        Constants.Port.brDriveMtrC,
-                        Constants.Port.brSteerMtrC,
-                        Constants.Port.brTurnEncoderDIOC,
-                        brTurnOffset); // 0.05178
-
-        m_frontLeft.setName("Swerve Module/Front Left");
-        m_frontRight.setName("Swerve Module/Front Right");
-        m_backLeft.setName("Swerve Module/Back Left");
-        m_backRight.setName("Swerve Module/Back Right");
         // initializes odometry
-        m_odometry =
+        swerveDriveOdometry =
                 new SwerveDriveOdometry(
-                        this.swerveDriveKinematics, navx.getRotation2d(), getSwerveModulePositions());
+                        this.swerveDriveKinematics, this.navXSensorModule.getRotation2d(), getSwerveModulePositions());
 
-        m_poseEstimator = new SwerveDrivePoseEstimator(
-                swerveDriveKinematics,
-                navx.getRotation2d(),
+        swerveDrivePoseEstimator = new SwerveDrivePoseEstimator(
+                this.swerveDriveKinematics,
+                this.navXSensorModule.getRotation2d(),
                 new SwerveModulePosition[]{
-                        m_frontLeft.getModulePosition(),
-                        m_frontRight.getModulePosition(),
-                        m_backLeft.getModulePosition(),
-                        m_backRight.getModulePosition()
+                        frontLeftSwerveModule.getModulePosition(),
+                        frontRightSwerveModule.getModulePosition(),
+                        rearLeftSwerveModule.getModulePosition(),
+                        rearRightSwerveModule.getModulePosition()
                 },
                 new Pose2d(),
                 VecBuilder.fill(0.05, 0.05, Units.degreesToRadians(5)),
                 VecBuilder.fill(0.5, 0.5, Units.degreesToRadians(30)));
 
-        addChild(m_frontLeft.getName(), m_frontLeft);
-        addChild(m_frontRight.getName(), m_frontRight);
-        addChild(m_backLeft.getName(), m_backLeft);
-        addChild(m_backRight.getName(), m_backRight);
+        addChild(frontLeftSwerveModule.getName(), frontLeftSwerveModule);
+        addChild(frontRightSwerveModule.getName(), frontRightSwerveModule);
+        addChild(rearLeftSwerveModule.getName(), rearLeftSwerveModule);
+        addChild(rearRightSwerveModule.getName(), rearRightSwerveModule);
 
-        addChild("navx", navx);
-        field = new Field2d();
+        addChild("navx", this.navXSensorModule);
+    }
+
+    public double getMaxSpeed() {
+        return this.settings.getMaxSpeed();
+    }
+
+    public double getMaxTurnAngularSpeed() {
+        return this.settings.getMaxTurnAngularSpeed();
     }
 
     public boolean isFieldRelativeEnable() {
@@ -233,14 +199,14 @@ public class Drivetrain extends SubsystemBase {
      *
      * @return A current position on the field.
      * <p><pi> A translation2d (X and Y on the field) -> {@link #swerveDriveKinematics} + A rotation2d (Rot
-     * X and Y on the field) -> {@link #nav}
+     * X and Y on the field) -> {@link #navXSensorModule}
      */
     public Pose2d getPose2d() {
-        return m_odometry.getPoseMeters();
+        return swerveDriveOdometry.getPoseMeters();
     }
 
     public Pose2d getPose2dEstimator() {
-        return m_poseEstimator.getEstimatedPosition();
+        return swerveDrivePoseEstimator.getEstimatedPosition();
     }
 
     /**
@@ -249,22 +215,24 @@ public class Drivetrain extends SubsystemBase {
      * <p>This gets the encoder in the motor (drive) and the encoder on the swerve module.
      */
     public SwerveModulePosition[] getSwerveModulePositions() {
-        SwerveModulePosition frontLeftPosition = m_frontLeft.getModulePosition();
-        SwerveModulePosition frontRightPosition = m_frontRight.getModulePosition();
-        SwerveModulePosition backLeftPosition = m_backLeft.getModulePosition();
-        SwerveModulePosition backRightPosition = m_backRight.getModulePosition();
+        SwerveModulePosition frontLeftPosition = frontLeftSwerveModule.getModulePosition();
+        SwerveModulePosition frontRightPosition = frontRightSwerveModule.getModulePosition();
+        SwerveModulePosition backLeftPosition = rearLeftSwerveModule.getModulePosition();
+        SwerveModulePosition backRightPosition = rearRightSwerveModule.getModulePosition();
         return new SwerveModulePosition[]{
-                frontLeftPosition, frontRightPosition, backLeftPosition, backRightPosition
+                frontLeftPosition,
+                frontRightPosition,
+                backLeftPosition,
+                backRightPosition
         };
     }
 
     /**
      * Method to drive the robot using joystick info.
      *
-     * @param xSpeed        Speed of the robot in the x direction (forward).
-     * @param ySpeed        Speed of the robot in the y direction (sideways).
-     * @param rot           Angular rate of the robot.
-     * @param fieldRelative Whether the provided x and y speeds are relative to the field.
+     * @param xSpeed Speed of the robot in the x direction (forward).
+     * @param ySpeed Speed of the robot in the y direction (sideways).
+     * @param rot    Angular rate of the robot.
      */
     @SuppressWarnings("ParameterName")
     public void drive(double xSpeed, double ySpeed, double rot) {
@@ -280,7 +248,7 @@ public class Drivetrain extends SubsystemBase {
         // if (alliance.isPresent() && alliance.get() == DriverStation.Alliance.Red) {
         //   robotRotation = new Rotation2d(navx.getRotation2d().getRadians() + Rotation2d.fromDegrees(180).getRadians());
         // } else {
-        robotRotation = new Rotation2d(navx.getRotation2d().getRadians());
+        robotRotation = new Rotation2d(navXSensorModule.getRotation2d().getRadians());
         // }
 
         // SmartDashboard.putNumber ( "inputRotiation", robotRotation.getDegrees());
@@ -301,21 +269,21 @@ public class Drivetrain extends SubsystemBase {
      * Tells our modules what speed to go to
      */
     public void setModuleStates(SwerveModuleState[] swerveModuleStates) {
-        SwerveDriveKinematics.desaturateWheelSpeeds(swerveModuleStates, SwerveModule.kDriveMaxSpeed);
-        m_frontLeft.setDesiredState(swerveModuleStates[0]);
-        m_frontRight.setDesiredState(swerveModuleStates[1]);
-        m_backLeft.setDesiredState(swerveModuleStates[2]);
-        m_backRight.setDesiredState(swerveModuleStates[3]);
+        SwerveDriveKinematics.desaturateWheelSpeeds(swerveModuleStates, SwerveModule.DRIVE_MAX_SPEED);
+        frontLeftSwerveModule.setDesiredState(swerveModuleStates[0]);
+        frontRightSwerveModule.setDesiredState(swerveModuleStates[1]);
+        rearLeftSwerveModule.setDesiredState(swerveModuleStates[2]);
+        rearRightSwerveModule.setDesiredState(swerveModuleStates[3]);
     }
 
     /**
      * Tells our wheels to go to the Wheel Locking position (0 m/s, forming an X)
      */
     public void WheelLock() {
-        m_backLeft.setDesiredState(new SwerveModuleState(0, new Rotation2d(3 * (Math.PI / 4))));
-        m_frontLeft.setDesiredState(new SwerveModuleState(0, new Rotation2d((Math.PI / 4))));
-        m_backRight.setDesiredState(new SwerveModuleState(0, new Rotation2d((Math.PI / 4))));
-        m_frontRight.setDesiredState(new SwerveModuleState(0, new Rotation2d(3 * (Math.PI / 4))));
+        rearLeftSwerveModule.setDesiredState(new SwerveModuleState(0, new Rotation2d(3 * (Math.PI / 4))));
+        frontLeftSwerveModule.setDesiredState(new SwerveModuleState(0, new Rotation2d((Math.PI / 4))));
+        rearRightSwerveModule.setDesiredState(new SwerveModuleState(0, new Rotation2d((Math.PI / 4))));
+        frontRightSwerveModule.setDesiredState(new SwerveModuleState(0, new Rotation2d(3 * (Math.PI / 4))));
     }
 
     @Override
@@ -323,14 +291,14 @@ public class Drivetrain extends SubsystemBase {
         updateOdometry();
         updatePoseEstimatorOdometry();
         super.periodic();
-        field.setRobotPose(getPose2dEstimator());
-        DesiredStatePublisher.set(DesiredStates);
-        CurrentStatePublisher.set(getSwerveModuleStates());
-        CurrentSpeedsPublisher.set(getChassisSpeeds());
-        CurrentPosePublisher.set(getPose2d());
-        CurrentRotPublisher.set(getPose2d().getRotation());
-        CurrentPoseEstimatorPublisher.set(getPose2dEstimator());
-        GoalPosePublisher.set(goalPose);
+        this.field.setRobotPose(getPose2dEstimator());
+        desiredStatePublisher.set(DesiredStates);
+        currentStatePublisher.set(getSwerveModuleStates());
+        currentSpeedsPublisher.set(getChassisSpeeds());
+        currentPosePublisher.set(getPose2d());
+        currentRotPublisher.set(getPose2d().getRotation());
+        currentPoseEstimatorPublisher.set(getPose2dEstimator());
+        goalPosePublisher.set(goalPose);
     }
 
     /**
@@ -369,7 +337,7 @@ public class Drivetrain extends SubsystemBase {
 
         return this.runOnce(
                 () -> {
-                    navx.reset();
+                    navXSensorModule.reset();
                 });
     }
 
@@ -379,7 +347,7 @@ public class Drivetrain extends SubsystemBase {
 
         return this.runOnce(
                 () -> {
-                    navx.setAngleAdjustment(LimelightHelpers.getBotPoseEstimate_wpiBlue("limelight-frl").pose.getRotation().getDegrees());
+                    navXSensorModule.setAngleAdjustment(LimelightHelpers.getBotPoseEstimate_wpiBlue("limelight-frl").pose.getRotation().getDegrees());
                 });
     }
 
@@ -413,7 +381,7 @@ public class Drivetrain extends SubsystemBase {
     /**
      * Resets the Position of the Odometer, given our Current position.
      *
-     * @param Pose2d (pose2d) - The current position of the robot on the field. This is a {@link
+     * @param pose2d - The current position of the robot on the field. This is a {@link
      *               #resetOdometry(Pose2d)}
      */
     public void resetPose(Pose2d pose2d) {
@@ -421,7 +389,7 @@ public class Drivetrain extends SubsystemBase {
     }
 
     public void resetPoseEstimator(Pose2d pose2d) {
-        m_poseEstimator.resetPosition(navx.getRotation2d(), getSwerveModulePositions(), pose2d);
+        swerveDrivePoseEstimator.resetPosition(navXSensorModule.getRotation2d(), getSwerveModulePositions(), pose2d);
     }
 
     /**
@@ -430,7 +398,7 @@ public class Drivetrain extends SubsystemBase {
      * @param pose2d
      */
     public void resetOdometry(Pose2d pose2d) {
-        m_odometry.resetPosition(navx.getRotation2d(), getSwerveModulePositions(), pose2d);
+        swerveDriveOdometry.resetPosition(navXSensorModule.getRotation2d(), getSwerveModulePositions(), pose2d);
     }
 
     /**
@@ -442,104 +410,6 @@ public class Drivetrain extends SubsystemBase {
         return swerveDriveKinematics.toChassisSpeeds(getSwerveModuleStates());
     }
 
-    public Command PathFindLeft() {
-        return this.defer(() -> {
-            Pose2d goalLeft;
-            if (DriverStation.getAlliance().orElseThrow().equals(Alliance.Red)) {
-                goalLeft = getPose2dEstimator().nearest(Constants.Poses.PositionsLeftRed);
-                SmartDashboard.putNumber("goalLeft/X", goalLeft.getX());
-                SmartDashboard.putNumber("goalLeft/Y", goalLeft.getY());
-                SmartDashboard.putNumber("goalLeft/Rot", goalLeft.getRotation().getDegrees());
-                return AutoBuilder.pathfindToPose(goalLeft, RobotContainer.SPEED_CONSTRAINTS);
-
-
-            } else {
-                goalLeft = getPose2dEstimator().nearest(Constants.Poses.PositionsLeftBlue);
-                SmartDashboard.putNumber("goalLeft/X", goalLeft.getX());
-                SmartDashboard.putNumber("goalLeft/Y", goalLeft.getY());
-                SmartDashboard.putNumber("goalLeft/Rot", goalLeft.getRotation().getDegrees());
-                return AutoBuilder.pathfindToPose(goalLeft, RobotContainer.SPEED_CONSTRAINTS);
-            }
-        });
-    }
-
-    public Command PathFindRight() {
-        return this.defer(() -> {
-            Pose2d goalRight;
-
-            if (DriverStation.getAlliance().orElseThrow().equals(Alliance.Red)) {
-                goalRight = getPose2dEstimator().nearest(Constants.Poses.PositionsRightRed);
-                SmartDashboard.putNumber("goalRight/X", goalRight.getX());
-                SmartDashboard.putNumber("goalRight/Y", goalRight.getY());
-                SmartDashboard.putNumber("goalRight/Rot", goalRight.getRotation().getDegrees());
-                return AutoBuilder.pathfindToPose(goalRight, RobotContainer.SPEED_CONSTRAINTS);
-
-            } else {
-                goalRight = getPose2dEstimator().nearest(Constants.Poses.PositionsRightBlue);
-                SmartDashboard.putNumber("goalRight/X", goalRight.getX());
-                SmartDashboard.putNumber("goalRight/Y", goalRight.getY());
-                SmartDashboard.putNumber("goalRight/Rot", goalRight.getRotation().getDegrees());
-                return AutoBuilder.pathfindToPose(goalRight, RobotContainer.SPEED_CONSTRAINTS);
-            }
-        });
-    }
-
-
-    public Command PathGenerateLeft() {
-        return this.defer(() -> {
-            Pose2d goalRight = getPose2dEstimator().nearest(Constants.Poses.PositionsRightBlue);
-            SmartDashboard.putNumber("goalRight/X", goalRight.getX());
-            SmartDashboard.putNumber("goalRight/Y", goalRight.getY());
-            SmartDashboard.putNumber("goalRight/Rot", goalRight.getRotation().getDegrees());
-            return generatePath(getPose2dEstimator(), goalRight, RobotContainer.SPEED_CONSTRAINTS);
-        });
-    }
-
-
-    public Command PathGenerateRight() {
-        return this.defer(() -> {
-            Pose2d goalRight = getPose2dEstimator().nearest(Constants.Poses.PositionsRightBlue);
-            SmartDashboard.putNumber("goalRight/X", goalRight.getX());
-            SmartDashboard.putNumber("goalRight/Y", goalRight.getY());
-            SmartDashboard.putNumber("goalRight/Rot", goalRight.getRotation().getDegrees());
-            return generatePath(getPose2dEstimator(), goalRight, RobotContainer.SPEED_CONSTRAINTS);
-        });
-    }
-
-    /**
-     * Creates Path from current pose to goal pose following path constraints
-     * Could be used as a substitue to PathPlanner onTheFly
-     *
-     * @param currentPose
-     * @param goalPose
-     * @param pathConstraints
-     * @return Autobuilder followPath Command
-     */
-    public Command generatePath(Pose2d currentPose, Pose2d goalPose, PathConstraints pathConstraints) {
-        Translation2d currentPosition = currentPose.getTranslation();
-        Translation2d goalPosition = goalPose.getTranslation();
-        Rotation2d goalRotation = goalPose.getRotation();
-
-        Translation2d currentToGoalDistance = goalPosition.minus(currentPosition);
-        Rotation2d currentToGoalDirection = currentToGoalDistance.getAngle();
-
-        //Flips the goal Pose if the alliance is Red
-        if (DriverStation.getAlliance().orElseThrow().equals(Alliance.Red)) {
-            goalPosition = FlippingUtil.flipFieldPosition(goalPosition);
-            goalRotation = FlippingUtil.flipFieldRotation(goalRotation);
-        }
-
-        List<Waypoint> waypoints = PathPlannerPath.waypointsFromPoses(
-                new Pose2d(currentPosition.getX(), currentPose.getY(), currentToGoalDirection),
-                new Pose2d(goalPosition.getX(), goalPosition.getY(), currentToGoalDirection));
-
-        PathPlannerPath path =
-                new PathPlannerPath(waypoints, pathConstraints, null, new GoalEndState(0, goalRotation));
-        path.preventFlipping = true;
-
-        return AutoBuilder.followPath(path);
-    }
-
     /**
      * This command gets the 4 individual SwerveModule States, and groups it into 1 array. <pi> Used
      * for getting our chassis (robots) speed.
@@ -549,10 +419,10 @@ public class Drivetrain extends SubsystemBase {
      */
     public SwerveModuleState[] getSwerveModuleStates() {
         return new SwerveModuleState[]{
-                m_frontLeft.getModuleState(),
-                m_frontRight.getModuleState(),
-                m_backLeft.getModuleState(),
-                m_backRight.getModuleState()
+                frontLeftSwerveModule.getModuleState(),
+                frontRightSwerveModule.getModuleState(),
+                rearLeftSwerveModule.getModuleState(),
+                rearRightSwerveModule.getModuleState()
         };
     }
 
@@ -610,7 +480,7 @@ public class Drivetrain extends SubsystemBase {
      * Updates our current Odometry
      */
     public void updateOdometry() {
-        m_odometry.update(navx.getRotation2d(), getSwerveModulePositions());
+        swerveDriveOdometry.update(navXSensorModule.getRotation2d(), getSwerveModulePositions());
     }
 
     public Command resetPoseEstimatorCmd() {
@@ -618,19 +488,19 @@ public class Drivetrain extends SubsystemBase {
     }
 
     public void updatePoseEstimatorOdometry() {
-        m_poseEstimator.update(
-                navx.getRotation2d(),
+        swerveDrivePoseEstimator.update(
+                navXSensorModule.getRotation2d(),
                 new SwerveModulePosition[]{
-                        m_frontLeft.getModulePosition(),
-                        m_frontRight.getModulePosition(),
-                        m_backLeft.getModulePosition(),
-                        m_backRight.getModulePosition()
+                        frontLeftSwerveModule.getModulePosition(),
+                        frontRightSwerveModule.getModulePosition(),
+                        rearLeftSwerveModule.getModulePosition(),
+                        rearRightSwerveModule.getModulePosition()
                 });
 
 
         boolean useMegaTag2 = true; //set to false to use MegaTag1
         boolean doRejectUpdate = false;
-        if (useMegaTag2 == false) {
+        if (!useMegaTag2) {
             LimelightHelpers.PoseEstimate mt1 = LimelightHelpers.getBotPoseEstimate_wpiBlue("limelight-frl");
 
             if (mt1.tagCount == 1 && mt1.rawFiducials.length == 1) {
@@ -646,15 +516,15 @@ public class Drivetrain extends SubsystemBase {
             }
 
             if (!doRejectUpdate) {
-                m_poseEstimator.setVisionMeasurementStdDevs(VecBuilder.fill(.5, .5, 9999999));
-                m_poseEstimator.addVisionMeasurement(
+                swerveDrivePoseEstimator.setVisionMeasurementStdDevs(VecBuilder.fill(.5, .5, 9999999));
+                swerveDrivePoseEstimator.addVisionMeasurement(
                         mt1.pose,
                         mt1.timestampSeconds);
             }
-        } else if (useMegaTag2 == true) {
-            LimelightHelpers.SetRobotOrientation("limelight-frl", m_poseEstimator.getEstimatedPosition().getRotation().getDegrees(), navx.getRate(), navx.getPitch(), 0, navx.getRoll(), 0);
+        } else if (useMegaTag2) {
+            LimelightHelpers.SetRobotOrientation("limelight-frl", swerveDrivePoseEstimator.getEstimatedPosition().getRotation().getDegrees(), navXSensorModule.getRate(), navXSensorModule.getPitch(), 0, navXSensorModule.getRoll(), 0);
             LimelightHelpers.PoseEstimate mt2 = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2("limelight-frl");
-            if (Math.abs(navx.getRate()) > 720) // if our angular velocity is greater than 720 degrees per second, ignore vision updates
+            if (Math.abs(navXSensorModule.getRate()) > 720) // if our angular velocity is greater than 720 degrees per second, ignore vision updates
             {
                 doRejectUpdate = true;
             }
@@ -665,8 +535,8 @@ public class Drivetrain extends SubsystemBase {
             }
             if (!doRejectUpdate) {
 
-                m_poseEstimator.setVisionMeasurementStdDevs(VecBuilder.fill(.7, .7, 9999999));
-                m_poseEstimator.addVisionMeasurement(
+                swerveDrivePoseEstimator.setVisionMeasurementStdDevs(VecBuilder.fill(.7, .7, 9999999));
+                swerveDrivePoseEstimator.addVisionMeasurement(
                         mt2.pose,
                         mt2.timestampSeconds);
             }
@@ -677,20 +547,17 @@ public class Drivetrain extends SubsystemBase {
      * Stops all the motors on the SwerveModules
      */
     public void stopModules() {
-        m_frontLeft.stop();
-        m_frontRight.stop();
-        m_backLeft.stop();
-        m_backRight.stop();
+        frontLeftSwerveModule.stopMotors();
+        frontRightSwerveModule.stopMotors();
+        rearLeftSwerveModule.stopMotors();
+        rearRightSwerveModule.stopMotors();
     }
 
     /**
      * Runnable Command. Runs the {@link #stopModules()} Command.
      */
     public Command Break() {
-        return this.run(
-                () -> {
-                    stopModules();
-                });
+        return this.run(this::stopModules);
     }
 
     @Override
@@ -710,7 +577,7 @@ public class Drivetrain extends SubsystemBase {
                 () -> Units.radiansToDegrees(getChassisSpeeds().omegaRadiansPerSecond),
                 null);
         builder.addDoubleProperty(
-                "Odometry/navx/Orientation", () -> navx.getRotation2d().getDegrees(), null);
+                "Odometry/navx/Orientation", () -> navXSensorModule.getRotation2d().getDegrees(), null);
         builder.addBooleanProperty(
                 "FieldRelativeEnabled",
                 () -> this.fieldRelativeEnable,
@@ -722,14 +589,14 @@ public class Drivetrain extends SubsystemBase {
         builder.addDoubleProperty("GOALPOSE/X", () -> getGoal().getX(), null);
         builder.addDoubleProperty("GOALPOSE/Y", () -> getGoal().getY(), null);
         builder.addDoubleProperty("GOALPOSE/ROT", () -> getGoal().getRotation().getRadians(), null);
-        SmartDashboard.putData("DriveTrain/" + m_frontLeft.getName(), m_frontLeft);
-        SmartDashboard.putData("DriveTrain/" + m_frontRight.getName(), m_frontRight);
-        SmartDashboard.putData("DriveTrain/" + m_backLeft.getName(), m_backLeft);
-        SmartDashboard.putData("DriveTrain/" + m_backRight.getName(), m_backRight);
+        SmartDashboard.putData("DriveTrain/" + frontLeftSwerveModule.getName(), frontLeftSwerveModule);
+        SmartDashboard.putData("DriveTrain/" + frontRightSwerveModule.getName(), frontRightSwerveModule);
+        SmartDashboard.putData("DriveTrain/" + rearLeftSwerveModule.getName(), rearLeftSwerveModule);
+        SmartDashboard.putData("DriveTrain/" + rearRightSwerveModule.getName(), rearRightSwerveModule);
         SmartDashboard.putData("field", field);
-        builder.addDoubleProperty("GYRO ANGLE", () -> navx.getAngle(), null);
-        SmartDashboard.putData("NAVX DATA", navx);
-        builder.addDoubleProperty("NAVX ROTATION", () -> navx.getRotation2d().getDegrees(), null);
-        builder.addDoubleProperty("NAVX AngleAdjustment", () -> navx.getAngleAdjustment(), null);
+        builder.addDoubleProperty("GYRO ANGLE", () -> navXSensorModule.getAngle(), null);
+        SmartDashboard.putData("NAVX DATA", navXSensorModule);
+        builder.addDoubleProperty("NAVX ROTATION", () -> navXSensorModule.getRotation2d().getDegrees(), null);
+        builder.addDoubleProperty("NAVX AngleAdjustment", () -> navXSensorModule.getAngleAdjustment(), null);
     }
 }
