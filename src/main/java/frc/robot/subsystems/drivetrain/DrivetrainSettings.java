@@ -1,6 +1,11 @@
 package frc.robot.subsystems.drivetrain;
 
 import com.pathplanner.lib.config.RobotConfig;
+import edu.wpi.first.math.Matrix;
+import edu.wpi.first.math.VecBuilder;
+import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.numbers.N1;
+import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.math.util.Units;
 import frc.robot.Constants;
 import frc.robot.support.PIDSettings;
@@ -75,6 +80,20 @@ public class DrivetrainSettings {
 
     @Builder.Default
     private double brTurnOffset = Constants.RobotVersion2025.brTurnEncoderOffset;
+
+    @Builder.Default
+    private Matrix<N3, N1> stateStdDevs = VecBuilder.fill(0.05, 0.05, Units.degreesToRadians(5));
+
+    @Builder.Default
+    private Matrix<N3, N1> visionMeasurementStdDevs = VecBuilder.fill(0.5, 0.5, Units.degreesToRadians(30));
+
+    @Builder.Default
+    // ~135 degrees
+    private Rotation2d wheelLock135Degrees = new Rotation2d(3 * (Math.PI / 4));
+
+    @Builder.Default
+    // ~45 degrees
+    private Rotation2d wheelLock45Degrees = new Rotation2d((Math.PI / 4));
 
     public double getMaxTurnAngularSpeed() {
         return this.maxSpeed / Constants.Drive.SMBackLeftLocation.getNorm(); // 1/2

@@ -23,7 +23,7 @@ public class CoralMechanismSettings {
     @Builder.Default
     private final double advanceLeftMotorToTroughIncrement = -.25;
 
-    // TODO: These rear and front channel was never represented within our frc.robot.Constants class. Consider moving the definition
+    // TODO: These rear and front channels were never represented within our frc.robot.Constants class. Consider moving the definition
     // of this channel to frc.robot.Constants once initial refactor is complete
     @Builder.Default
     private int rearSensorChannel = 0;

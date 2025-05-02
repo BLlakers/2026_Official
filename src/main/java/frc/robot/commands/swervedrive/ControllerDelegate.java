@@ -1,11 +1,18 @@
 package frc.robot.commands.swervedrive;
 
+import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import frc.robot.Constants;
 import lombok.Builder;
 
 import java.util.function.BooleanSupplier;
 import java.util.function.DoubleSupplier;
 
+/**
+ * ControllerDelegate encapsulates a series pf {@link java.util.function.Supplier} which produce values
+ * generated from driver controls, such as {@link CommandXboxController}. ControllerDelegate also maintains
+ * {@link Driver} to identify the currently operating Driver. In this way supplied values can be interpreted
+ * according to driver preference.
+ */
 @Builder
 public class ControllerDelegate {
     private final DoubleSupplier leftXSupplier;
@@ -70,6 +77,9 @@ public class ControllerDelegate {
         return this.runHalfSpeedConditionSupplier.getAsBoolean();
     }
 
+    /**
+     * An enumeration of available drivers and their associated label
+     */
     public enum Driver{
         ASA(Constants.DriverLabels.ASA),
         BEN(Constants.DriverLabels.BEN);

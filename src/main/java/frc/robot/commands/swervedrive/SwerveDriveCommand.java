@@ -67,7 +67,7 @@ public class SwerveDriveCommand extends Command {
 
 
         // TODO: x and y are assigned to and never used again. I'm assuming this is just an oversight in the code.
-        // To be clear, this is an issue because x and y and on the local stack of this method... did the author intend
+        // To be clear, this is an issue because x and y and on the local scope of this method... did the author intend
         // for their values to be normalized and retained across executions... because they're not, as they are stack-level
         // variables so commenting this out...
 //        double normalizingFactor = Math.hypot(x, y);

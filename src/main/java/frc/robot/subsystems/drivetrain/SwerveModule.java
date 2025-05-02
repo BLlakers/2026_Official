@@ -26,6 +26,7 @@ import frc.robot.Constants;
 
 import static frc.robot.Constants.Conversion.NeoMaxSpeedRPM;
 import static frc.robot.Constants.Conversion.TurnGearRatio;
+import static java.util.Objects.requireNonNull;
 
 /**
  * This is the code to run a single swerve module. SwerveModules have a turning and drive motor
@@ -67,14 +68,21 @@ public class SwerveModule extends SubsystemBase {
      * Constructs a SwerveModule with a drive motor, turning motor, drive encoder and turning encoder.
      */
     public SwerveModule(final SwerveModuleSettings settings) {
+        requireNonNull(settings, "SwerveModuleSettings cannot be null");
+
         this.setName(settings.getName());
+
         this.driveMotor = new SparkMax(settings.getDriveMotorChannel(), MotorType.kBrushless);
+
         this.driveMotorEncoder = this.driveMotor.getEncoder();
 
         // PWM encoder from CTRE mag encoders
         this.turningMotor = new SparkMax(settings.getTurningMotorChannel(), MotorType.kBrushless);
+
         this.turningMotorEncoder = new DutyCycleEncoder(settings.getTurnEncoderPWMChannel(), FULL_RANGE, settings.getTurnOffset());
+
         this.turningMotorEncoder.setAssumedFrequency(TURNING_MOTOR_ASSUMED_FREQUENCY);
+
         this.driveMotor.configure(assembleDriveMotorConfig(), ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
 
         // Limit the PID Controller's input range between -pi and pi and set the input to be continuous.

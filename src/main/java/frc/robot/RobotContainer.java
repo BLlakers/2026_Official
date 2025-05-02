@@ -2,7 +2,6 @@ package frc.robot;
 
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.auto.NamedCommands;
-import com.pathplanner.lib.config.RobotConfig;
 import com.pathplanner.lib.path.PathConstraints;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
@@ -81,7 +80,7 @@ public class RobotContainer {
     private final Command algaeUpAndStop = Commands.race(new AlgaePIDCommand(algaeMechanism, algaeMechanismSettings.getAlgaeDownPosition()), algaeIntake.getStopIntakeCommand());
     private final Command algaeMiddleAndStop = Commands.race(new AlgaePIDCommand(algaeMechanism, algaeMechanismSettings.getAlgaeMiddlePosition()), algaeIntake.getStopIntakeCommand());
     private final Command algaeGroundCommand = Commands.race(new AlgaePIDCommand(algaeMechanism, algaeMechanismSettings.getAlgaeGroundPosition()), algaeIntake.getReverseIntakeOnceCommand(), new ElevatorPIDCommand(this.elevatorMechanism, ElevatorMechanism.L2_POSITION));
-    private final Command resetPoseAuto = Commands.runOnce(() -> driveTrain.resetPose(this.currentPath.get(0)), this.driveTrain);
+    private final Command resetPoseAuto = Commands.runOnce(() -> this.driveTrain.resetOdometry(this.currentPath.get(0)), this.driveTrain);
 
     private final AlgaePIDCommand algaePIDCommandDown = new AlgaePIDCommand(algaeMechanism, algaeMechanismSettings.getAlgaeUpPosition());
     private final AlgaePIDCommand algaePIDCommandMiddle = new AlgaePIDCommand(algaeMechanism, algaeMechanismSettings.getAlgaeMiddlePosition());
@@ -173,14 +172,14 @@ public class RobotContainer {
         NamedCommands.registerCommand("ElevatorA3", this.algaeDownAndRunA3);
         NamedCommands.registerCommand("ElevatorA4", this.algaeDownAndRunA4);
         NamedCommands.registerCommand("IntakeCoral", this.coralMechanism.getCoralIntakeAutoCommand());
-        NamedCommands.registerCommand("ResetOdom", this.driveTrain.resetPose2d());
+        NamedCommands.registerCommand("ResetOdom", this.driveTrain.getResetOdometryCommand());
         NamedCommands.registerCommand("ElevatorL4", new ElevatorPIDCommand(this.elevatorMechanism, ElevatorMechanism.L4_POSITION).onlyWhile(() -> !this.elevatorMechanism.isElevatorAtPosition()));
         NamedCommands.registerCommand("ElevatorBottom", new ElevatorPIDCommand(this.elevatorMechanism, ElevatorMechanism.DOWN_POSITION));
         NamedCommands.registerCommand("ElevatorUp", this.elevatorMechanism.getElevatorUpCommand());
         NamedCommands.registerCommand("ShootCoral", this.coralMechanism.getAdvanceCoralCommand().withTimeout(.5));
-        NamedCommands.registerCommand("ToggleFieldRelativel", this.driveTrain.toggleFieldRelativeEnable());
+        NamedCommands.registerCommand("ToggleFieldRelative", this.driveTrain.getToggleFieldRelativeCommand());
         NamedCommands.registerCommand("WaitUntilElevatorTop", new WaitUntilCommand(this.elevatorMechanism::isElevatorAtPosition));
-        NamedCommands.registerCommand("StopDrive", this.driveTrain.Break());
+        NamedCommands.registerCommand("StopDrive", this.driveTrain.getStopModulesCommand());
     }
 
     /**
@@ -219,10 +218,10 @@ public class RobotContainer {
         // Driver Controller commands
         // - DriveTrain commands (outside of actual driving)
         this.driverController.a().whileTrue(this.limelightCodeBack);
-        this.driverController.rightStick().onTrue(this.driveTrain.WheelLockCommand()); // lock wheels
+        this.driverController.rightStick().onTrue(this.driveTrain.toggleWheelLockCommand()); // lock wheels
         this.driverController.x().whileTrue(this.limelightCodeFrontLeft);
         this.driverController.y().whileTrue(this.limelightCodeFrontRight);
-        this.driverController.b().onTrue(this.driveTrain.ZeroGyro());
+        this.driverController.b().onTrue(this.driveTrain.resetNavXSensorModule());
 
         //Elevator Commands
         this.manipController.a().onTrue(this.elevatorPIDCommandDown);
@@ -268,7 +267,7 @@ public class RobotContainer {
 
         // Add subsystems
         SmartDashboard.putData(this.driveTrain);
-        SmartDashboard.putData(this.driveTrain.getName() + "/Reset Pose 2D", this.driveTrain.resetPose2d());
+        SmartDashboard.putData(this.driveTrain.getName() + "/Reset Pose 2D", this.driveTrain.getResetOdometryCommand());
         SmartDashboard.putData(this.coralMechanism);
         ;
         SmartDashboard.putData(this.algaeMechanism);
