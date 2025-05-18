@@ -30,14 +30,17 @@ public final class Constants {
         public static final Translation2d SMFrontLeftLocation = new Translation2d(0.285, 0.285);
         public static final Translation2d SMBackLeftLocation = new Translation2d(-0.285, 0.285);
         public static final Translation2d SMBackRightLocation = new Translation2d(-0.285, -0.285);
-        public static final Transform3d CAMERA_TO_ROBOT =
-                new Transform3d(
-                        0,
-                        0,
-                        0,
-                        new Rotation3d(
-                                0, 0,
-                                0)); // we do conversion in limelight. would normally tell robot where the camera
+        public static final Transform3d CAMERA_TO_ROBOT = new Transform3d(0, 0, 0, new Rotation3d(0, 0, 0)); // we do
+                                                                                                             // conversion
+                                                                                                             // in
+                                                                                                             // limelight.
+                                                                                                             // would
+                                                                                                             // normally
+                                                                                                             // tell
+                                                                                                             // robot
+                                                                                                             // where
+                                                                                                             // the
+                                                                                                             // camera
     }
 
     public static class Conversion {
@@ -154,7 +157,8 @@ public final class Constants {
         public static final Pose2d TwentyRight = new Pose2d(4.82, 5.23, new Rotation2d(Math.toRadians(-120)));
         public static final Pose2d TwentyOneLeft = new Pose2d(5.77, 3.98, new Rotation2d(Math.toRadians(180)));
         public static final Pose2d TwentyOneRight = new Pose2d(5.78, 4.36, new Rotation2d(Math.toRadians(180)));
-        public static final Pose2d TwentyTwoLeft = new Pose2d(5.13/*adding 9 here */, 2.9, new Rotation2d(Math.toRadians(120)));
+        public static final Pose2d TwentyTwoLeft = new Pose2d(5.13/* adding 9 here */, 2.9,
+                new Rotation2d(Math.toRadians(120)));
         public static final Pose2d TwentyTwoRight = new Pose2d(5.34, 3.13, new Rotation2d(Math.toRadians(120)));
         public static final Pose2d SixLeft = FlippingUtil.flipFieldPose(TwentyTwoLeft);
         public static final Pose2d SixRightChanged = new Pose2d(13.94, 3.08, new Rotation2d(120));
@@ -170,32 +174,10 @@ public final class Constants {
         public static final Pose2d TenRight = FlippingUtil.flipFieldPose(EighteenRight);
         public static final Pose2d ElevenLeft = FlippingUtil.flipFieldPose(SeventeenLeft);
         public static final Pose2d ElevenRight = FlippingUtil.flipFieldPose(SeventeenRight);
-        public static List<Pose2d> PositionsRed = Arrays.asList(
-                SixLeft,
-                SixRightChanged,
-                SevenLeft,
-                SevenRight,
-                EightLeft,
-                EightRight,
-                NineLeft,
-                NineRight,
-                TenLeft,
-                TenRight,
-                ElevenLeft,
-                ElevenRight,
-                SeventeenLeft,
-                SeventeenRight,
-                EighteenLeft,
-                EighteenRight,
-                NineteenLeft,
-                NineteenRight,
-                TwentyLeft,
-                TwentyRight,
-                TwentyOneLeft,
-                TwentyOneRight,
-                TwentyTwoLeft,
-                TwentyTwoRightChanged
-        );
+        public static List<Pose2d> PositionsRed = Arrays.asList(SixLeft, SixRightChanged, SevenLeft, SevenRight,
+                EightLeft, EightRight, NineLeft, NineRight, TenLeft, TenRight, ElevenLeft, ElevenRight, SeventeenLeft,
+                SeventeenRight, EighteenLeft, EighteenRight, NineteenLeft, NineteenRight, TwentyLeft, TwentyRight,
+                TwentyOneLeft, TwentyOneRight, TwentyTwoLeft, TwentyTwoRightChanged);
     }
 
     public static final RobotVersion defaultRobotVersion = RobotVersion.v2025;

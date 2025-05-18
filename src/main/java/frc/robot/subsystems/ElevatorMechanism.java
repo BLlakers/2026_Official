@@ -29,14 +29,16 @@ public class ElevatorMechanism extends SubsystemBase {
     public static final int COUNTS_PER_REVOLUTION = 8192;
     private static final double ELEVATOR_CEILING = 23.7;
     private static final double ELEVATOR_DECELERATE_OFFSET = 5.6;
-    private static final double ELEVATOR_POSITION_CONVERSION_FACTOR = 1.6 * Math.PI; // 1.6 * Math.PI = Distance per rotation
+    private static final double ELEVATOR_POSITION_CONVERSION_FACTOR = 1.6 * Math.PI; // 1.6 * Math.PI = Distance per
+                                                                                     // rotation
     private static final double ELEVATOR_VELOCITY_CONVERSION_FACTOR = 1;
-    private static final TrapezoidProfile.Constraints ELEVATOR_CONSTRAINTS = new TrapezoidProfile.Constraints(Units.feetToMeters(140), Units.feetToMeters(125));
+    private static final TrapezoidProfile.Constraints ELEVATOR_CONSTRAINTS = new TrapezoidProfile.Constraints(
+            Units.feetToMeters(140), Units.feetToMeters(125));
 
     private double elevatorSpeed;
     private double elevatorPosition;
 
-    //A motor to rotate up and down
+    // A motor to rotate up and down
     private final SparkMax elevatorMotor;
     private final SparkMax elevatorFollowerMotor;
     private final ProfiledPIDController pidController;
@@ -44,10 +46,14 @@ public class ElevatorMechanism extends SubsystemBase {
     private final DigitalInput elevatorLimitSwitchBottom = new DigitalInput(7);
 
     public ElevatorMechanism() {
-        this.elevatorMotor = new SparkMax(Constants.Port.elevatorMotorChannel, com.revrobotics.spark.SparkLowLevel.MotorType.kBrushless);
-        this.elevatorMotor.configure(this.assembleElevatorMotorConfig(), ResetMode.kNoResetSafeParameters, PersistMode.kPersistParameters);
-        this.elevatorFollowerMotor = new SparkMax(Constants.Port.elevatorFollowerMotorChannel, com.revrobotics.spark.SparkLowLevel.MotorType.kBrushless);
-        this.elevatorFollowerMotor.configure(this.assembleElevatorFollowerMotorConfig(), ResetMode.kNoResetSafeParameters, PersistMode.kPersistParameters);
+        this.elevatorMotor = new SparkMax(Constants.Port.elevatorMotorChannel,
+                com.revrobotics.spark.SparkLowLevel.MotorType.kBrushless);
+        this.elevatorMotor.configure(this.assembleElevatorMotorConfig(), ResetMode.kNoResetSafeParameters,
+                PersistMode.kPersistParameters);
+        this.elevatorFollowerMotor = new SparkMax(Constants.Port.elevatorFollowerMotorChannel,
+                com.revrobotics.spark.SparkLowLevel.MotorType.kBrushless);
+        this.elevatorFollowerMotor.configure(this.assembleElevatorFollowerMotorConfig(),
+                ResetMode.kNoResetSafeParameters, PersistMode.kPersistParameters);
         this.pidController = new ProfiledPIDController(0.2, 0.0, 0.0, ELEVATOR_CONSTRAINTS);
         this.pidController.setTolerance(.16);
         resetPosition();
@@ -61,8 +67,7 @@ public class ElevatorMechanism extends SubsystemBase {
         SparkMaxConfig config = new SparkMaxConfig();
         config.inverted(false).idleMode(IdleMode.kBrake);
         config.closedLoop.feedbackSensor(FeedbackSensor.kAlternateOrExternalEncoder).pid(1.0, 0, 0);
-        config.alternateEncoder
-                .positionConversionFactor(ELEVATOR_POSITION_CONVERSION_FACTOR)
+        config.alternateEncoder.positionConversionFactor(ELEVATOR_POSITION_CONVERSION_FACTOR)
                 .velocityConversionFactor(ELEVATOR_VELOCITY_CONVERSION_FACTOR)
                 .countsPerRevolution(ElevatorMechanism.COUNTS_PER_REVOLUTION);
         return config;
@@ -121,7 +126,8 @@ public class ElevatorMechanism extends SubsystemBase {
     }
 
     public double getElevatorDecelerateRatio() {
-        return 1 - ((this.getElevatorMotorEncoderPosition()) / (ElevatorMechanism.L4_POSITION + ELEVATOR_DECELERATE_OFFSET));
+        return 1 - ((this.getElevatorMotorEncoderPosition())
+                / (ElevatorMechanism.L4_POSITION + ELEVATOR_DECELERATE_OFFSET));
     }
 
     public boolean isElevatorAtPosition() {
@@ -137,7 +143,8 @@ public class ElevatorMechanism extends SubsystemBase {
     }
 
     public Command getElevatorDownLimitCommand() {
-        return this.runEnd(this::advanceElevatorMotorDown, this::stopElevatorMotor).until(this::isElevatorLimitSwitchBottom);
+        return this.runEnd(this::advanceElevatorMotorDown, this::stopElevatorMotor)
+                .until(this::isElevatorLimitSwitchBottom);
     }
 
     public Command getElevatorUpCommand() {
@@ -157,12 +164,13 @@ public class ElevatorMechanism extends SubsystemBase {
         updatePIDController(elevatorPosition);
     }
 
-
     @Override
     public void initSendable(SendableBuilder builder) {
         super.initSendable(builder);
-        builder.addDoubleProperty(getName() + "ElevatorCommand/Command/elevatorSpeedInVolts", () -> elevatorSpeed, null);
-        builder.addDoubleProperty(getName() + "ElevatorCommand/Command/elevatorDesirePIDPos", () -> elevatorPosition, null);
+        builder.addDoubleProperty(getName() + "ElevatorCommand/Command/elevatorSpeedInVolts", () -> elevatorSpeed,
+                null);
+        builder.addDoubleProperty(getName() + "ElevatorCommand/Command/elevatorDesirePIDPos", () -> elevatorPosition,
+                null);
         builder.addDoubleProperty("Elevator/Position", this::getElevatorMotorEncoderPosition, null);
         builder.addBooleanProperty("Elevator/LimitSwitchTop", this::isElevatorLimitSwitchTop, null);
         builder.addBooleanProperty("Elevator/LimitSwitchBottom", this::isElevatorLimitSwitchBottom, null);

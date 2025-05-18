@@ -8,10 +8,9 @@ import java.util.function.BooleanSupplier;
 import java.util.function.DoubleSupplier;
 
 /**
- * ControllerDelegate encapsulates a series of {@link java.util.function.Supplier} which produce values
- * generated from driver controls, such as {@link CommandXboxController}. ControllerDelegate also maintains
- * {@link Driver} to identify the currently operating Driver. In this way supplied values can be interpreted
- * according to driver preference.
+ * ControllerDelegate encapsulates a series of {@link java.util.function.Supplier} which produce values generated from
+ * driver controls, such as {@link CommandXboxController}. ControllerDelegate also maintains {@link Driver} to identify
+ * the currently operating Driver. In this way supplied values can be interpreted according to driver preference.
  */
 @Builder
 public class ControllerDelegate {
@@ -24,16 +23,10 @@ public class ControllerDelegate {
     private final BooleanSupplier runHalfSpeedConditionSupplier;
     private final Driver driver;
 
-    public ControllerDelegate(
-            final DoubleSupplier leftXSupplier,
-            final DoubleSupplier leftYSupplier,
-            final DoubleSupplier rightXSupplier,
-            final DoubleSupplier rightYSupplier,
-            final DoubleSupplier accelerationSupplier,
-            final DoubleSupplier elevatorDecelerateRatioSupplier,
-            final BooleanSupplier runHalfSpeedConditionSupplier,
-            final Driver driver
-    ) {
+    public ControllerDelegate(final DoubleSupplier leftXSupplier, final DoubleSupplier leftYSupplier,
+            final DoubleSupplier rightXSupplier, final DoubleSupplier rightYSupplier,
+            final DoubleSupplier accelerationSupplier, final DoubleSupplier elevatorDecelerateRatioSupplier,
+            final BooleanSupplier runHalfSpeedConditionSupplier, final Driver driver) {
         this.leftXSupplier = leftXSupplier;
         this.leftYSupplier = leftYSupplier;
         this.rightXSupplier = rightXSupplier;
@@ -44,24 +37,23 @@ public class ControllerDelegate {
         this.driver = driver;
     }
 
-
-    public double getLeftX(){
+    public double getLeftX() {
         return this.leftXSupplier.getAsDouble();
     }
 
-    public double getLeftY(){
+    public double getLeftY() {
         return this.leftYSupplier.getAsDouble();
     }
 
-    public double getRightX(){
+    public double getRightX() {
         return this.rightXSupplier.getAsDouble();
     }
 
-    public double getRightY(){
+    public double getRightY() {
         return this.rightYSupplier.getAsDouble();
     }
 
-    public double getAcceleration(){
+    public double getAcceleration() {
         return this.accelerationSupplier.getAsDouble();
     }
 
@@ -69,20 +61,19 @@ public class ControllerDelegate {
         return driver;
     }
 
-    public double getElevatorDecelerateRatio(){
+    public double getElevatorDecelerateRatio() {
         return this.elevatorDecelerateRatioSupplier.getAsDouble();
     }
 
-    public boolean isHalfSpeed(){
+    public boolean isHalfSpeed() {
         return this.runHalfSpeedConditionSupplier.getAsBoolean();
     }
 
     /**
      * An enumeration of available drivers and their associated label
      */
-    public enum Driver{
-        ASA(Constants.DriverLabels.ASA),
-        BEN(Constants.DriverLabels.BEN);
+    public enum Driver {
+        ASA(Constants.DriverLabels.ASA), BEN(Constants.DriverLabels.BEN);
 
         private final String label;
 

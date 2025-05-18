@@ -12,7 +12,7 @@ import static org.mockito.Mockito.verify;
 public class TelemetryTest {
 
     @Test
-    public void testTelemetryInfo(){
+    public void testTelemetryInfo() {
         try (MockedStatic<DataLogManager> util = Mockito.mockStatic(DataLogManager.class)) {
             Telemetry.info("Test");
             util.verify(() -> DataLogManager.log("Test"));

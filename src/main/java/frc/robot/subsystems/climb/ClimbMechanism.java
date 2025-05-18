@@ -38,32 +38,32 @@ public class ClimbMechanism extends SubsystemBase {
 
     /**
      * Instantiates a new ClimbMechanism subsystem with the specified settings
-     * @param settings The ClimbMechanismSettings to apply to this instance
+     * 
+     * @param settings
+     *            The ClimbMechanismSettings to apply to this instance
      */
-    public ClimbMechanism(final ClimbMechanismSettings settings){
+    public ClimbMechanism(final ClimbMechanismSettings settings) {
         requireNonNull(settings, "ClimbMechanismSettings cannot be null");
         this.settings = settings;
         this.climbMotor = new SparkMax(this.settings.getClimbMotorChannel(), MotorType.kBrushless);
-        this.climbMotor.configure(this.assembleClimbMotorConfig(), ResetMode.kNoResetSafeParameters, PersistMode.kPersistParameters);
+        this.climbMotor.configure(this.assembleClimbMotorConfig(), ResetMode.kNoResetSafeParameters,
+                PersistMode.kPersistParameters);
         this.climbMagSwitch = new DigitalInput(this.settings.getClimbMagSwitchChannel());
     }
 
     /**
      * Prepares and configures a {@link SparkMaxConfig} to be applied to this mechanism's climb motor
+     * 
      * @return The SparkMaxConfig
      */
-    private SparkMaxConfig assembleClimbMotorConfig(){
+    private SparkMaxConfig assembleClimbMotorConfig() {
         SparkMaxConfig config = new SparkMaxConfig();
-        config
-                .inverted(true)
-                .idleMode(IdleMode.kBrake);
-        config.encoder
-                .positionConversionFactor(this.settings.getClimbPositionConversionFactor())
+        config.inverted(true).idleMode(IdleMode.kBrake);
+        config.encoder.positionConversionFactor(this.settings.getClimbPositionConversionFactor())
                 .velocityConversionFactor(this.settings.getClimbVelocityConversionFactor());
         PIDSettings pidSettings = this.settings.getClimbControllerPIDSettings();
-        config.closedLoop
-                .feedbackSensor(FeedbackSensor.kAlternateOrExternalEncoder)
-                .pid(pidSettings.p(), pidSettings.i(), pidSettings.d());
+        config.closedLoop.feedbackSensor(FeedbackSensor.kAlternateOrExternalEncoder).pid(pidSettings.p(),
+                pidSettings.i(), pidSettings.d());
         return config;
     }
 
@@ -90,6 +90,7 @@ public class ClimbMechanism extends SubsystemBase {
 
     /**
      * Indicates that the climb mechanism is in the "down" position
+     * 
      * @return Indication
      */
     private boolean isClimbDown() {
@@ -97,8 +98,9 @@ public class ClimbMechanism extends SubsystemBase {
     }
 
     /**
-     * Obtains a "runEnd" Command which will advance the climb mechanism motor on each iteration.
-     * Interruption of the Command will trigger stopping of the climb mechanism motor.
+     * Obtains a "runEnd" Command which will advance the climb mechanism motor on each iteration. Interruption of the
+     * Command will trigger stopping of the climb mechanism motor.
+     * 
      * @return The Command
      */
     // TODO: Remove if unused
@@ -107,8 +109,9 @@ public class ClimbMechanism extends SubsystemBase {
     }
 
     /**
-     * Obtains a "runEnd" Command which will reverse the climb mechanism motor on each iteration.
-     * Interruption of the Command will trigger stopping of the climb mechanism motor.
+     * Obtains a "runEnd" Command which will reverse the climb mechanism motor on each iteration. Interruption of the
+     * Command will trigger stopping of the climb mechanism motor.
+     * 
      * @return The Command
      */
     // TODO: Remove if unused
@@ -117,17 +120,20 @@ public class ClimbMechanism extends SubsystemBase {
     }
 
     /**
-     * Obtains a "runEnd" Command which will reverse the climb mechanism motor until it is
-     * fully down per {@link ClimbMechanism#isClimbDown()} and which point it will stop.
-     * Interruption of the Command will trigger stopping of the climb mechanism motor.
+     * Obtains a "runEnd" Command which will reverse the climb mechanism motor until it is fully down per
+     * {@link ClimbMechanism#isClimbDown()} and which point it will stop. Interruption of the Command will trigger
+     * stopping of the climb mechanism motor.
+     * 
      * @return The Command
      */
     public Command getFullyReverseClimbCommand() {
-        return this.runEnd(this::reverseClimbMotor, this::stopClimbMotor).until(this::isClimbDown).finallyDo(this::stopClimbMotor);
+        return this.runEnd(this::reverseClimbMotor, this::stopClimbMotor).until(this::isClimbDown)
+                .finallyDo(this::stopClimbMotor);
     }
 
     /**
      * Obtains a "runOnce" Command which will stop the climb mechanism motor.
+     * 
      * @return The Command
      */
     public Command getStopClimbCommand() {
@@ -136,6 +142,7 @@ public class ClimbMechanism extends SubsystemBase {
 
     /**
      * Obtains the climb motor's {@link RelativeEncoder} position
+     * 
      * @return The position
      */
     private double getCurrentClimbPosition() {
@@ -144,7 +151,9 @@ public class ClimbMechanism extends SubsystemBase {
 
     /**
      * {@link Sendable#initSendable(SendableBuilder)} implementation
-     * @param builder The sendable builder
+     * 
+     * @param builder
+     *            The sendable builder
      */
     @Override
     public void initSendable(SendableBuilder builder) {

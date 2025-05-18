@@ -25,7 +25,7 @@ public class ClimbMechanismSettings {
     private int climbMagSwitchChannel = Constants.Port.climbMagSwitchDIOC;
 
     @Builder.Default
-    private PIDSettings climbControllerPIDSettings = new PIDSettings(1,0,0);
+    private PIDSettings climbControllerPIDSettings = new PIDSettings(1, 0, 0);
 
     @Builder.Default
     private double climbPositionConversionFactor = 1;

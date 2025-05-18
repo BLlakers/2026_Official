@@ -14,7 +14,6 @@ public class AlgaePIDCommand extends Command {
         addRequirements(m_algaeMech);
     }
 
-
     // Called when the command is initially scheduled.
     @Override
     public void initialize() {

@@ -7,8 +7,8 @@ import lombok.Data;
 @Data
 public class ServoSettings {
 
-    public static ServoSettings defaults(){
-        return  ServoSettings.builder().build();
+    public static ServoSettings defaults() {
+        return ServoSettings.builder().build();
     }
 
     @Builder.Default
@@ -18,8 +18,8 @@ public class ServoSettings {
     private final double forwardPosition = .80;
 
     @Builder.Default
-    private double backwardPosition = 0 ;
+    private double backwardPosition = 0;
 
     @Builder.Default
-    private double middlePosition = .50 ;
+    private double middlePosition = .50;
 }

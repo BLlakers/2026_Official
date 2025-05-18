@@ -33,9 +33,9 @@ import java.util.Optional;
 import static java.util.Objects.requireNonNull;
 
 /**
- * Represents a swerve drive style drivetrain. In here, we initialize our swerve modules
- * (example -> {@link #frontLeftSwerveModule}), Get input from autonomous and initialize our
- * odometry -> {@link #swerveDriveOdometry}. Various other DriveTrain Related thing are initialized here too.
+ * Represents a swerve drive style drivetrain. In here, we initialize our swerve modules (example ->
+ * {@link #frontLeftSwerveModule}), Get input from autonomous and initialize our odometry ->
+ * {@link #swerveDriveOdometry}. Various other DriveTrain Related thing are initialized here too.
  */
 public class Drivetrain extends SubsystemBase {
 
@@ -95,7 +95,8 @@ public class Drivetrain extends SubsystemBase {
     /**
      * Instantiates a new Drivetrain subsystem with the specified settings
      *
-     * @param settings The DrivetrainSettings to apply to this instance
+     * @param settings
+     *            The DrivetrainSettings to apply to this instance
      */
     public Drivetrain(final DrivetrainSettings settings) {
         requireNonNull(settings, "DrivetrainSettings cannot be null");
@@ -121,17 +122,18 @@ public class Drivetrain extends SubsystemBase {
         this.navXSensorModule = new AHRS(AHRS.NavXComType.kMXP_SPI);
 
         this.settings.getRobotConfig().ifPresentOrElse(robotConfig -> {
-            AutoBuilder.configure(
-                    this::getPose2d, // Robot pose supplier NEEDS TO BE POSE2D IF WE ARE USING OLD LIMELIGHT WAY TODO
-                    this::resetOdometry, // Method to reset odometry (will be called if your auto has a starting pose) NEEDS TO BE RESETPOSE2D IF WE ARE USING OLD LIMELIGHT
-                    this::getChassisSpeeds,
-                    this::driveRobotRelative, // ChassisSpeeds supplier. MUST BE ROBOT RELATIVE
-                    // Method that will drive the robot given ROBOT RELATIVE ChassisSpeeds. Also, optionally outputs individual module feedforwards
-                    new PPHolonomicDriveController(
-                            new PIDConstants(this.settings.getLateralMovementPIDSettings().p()),
+            AutoBuilder.configure(this::getPose2d, // Robot pose supplier NEEDS TO BE POSE2D IF WE ARE USING OLD
+                                                   // LIMELIGHT WAY TODO
+                    this::resetOdometry, // Method to reset odometry (will be called if your auto has a starting pose)
+                                         // NEEDS TO BE RESETPOSE2D IF WE ARE USING OLD LIMELIGHT
+                    this::getChassisSpeeds, this::driveRobotRelative, // ChassisSpeeds supplier. MUST BE ROBOT RELATIVE
+                    // Method that will drive the robot given ROBOT RELATIVE ChassisSpeeds. Also, optionally outputs
+                    // individual module feedforwards
+                    new PPHolonomicDriveController(new PIDConstants(this.settings.getLateralMovementPIDSettings().p()),
                             new PIDConstants(this.settings.getRotationPIDSettings().p())),
-                    //new PPHolonomicDriveController(Translation,Rotation), //PPHolonomicDriveController(Translation, Rotation, .2),
-                    robotConfig,// The robot configuration
+                    // new PPHolonomicDriveController(Translation,Rotation), //PPHolonomicDriveController(Translation,
+                    // Rotation, .2),
+                    robotConfig, // The robot configuration
                     () -> {
                         // Boolean supplier that controls when the path will be mirrored for the red alliance
                         // This will flip the path being followed to the red side of the field.
@@ -139,18 +141,15 @@ public class Drivetrain extends SubsystemBase {
 
                         Optional<Alliance> alliance = DriverStation.getAlliance();
                         return alliance.filter(value -> value == Alliance.Red).isPresent();
-                    },
-                    this); // Reference to this subsystem to set requirements
+                    }, this); // Reference to this subsystem to set requirements
         }, () -> {
             // NOTE: This should probably be fatal
-            throw new RuntimeException("Unable to obtain RobotConfig during Drivetrain creation." +
-                    "Path Planning will be fail!");
+            throw new RuntimeException(
+                    "Unable to obtain RobotConfig during Drivetrain creation." + "Path Planning will be fail!");
         });
 
-        this.swerveDriveKinematics = new SwerveDriveKinematics(
-                Constants.Drive.SMFrontLeftLocation,
-                Constants.Drive.SMFrontRightLocation,
-                Constants.Drive.SMBackLeftLocation,
+        this.swerveDriveKinematics = new SwerveDriveKinematics(Constants.Drive.SMFrontLeftLocation,
+                Constants.Drive.SMFrontRightLocation, Constants.Drive.SMBackLeftLocation,
                 Constants.Drive.SMBackRightLocation);
 
         this.frontRightSwerveModule = new SwerveModule(this.settings.getFrontRightSwerveModuleSettings());
@@ -159,20 +158,12 @@ public class Drivetrain extends SubsystemBase {
         this.rearRightSwerveModule = new SwerveModule(this.settings.getRearRightSwerveModuleSettings());
 
         // initializes odometry
-        this.swerveDriveOdometry = new SwerveDriveOdometry(
-                this.swerveDriveKinematics,
-                this.navXSensorModule.getRotation2d(),
-                this.getSwerveModulePositions()
-        );
+        this.swerveDriveOdometry = new SwerveDriveOdometry(this.swerveDriveKinematics,
+                this.navXSensorModule.getRotation2d(), this.getSwerveModulePositions());
 
-        this.swerveDrivePoseEstimator = new SwerveDrivePoseEstimator(
-                this.swerveDriveKinematics,
-                this.navXSensorModule.getRotation2d(),
-                this.getSwerveModulePositions(),
-                new Pose2d(),
-                this.settings.getStateStdDevs(),
-                this.settings.getVisionMeasurementStdDevs()
-        );
+        this.swerveDrivePoseEstimator = new SwerveDrivePoseEstimator(this.swerveDriveKinematics,
+                this.navXSensorModule.getRotation2d(), this.getSwerveModulePositions(), new Pose2d(),
+                this.settings.getStateStdDevs(), this.settings.getVisionMeasurementStdDevs());
 
         this.addChild(frontLeftSwerveModule.getName(), frontLeftSwerveModule);
         this.addChild(frontRightSwerveModule.getName(), frontRightSwerveModule);
@@ -201,8 +192,9 @@ public class Drivetrain extends SubsystemBase {
      * Gets our current position in meters on the field.
      *
      * @return A current position on the field.
-     * <p><pi> A translation2d (X and Y on the field) -> {@link #swerveDriveKinematics} + A rotation2d (Rot
-     * X and Y on the field) -> {@link #navXSensorModule}
+     *         <p>
+     *         <pi> A translation2d (X and Y on the field) -> {@link #swerveDriveKinematics} + A rotation2d (Rot X and Y
+     *         on the field) -> {@link #navXSensorModule}
      */
     private Pose2d getPose2d() {
         return this.swerveDriveOdometry.getPoseMeters();
@@ -236,15 +228,13 @@ public class Drivetrain extends SubsystemBase {
     /**
      * Gets the Position of the four SwerveModules.
      *
-     * <p>This gets the encoder in the motor (drive) and the encoder on the swerve module.
+     * <p>
+     * This gets the encoder in the motor (drive) and the encoder on the swerve module.
      */
     private SwerveModulePosition[] getSwerveModulePositions() {
-        return new SwerveModulePosition[]{
-                this.frontLeftSwerveModule.getModulePosition(),
-                this.frontRightSwerveModule.getModulePosition(),
-                this.rearLeftSwerveModule.getModulePosition(),
-                this.rearRightSwerveModule.getModulePosition()
-        };
+        return new SwerveModulePosition[]{this.frontLeftSwerveModule.getModulePosition(),
+                this.frontRightSwerveModule.getModulePosition(), this.rearLeftSwerveModule.getModulePosition(),
+                this.rearRightSwerveModule.getModulePosition()};
     }
 
     private void driveRobotRelative(final ChassisSpeeds robotRelativeSpeeds) {
@@ -264,7 +254,8 @@ public class Drivetrain extends SubsystemBase {
 
         boolean doRejectUpdate = false;
         if (!this.settings.isLimelightMegaTag2AlgorithmEnabled()) {
-            LimelightHelpers.PoseEstimate mt1 = LimelightHelpers.getBotPoseEstimate_wpiBlue(Limelights.LIMELIGHT_FRONT_LEFT);
+            LimelightHelpers.PoseEstimate mt1 = LimelightHelpers
+                    .getBotPoseEstimate_wpiBlue(Limelights.LIMELIGHT_FRONT_LEFT);
 
             if (mt1.tagCount == 1 && mt1.rawFiducials.length == 1) {
                 LimelightHelpers.RawFiducial rawFiducial0 = mt1.rawFiducials[0];
@@ -281,14 +272,13 @@ public class Drivetrain extends SubsystemBase {
                 this.swerveDrivePoseEstimator.addVisionMeasurement(mt1.pose, mt1.timestampSeconds);
             }
         } else {
-            LimelightHelpers.SetRobotOrientation(
-                    Limelights.LIMELIGHT_FRONT_LEFT,
+            LimelightHelpers.SetRobotOrientation(Limelights.LIMELIGHT_FRONT_LEFT,
                     this.swerveDrivePoseEstimator.getEstimatedPosition().getRotation().getDegrees(),
-                    this.navXSensorModule.getRate(),
-                    this.navXSensorModule.getPitch(), 0,
+                    this.navXSensorModule.getRate(), this.navXSensorModule.getPitch(), 0,
                     this.navXSensorModule.getRoll(), 0);
 
-            LimelightHelpers.PoseEstimate mt2 = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2(Limelights.LIMELIGHT_FRONT_LEFT);
+            LimelightHelpers.PoseEstimate mt2 = LimelightHelpers
+                    .getBotPoseEstimate_wpiBlue_MegaTag2(Limelights.LIMELIGHT_FRONT_LEFT);
 
             // if our angular velocity is greater than 720 degrees per second, ignore vision updates
             if (Math.abs(navXSensorModule.getRate()) > this.settings.getAngularVelocityThreshold()) {
@@ -312,9 +302,7 @@ public class Drivetrain extends SubsystemBase {
      * @param pose2d
      */
     public void resetOdometry(final Pose2d pose2d) {
-        this.swerveDriveOdometry.resetPosition(
-                this.navXSensorModule.getRotation2d(),
-                this.getSwerveModulePositions(),
+        this.swerveDriveOdometry.resetPosition(this.navXSensorModule.getRotation2d(), this.getSwerveModulePositions(),
                 pose2d);
     }
 
@@ -328,19 +316,16 @@ public class Drivetrain extends SubsystemBase {
     }
 
     /**
-     * This command gets the 4 individual SwerveModule States, and groups it into 1 array. <pi> Used
-     * for getting our chassis (robots) speed.
+     * This command gets the 4 individual SwerveModule States, and groups it into 1 array. <pi> Used for getting our
+     * chassis (robots) speed.
      *
      * @return 4 different SwerveModuleStates
      * @author Jared Forchheimer, Dimitri Lezcano
      */
     private SwerveModuleState[] getSwerveModuleStates() {
-        return new SwerveModuleState[]{
-                this.frontLeftSwerveModule.getModuleState(),
-                this.frontRightSwerveModule.getModuleState(),
-                this.rearLeftSwerveModule.getModuleState(),
-                this.rearRightSwerveModule.getModuleState()
-        };
+        return new SwerveModuleState[]{this.frontLeftSwerveModule.getModuleState(),
+                this.frontRightSwerveModule.getModuleState(), this.rearLeftSwerveModule.getModuleState(),
+                this.rearRightSwerveModule.getModuleState()};
     }
 
     private Pose2d refreshGoalPose2d() {
@@ -362,9 +347,12 @@ public class Drivetrain extends SubsystemBase {
     /**
      * Method to drive the robot using joystick info.
      *
-     * @param xSpeed Speed of the robot in the x direction (forward).
-     * @param ySpeed Speed of the robot in the y direction (sideways).
-     * @param rot    Angular rate of the robot.
+     * @param xSpeed
+     *            Speed of the robot in the x direction (forward).
+     * @param ySpeed
+     *            Speed of the robot in the y direction (sideways).
+     * @param rot
+     *            Angular rate of the robot.
      */
     public void drive(double xSpeed, double ySpeed, double rot) {
         SmartDashboard.putNumber(getName() + "/Command/X Speed", xSpeed);
@@ -372,11 +360,9 @@ public class Drivetrain extends SubsystemBase {
         SmartDashboard.putNumber(getName() + "/Command/Rot Speed", rot);
         SmartDashboard.putBoolean(getName() + "/Command/RobotRelative", this.fieldRelativeEnable);
         Rotation2d robotRotation = new Rotation2d(navXSensorModule.getRotation2d().getRadians());
-        this.desiredStates =
-                this.swerveDriveKinematics.toSwerveModuleStates(
-                        this.fieldRelativeEnable
-                                ? ChassisSpeeds.fromFieldRelativeSpeeds(xSpeed, ySpeed, rot, robotRotation)
-                                : new ChassisSpeeds(xSpeed, ySpeed, rot));
+        this.desiredStates = this.swerveDriveKinematics.toSwerveModuleStates(this.fieldRelativeEnable
+                ? ChassisSpeeds.fromFieldRelativeSpeeds(xSpeed, ySpeed, rot, robotRotation)
+                : new ChassisSpeeds(xSpeed, ySpeed, rot));
 
         if (!this.wheelLock) {
             this.setModuleStates(this.desiredStates);
@@ -388,10 +374,11 @@ public class Drivetrain extends SubsystemBase {
     /**
      * Runnable Command.
      *
-     * <p>Tells the Wheels when to stop or not based off of a boolean variable named {@link
-     * #wheelLock}.
+     * <p>
+     * Tells the Wheels when to stop or not based off of a boolean variable named {@link #wheelLock}.
      *
-     * <p>Used in drive Method
+     * <p>
+     * Used in drive Method
      */
     public Command toggleWheelLockCommand() {
         return this.runOnce(() -> this.wheelLock = !this.wheelLock);
@@ -400,9 +387,11 @@ public class Drivetrain extends SubsystemBase {
     /**
      * Runnable Command.
      *
-     * <p>Tells the Gyro to reset its heading/which way its facing.
+     * <p>
+     * Tells the Gyro to reset its heading/which way its facing.
      *
-     * <p>Used in drive Method.
+     * <p>
+     * Used in drive Method.
      */
     public Command resetNavXSensorModule() {
         return this.runOnce(this.navXSensorModule::reset);
@@ -459,26 +448,19 @@ public class Drivetrain extends SubsystemBase {
         super.initSendable(builder);
         builder.addDoubleProperty("Odometry/Pose/X", () -> this.getPose2d().getX(), null);
         builder.addDoubleProperty("Odometry/Pose/Y", () -> this.getPose2d().getY(), null);
-        builder.addDoubleProperty(
-                "Odometry/Pose/Rot", () -> this.getPose2d().getRotation().getDegrees(), null);
-        builder.addDoubleProperty(
-                "Odometry/ChassisSpeeds/X", () -> this.getChassisSpeeds().vxMetersPerSecond, null);
-        builder.addDoubleProperty(
-                "Odometry/ChassisSpeeds/Y", () -> this.getChassisSpeeds().vyMetersPerSecond, null);
-        builder.addDoubleProperty(
-                "Odometry/ChassisSpeeds/Rot",
-                () -> Units.radiansToDegrees(this.getChassisSpeeds().omegaRadiansPerSecond),
+        builder.addDoubleProperty("Odometry/Pose/Rot", () -> this.getPose2d().getRotation().getDegrees(), null);
+        builder.addDoubleProperty("Odometry/ChassisSpeeds/X", () -> this.getChassisSpeeds().vxMetersPerSecond, null);
+        builder.addDoubleProperty("Odometry/ChassisSpeeds/Y", () -> this.getChassisSpeeds().vyMetersPerSecond, null);
+        builder.addDoubleProperty("Odometry/ChassisSpeeds/Rot",
+                () -> Units.radiansToDegrees(this.getChassisSpeeds().omegaRadiansPerSecond), null);
+        builder.addDoubleProperty("Odometry/navx/Orientation", () -> this.navXSensorModule.getRotation2d().getDegrees(),
                 null);
-        builder.addDoubleProperty(
-                "Odometry/navx/Orientation", () -> this.navXSensorModule.getRotation2d().getDegrees(), null);
-        builder.addBooleanProperty(
-                "FieldRelativeEnabled",
-                () -> this.fieldRelativeEnable,
+        builder.addBooleanProperty("FieldRelativeEnabled", () -> this.fieldRelativeEnable,
                 (boolean fre) -> this.fieldRelativeEnable = fre);
         builder.addDoubleProperty("EstimatedOdometry/Pose/X", () -> this.getPose2dEstimator().getX(), null);
         builder.addDoubleProperty("EstimatedOdometry/Pose/Y", () -> this.getPose2dEstimator().getY(), null);
-        builder.addDoubleProperty(
-                "EstimatedOdometry/Pose/Rot", () -> this.getPose2dEstimator().getRotation().getDegrees(), null);
+        builder.addDoubleProperty("EstimatedOdometry/Pose/Rot",
+                () -> this.getPose2dEstimator().getRotation().getDegrees(), null);
         builder.addDoubleProperty("GOALPOSE/X", () -> this.refreshGoalPose2d().getX(), null);
         builder.addDoubleProperty("GOALPOSE/Y", () -> this.refreshGoalPose2d().getY(), null);
         builder.addDoubleProperty("GOALPOSE/ROT", () -> this.refreshGoalPose2d().getRotation().getRadians(), null);

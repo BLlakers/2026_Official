@@ -26,7 +26,9 @@ public class AlgaeIntake extends SubsystemBase {
 
     /**
      * Instantiates a new AlgaeIntake subsystem with the specified settings
-     * @param settings The AlgaeIntakeSettings to apply to this instance
+     * 
+     * @param settings
+     *            The AlgaeIntakeSettings to apply to this instance
      */
     public AlgaeIntake(final AlgaeIntakeSettings settings) {
         requireNonNull(settings, "AlgaeIntakeSettings cannot be null");
@@ -56,8 +58,9 @@ public class AlgaeIntake extends SubsystemBase {
     }
 
     /**
-     * Obtains a "runEnd" Command which will advance the intake motor on each iteration.
-     * Interruption of the Command will trigger stopping of the intake motor.
+     * Obtains a "runEnd" Command which will advance the intake motor on each iteration. Interruption of the Command
+     * will trigger stopping of the intake motor.
+     * 
      * @return The Command
      */
     public Command getAdvanceIntakeCommand() {
@@ -65,8 +68,9 @@ public class AlgaeIntake extends SubsystemBase {
     }
 
     /**
-     * Obtains a "runEnd" Command which will reverse the intake motor on each iteration.
-     * Interruption of the Command will trigger stopping of the intake motor.
+     * Obtains a "runEnd" Command which will reverse the intake motor on each iteration. Interruption of the Command
+     * will trigger stopping of the intake motor.
+     * 
      * @return The Command
      */
     public Command getReverseIntakeCommand() {
@@ -75,6 +79,7 @@ public class AlgaeIntake extends SubsystemBase {
 
     /**
      * Obtains a "runOnce" Command which will stop the intake motor.
+     * 
      * @return The Command
      */
     public Command getStopIntakeCommand() {
@@ -83,6 +88,7 @@ public class AlgaeIntake extends SubsystemBase {
 
     /**
      * Obtains a "runOnce" Command which will advance the intake motor by the configured %.
+     * 
      * @return Command
      */
     public Command getAdvanceIntakeOnceCommand() {
@@ -91,6 +97,7 @@ public class AlgaeIntake extends SubsystemBase {
 
     /**
      * Obtains a "runOnce" Command which will reverse the intake motor by the configured %.
+     * 
      * @return Command
      */
     public Command getReverseIntakeOnceCommand() {

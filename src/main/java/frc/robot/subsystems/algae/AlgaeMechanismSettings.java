@@ -13,6 +13,7 @@ public class AlgaeMechanismSettings {
 
     /**
      * Instantiates an AlgaeMechanismSettings instance with default values.
+     *
      * @return Default AlgaeMechanismSettings
      */
     public static AlgaeMechanismSettings defaults() {
@@ -23,10 +24,10 @@ public class AlgaeMechanismSettings {
     private Constraints algaePIDControllerConstraints = new Constraints(feetToMeters(10), feetToMeters(8));
 
     @Builder.Default
-    private PIDSettings algeaControllerPIDSettings = new PIDSettings(.75,0,0);
+    private PIDSettings algeaControllerPIDSettings = new PIDSettings(.75, 0, 0);
 
     @Builder.Default
-    private PIDSettings algeaMotorPIDSettings = new PIDSettings(1,0,0);
+    private PIDSettings algeaMotorPIDSettings = new PIDSettings(1, 0, 0);
 
     @Builder.Default
     private double algaeUpPosition = -1.03;

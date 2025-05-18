@@ -9,9 +9,9 @@ import java.util.Map;
 import static java.util.Objects.requireNonNull;
 
 /**
- * Telemetry provides a convenience utility around {@link DataLogManager} and {@link DataLog} in support
- * of capturing telemetry data in a uniform and consistent way.  A limited
- * subset of {@link DataLogEntry} types are currently supported.
+ * Telemetry provides a convenience utility around {@link DataLogManager} and {@link DataLog} in support of capturing
+ * telemetry data in a uniform and consistent way. A limited subset of {@link DataLogEntry} types are currently
+ * supported.
  */
 public class Telemetry {
 
@@ -30,29 +30,25 @@ public class Telemetry {
     public static void record(final String key, final String value) {
         requireNonNull(key, "key cannot be null");
         requireNonNull(value, "value cannot be null");
-        StringLogEntry entry = stringLogs.computeIfAbsent(key,
-                (k) -> new StringLogEntry(DataLogManager.getLog(), k));
+        StringLogEntry entry = stringLogs.computeIfAbsent(key, (k) -> new StringLogEntry(DataLogManager.getLog(), k));
         entry.append(value);
     }
 
     public static void record(final String key, final float value) {
         requireNonNull(key, "key cannot be null");
-        FloatLogEntry entry = floatLogs.computeIfAbsent(key,
-                (k) -> new FloatLogEntry(DataLogManager.getLog(), k));
+        FloatLogEntry entry = floatLogs.computeIfAbsent(key, (k) -> new FloatLogEntry(DataLogManager.getLog(), k));
         entry.append(value);
     }
 
     public static void record(final String key, final double value) {
         requireNonNull(key, "key cannot be null");
-        DoubleLogEntry entry = doubleLogs.computeIfAbsent(key,
-                (k) -> new DoubleLogEntry(DataLogManager.getLog(), k));
+        DoubleLogEntry entry = doubleLogs.computeIfAbsent(key, (k) -> new DoubleLogEntry(DataLogManager.getLog(), k));
         entry.append(value);
     }
 
     public static void record(final String key, final int value) {
         requireNonNull(key, "key cannot be null");
-        IntegerLogEntry entry = intLogs.computeIfAbsent(key,
-                (k) -> new IntegerLogEntry(DataLogManager.getLog(), k));
+        IntegerLogEntry entry = intLogs.computeIfAbsent(key, (k) -> new IntegerLogEntry(DataLogManager.getLog(), k));
         entry.append(value);
     }
 

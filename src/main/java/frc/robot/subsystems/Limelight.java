@@ -26,7 +26,8 @@ public class Limelight extends SubsystemBase {
     public Limelight(String cameraName) {
         limelightName = cameraName;
         NetworkTable table = NetworkTableInstance.getDefault().getTable(limelightName);
-        aprilTagPoseTopic = table.getDoubleArrayTopic("targetpose_robotspace").subscribe(new double[]{0, 0, 0, 0, 0, 0});
+        aprilTagPoseTopic = table.getDoubleArrayTopic("targetpose_robotspace")
+                .subscribe(new double[]{0, 0, 0, 0, 0, 0});
         priorityTagIdPub = table.getIntegerTopic("priorityid").publish();
         getPriorityID = table.getEntry("priorityID").getDouble(-1); // Default to -1 if no value is found
     }
@@ -46,10 +47,11 @@ public class Limelight extends SubsystemBase {
         SmartDashboard.putNumber("AprilTag/pose/rotX", Math.toDegrees(currentAprilTag.pose.getRotation().getX()));
         SmartDashboard.putNumber("AprilTag/pose/rotY", Math.toDegrees(currentAprilTag.pose.getRotation().getY()));
         SmartDashboard.putNumber("AprilTag/pose/rotZ", Math.toDegrees(currentAprilTag.pose.getRotation().getZ()));
-        SmartDashboard.putNumber("AprilTag/pose/measureRotZ", currentAprilTag.pose.getRotation().getMeasureZ().magnitude());
+        SmartDashboard.putNumber("AprilTag/pose/measureRotZ",
+                currentAprilTag.pose.getRotation().getMeasureZ().magnitude());
         SmartDashboard.putNumber("AprilTag/pose/GetAngle", currentAprilTag.pose.getRotation().getAngle());
         SmartDashboard.putNumber("AprilTag/pose/GetAxis", currentAprilTag.pose.getRotation().getAxis().get(2));
-        //SmartDashboard.putNumber("AprilTag/pose/RAWz", aprilTagPoseTopic.getAtomic().value[5]);
+        // SmartDashboard.putNumber("AprilTag/pose/RAWz", aprilTagPoseTopic.getAtomic().value[5]);
         SmartDashboard.putNumber("AprilTag/pose/RAWZFromMethod", getAprilRotation2d().getDegrees());
 
     }
@@ -66,7 +68,8 @@ public class Limelight extends SubsystemBase {
         int aprilTagId = (int) tid.getInteger(-1);
         TimestampedDoubleArray poseArray = aprilTagPoseTopic.getAtomic(); // (x, y, z, rotx, roty, rotz)
 
-        if (poseArray.value.length < 6) return new AprilTag(-1, new Pose3d());
+        if (poseArray.value.length < 6)
+            return new AprilTag(-1, new Pose3d());
 
         Translation3d poseTranslation = new Translation3d(poseArray.value[0], // x
                 poseArray.value[1], // y
@@ -95,11 +98,13 @@ public class Limelight extends SubsystemBase {
     }
 
     public Command setLimelightUsageField() {
-        return Commands.runOnce(() -> LimelightHelpers.setCameraPose_RobotSpace(Limelights.LIMELIGHT_FRONT_LEFT, 0, 0, 0, 0, -90, 0));
+        return Commands.runOnce(
+                () -> LimelightHelpers.setCameraPose_RobotSpace(Limelights.LIMELIGHT_FRONT_LEFT, 0, 0, 0, 0, -90, 0));
     }
 
     public Command setLimelightUsageRobot() {
-        return Commands.runOnce(() -> LimelightHelpers.setCameraPose_RobotSpace(Limelights.LIMELIGHT_FRONT_LEFT, .17, 0, .2, 0, 0, 0));
+        return Commands.runOnce(
+                () -> LimelightHelpers.setCameraPose_RobotSpace(Limelights.LIMELIGHT_FRONT_LEFT, .17, 0, .2, 0, 0, 0));
     }
 
     public Command getPriorityIDCommand(int idBlue, int idRed) {
@@ -118,91 +123,91 @@ public class Limelight extends SubsystemBase {
         boolean m_isLeft = isLeft;
         Pose2d goalPose2d;
         switch (getCurrentAprilTag().ID) {
-            case 6:
+            case 6 :
                 if (m_isLeft) {
                     goalPose2d = new Pose2d(13.714, 2.868, new Rotation2d(Math.toRadians(120)));
                 } else {
                     goalPose2d = new Pose2d(13.930, 3.012, new Rotation2d(Math.toRadians(120)));
                 }
                 break;
-            case 7:
+            case 7 :
                 if (m_isLeft) {
                     goalPose2d = new Pose2d(14.373, 4.019, new Rotation2d(Math.toRadians(180)));
                 } else {
                     goalPose2d = new Pose2d(14.373, 4.199, new Rotation2d(Math.toRadians(180)));
                 }
                 break;
-            case 8:
+            case 8 :
                 if (m_isLeft) {
                     goalPose2d = new Pose2d(13.738, 5.158, new Rotation2d(Math.toRadians(Math.toRadians(-120))));
                 } else {
                     goalPose2d = new Pose2d(13.570, 5.266, new Rotation2d((Math.toRadians(Math.toRadians(-120)))));
                 }
                 break;
-            case 9:
+            case 9 :
                 if (m_isLeft) {
                     goalPose2d = new Pose2d(14.373, 5.182, new Rotation2d(Math.toRadians(-60)));
                 } else {
                     goalPose2d = new Pose2d(12.263, 5.098, new Rotation2d(Math.toRadians(-60)));
                 }
                 break;
-            case 10:
+            case 10 :
                 if (m_isLeft) {
                     goalPose2d = new Pose2d(11.736, 4.019, new Rotation2d(Math.toRadians(0)));
                 } else {
                     goalPose2d = new Pose2d(11.736, 3.839, new Rotation2d(Math.toRadians(0)));
                 }
                 break;
-            case 11:
+            case 11 :
                 if (m_isLeft) {
                     goalPose2d = new Pose2d(12.407, 2.904, new Rotation2d(Math.toRadians(60)));
                 } else {
                     goalPose2d = new Pose2d(12.563, 2.796, new Rotation2d(Math.toRadians(60)));
                 }
                 break;
-            case 17:
+            case 17 :
                 if (m_isLeft) {
                     goalPose2d = new Pose2d(3.824, 2.904, new Rotation2d(Math.toRadians(60)));
                 } else {
                     goalPose2d = new Pose2d(3.992, 2.820, new Rotation2d(Math.toRadians(60)));
                 }
                 break;
-            case 18:
+            case 18 :
                 if (m_isLeft) {
                     goalPose2d = new Pose2d(3.165, 4.031, new Rotation2d(Math.toRadians(0)));
                 } else {
                     goalPose2d = new Pose2d(3.177, 3.815, new Rotation2d(Math.toRadians(0)));
                 }
                 break;
-            case 19:
+            case 19 :
                 if (m_isLeft) {
                     goalPose2d = new Pose2d(3.824, 5.170, new Rotation2d(Math.toRadians(-60)));
                 } else {
                     goalPose2d = new Pose2d(3.668, 5.086, new Rotation2d(Math.toRadians(-60)));
                 }
                 break;
-            case 20:
+            case 20 :
                 if (m_isLeft) {
                     goalPose2d = new Pose2d(5.155, 5.170, new Rotation2d(Math.toRadians(-60)));
                 } else {
                     goalPose2d = new Pose2d(5.023, 5.242, new Rotation2d(Math.toRadians(-60)));
                 }
                 break;
-            case 21:
+            case 21 :
                 if (m_isLeft) {
                     goalPose2d = new Pose2d(5.814, 4.019, new Rotation2d(Math.toRadians(180)));
                 } else {
                     goalPose2d = new Pose2d(5.814, 4.307, new Rotation2d(Math.toRadians(180)));
                 }
                 break;
-            case 22:
+            case 22 :
                 if (m_isLeft) {
                     goalPose2d = new Pose2d(5.119, 2.880, new Rotation2d(Math.toRadians(120)));
                 } else {
                     goalPose2d = new Pose2d(5.394, 3.024, new Rotation2d(Math.toRadians(120)));
                 }
                 break;
-            default:
+            default :
                 goalPose2d = new Pose2d(-99999, 0, new Rotation2d());
                 break;
         }

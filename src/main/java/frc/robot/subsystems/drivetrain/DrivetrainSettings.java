@@ -36,39 +36,27 @@ public class DrivetrainSettings {
 
     @Builder.Default
     private SwerveModuleSettings frontLeftSwerveModuleSettings = SwerveModuleSettings.builder()
-            .name("Swerve Module/Front Left")
-            .driveMotorChannel(Constants.Port.flDriveMtrC)
-            .turningMotorChannel(Constants.Port.flSteerMtrC)
-            .turnEncoderPWMChannel(Constants.Port.flTurnEncoderDIOC)
-            .turnOffset(Constants.RobotVersion2025.flTurnEncoderOffset)
-            .build();
+            .name("Swerve Module/Front Left").driveMotorChannel(Constants.Port.flDriveMtrC)
+            .turningMotorChannel(Constants.Port.flSteerMtrC).turnEncoderPWMChannel(Constants.Port.flTurnEncoderDIOC)
+            .turnOffset(Constants.RobotVersion2025.flTurnEncoderOffset).build();
 
     @Builder.Default
     private SwerveModuleSettings frontRightSwerveModuleSettings = SwerveModuleSettings.builder()
-            .name("Swerve Module/Front Right")
-            .driveMotorChannel(Constants.Port.frDriveMtrC)
-            .turningMotorChannel(Constants.Port.frSteerMtrC)
-            .turnEncoderPWMChannel(Constants.Port.frTurnEncoderDIOC)
-            .turnOffset(Constants.RobotVersion2025.frTurnEncoderOffset)
-            .build();
+            .name("Swerve Module/Front Right").driveMotorChannel(Constants.Port.frDriveMtrC)
+            .turningMotorChannel(Constants.Port.frSteerMtrC).turnEncoderPWMChannel(Constants.Port.frTurnEncoderDIOC)
+            .turnOffset(Constants.RobotVersion2025.frTurnEncoderOffset).build();
 
     @Builder.Default
     private SwerveModuleSettings rearLeftSwerveModuleSettings = SwerveModuleSettings.builder()
-            .name("Swerve Module/Back Left")
-            .driveMotorChannel(Constants.Port.blDriveMtrC)
-            .turningMotorChannel(Constants.Port.blSteerMtrC)
-            .turnEncoderPWMChannel(Constants.Port.blTurnEncoderDIOC)
-            .turnOffset(Constants.RobotVersion2025.blTurnEncoderOffset)
-            .build();
+            .name("Swerve Module/Back Left").driveMotorChannel(Constants.Port.blDriveMtrC)
+            .turningMotorChannel(Constants.Port.blSteerMtrC).turnEncoderPWMChannel(Constants.Port.blTurnEncoderDIOC)
+            .turnOffset(Constants.RobotVersion2025.blTurnEncoderOffset).build();
 
     @Builder.Default
     private SwerveModuleSettings rearRightSwerveModuleSettings = SwerveModuleSettings.builder()
-            .name("Swerve Module/Back Right")
-            .driveMotorChannel(Constants.Port.brDriveMtrC)
-            .turningMotorChannel(Constants.Port.brSteerMtrC)
-            .turnEncoderPWMChannel(Constants.Port.brTurnEncoderDIOC)
-            .turnOffset(Constants.RobotVersion2025.brTurnEncoderOffset)
-            .build();
+            .name("Swerve Module/Back Right").driveMotorChannel(Constants.Port.brDriveMtrC)
+            .turningMotorChannel(Constants.Port.brSteerMtrC).turnEncoderPWMChannel(Constants.Port.brTurnEncoderDIOC)
+            .turnOffset(Constants.RobotVersion2025.brTurnEncoderOffset).build();
 
     @Builder.Default
     private double flTurnOffset = Constants.RobotVersion2025.flTurnEncoderOffset;

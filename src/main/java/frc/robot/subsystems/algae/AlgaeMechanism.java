@@ -50,7 +50,9 @@ public class AlgaeMechanism extends SubsystemBase {
 
     /**
      * Instantiates a new AlgaeMechanism with the specified settings
-     * @param settings The {@link AlgaeMechanismSettings}
+     * 
+     * @param settings
+     *            The {@link AlgaeMechanismSettings}
      */
     public AlgaeMechanism(final AlgaeMechanismSettings settings) {
         requireNonNull(settings, "AlgaeMechanismSettings cannot be null");
@@ -68,18 +70,16 @@ public class AlgaeMechanism extends SubsystemBase {
 
     /**
      * Prepares and configures a {@link SparkMaxConfig} to be applied to this mechanism's algae motor
+     * 
      * @return The SparkMaxConfig
      */
     private SparkMaxConfig assembleAlgaeMotorConfig() {
         SparkMaxConfig config = new SparkMaxConfig();
         PIDSettings pidSettings = this.settings.getAlgeaMotorPIDSettings();
-        config.closedLoop
-                .feedbackSensor(FeedbackSensor.kPrimaryEncoder)
-                .pid(pidSettings.p(), pidSettings.i(), pidSettings.d());
-        config
-                .inverted(false)
-                .idleMode(IdleMode.kCoast);
-        config.alternateEncoder //TODO MAKE SURE TO USE RIGHT TYPE OF ENCODER WHEN DOING CONFIGS!
+        config.closedLoop.feedbackSensor(FeedbackSensor.kPrimaryEncoder).pid(pidSettings.p(), pidSettings.i(),
+                pidSettings.d());
+        config.inverted(false).idleMode(IdleMode.kCoast);
+        config.alternateEncoder // TODO MAKE SURE TO USE RIGHT TYPE OF ENCODER WHEN DOING CONFIGS!
                 .positionConversionFactor(this.settings.getAlgaePositionConversionFactor())
                 .velocityConversionFactor(this.settings.getAlgaeVelocityConversionFactor())
                 .countsPerRevolution(this.settings.getCountsPerRevolution());
@@ -87,11 +87,13 @@ public class AlgaeMechanism extends SubsystemBase {
     }
 
     /**
-     * Updates this subsystem's {@link edu.wpi.first.math.controller.PIDController} by setting its goal to the
-     * specified position, and subsequently applies the calculated speed to the algae motor. When the specified
-     * position is reached, the algae motor's speed is set to 0. This method is intended to be invoked by this
-     * subsystem's {@link Subsystem#periodic()} implementation.
-     * @param position The desired position
+     * Updates this subsystem's {@link edu.wpi.first.math.controller.PIDController} by setting its goal to the specified
+     * position, and subsequently applies the calculated speed to the algae motor. When the specified position is
+     * reached, the algae motor's speed is set to 0. This method is intended to be invoked by this subsystem's
+     * {@link Subsystem#periodic()} implementation.
+     * 
+     * @param position
+     *            The desired position
      */
     private void updateAlgaeControllerPosition(double position) {
         this.algaeController.setGoal(position);
@@ -126,7 +128,9 @@ public class AlgaeMechanism extends SubsystemBase {
 
     /**
      * Moves the algae motor per the specified speed
-     * @param speed The speed to move the algae motor by
+     * 
+     * @param speed
+     *            The speed to move the algae motor by
      */
     private void moveAlgaeMotor(double speed) {
         this.algaeMotor.set(speed);
@@ -134,6 +138,7 @@ public class AlgaeMechanism extends SubsystemBase {
 
     /**
      * Provides indication of whether the algae IR sensor as reached or exceeded the specified threshold
+     * 
      * @return Indication
      */
     private boolean isAlgaeSensorIntakeForwardIR() {
@@ -149,6 +154,7 @@ public class AlgaeMechanism extends SubsystemBase {
 
     /**
      * Obtains the algae motor's {@link RelativeEncoder} position
+     * 
      * @return The position
      */
     public double getCurrentAlgaePosition() {
@@ -157,7 +163,9 @@ public class AlgaeMechanism extends SubsystemBase {
 
     /**
      * Sets the next position for the algae mechanism's PID controller to achieve
-     * @param nextAlgaePosition The desired position
+     * 
+     * @param nextAlgaePosition
+     *            The desired position
      */
     public void setNextAlgaePosition(double nextAlgaePosition) {
         this.nextAlgaePosition = nextAlgaePosition;
@@ -172,6 +180,7 @@ public class AlgaeMechanism extends SubsystemBase {
 
     /**
      * Provides indication of whether the algae mechanism's PID controller has achieved its currently assigned goal
+     * 
      * @return Indication that the goal has been achieved
      */
     public boolean isAlgaePIDControllerAtGoal() {
@@ -182,8 +191,8 @@ public class AlgaeMechanism extends SubsystemBase {
      * {@link Subsystem#periodic()} implementation which will continuously update the position of the algae mechanism's
      * PID controller when the Robot is being teleoperated, according to the currently assigned "next" position
      * according to {@link AlgaeMechanism#setNextAlgaePosition(double)}. This implementation will also ensure that if
-     * the algae IR sensor recognizes that algae is present within the mechanism, the next position for the algae
-     * motor to achieve with be the value provided by {@link AlgaeMechanismSettings#getAlgaeMiddlePosition()}
+     * the algae IR sensor recognizes that algae is present within the mechanism, the next position for the algae motor
+     * to achieve with be the value provided by {@link AlgaeMechanismSettings#getAlgaeMiddlePosition()}
      */
     @Override
     public void periodic() {
@@ -196,8 +205,9 @@ public class AlgaeMechanism extends SubsystemBase {
     }
 
     /**
-     * Obtains a "runEnd" Command which will advance the algae mechanism motor on each iteration.
-     * Interruption of the Command will trigger stopping of the algae mechanism motor.
+     * Obtains a "runEnd" Command which will advance the algae mechanism motor on each iteration. Interruption of the
+     * Command will trigger stopping of the algae mechanism motor.
+     * 
      * @return The Command
      */
     // TODO: Remove if unused
@@ -206,8 +216,9 @@ public class AlgaeMechanism extends SubsystemBase {
     }
 
     /**
-     * Obtains a "runEnd" Command which will reverse the algae mechanism motor on each iteration.
-     * Interruption of the Command will trigger stopping of the algae mechanism motor.
+     * Obtains a "runEnd" Command which will reverse the algae mechanism motor on each iteration. Interruption of the
+     * Command will trigger stopping of the algae mechanism motor.
+     * 
      * @return The Command
      */
     // TODO: Remove if unused
@@ -217,6 +228,7 @@ public class AlgaeMechanism extends SubsystemBase {
 
     /**
      * Obtains a "runOnce" Command which will stop the algae mechanism motor.
+     * 
      * @return The Command
      */
     // TODO: Remove if unused
@@ -226,6 +238,7 @@ public class AlgaeMechanism extends SubsystemBase {
 
     /**
      * Obtains a "runOnce" Command which will reset the algae mechanism motor position to 0.
+     * 
      * @return The Command
      */
     public Command getResetAlgaeCommand() {
@@ -234,13 +247,16 @@ public class AlgaeMechanism extends SubsystemBase {
 
     /**
      * {@link Sendable#initSendable(SendableBuilder)} implementation
-     * @param builder The sendable builder
+     * 
+     * @param builder
+     *            The sendable builder
      */
     @Override
     public void initSendable(SendableBuilder builder) {
         super.initSendable(builder);
         builder.addDoubleProperty(this.getName() + "/Algae/Position/EncoderPos", this::getCurrentAlgaePosition, null);
-        builder.addDoubleProperty(this.getName() + "/Algae/Position/Goal", () -> this.algaeController.getGoal().position, null);
+        builder.addDoubleProperty(this.getName() + "/Algae/Position/Goal",
+                () -> this.algaeController.getGoal().position, null);
         builder.addBooleanProperty(this.getName() + "/Algae/Position/atGoal", this::isAlgaePIDControllerAtGoal, null);
         builder.addDoubleProperty(this.getName() + "/Algae/Position/Speed", () -> this.algaeSpeed, null);
         builder.addBooleanProperty(this.getName() + "/Intake/IRGood", this::isAlgaeSensorIntakeForwardIR, null);

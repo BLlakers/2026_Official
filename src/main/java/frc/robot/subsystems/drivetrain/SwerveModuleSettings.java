@@ -33,7 +33,7 @@ public class SwerveModuleSettings {
 
     @Getter
     @Builder.Default
-    private PIDSettings driveMotorPIDSettings = new PIDSettings(1,0,0);
+    private PIDSettings driveMotorPIDSettings = new PIDSettings(1, 0, 0);
 
     @Getter
     @Builder.Default

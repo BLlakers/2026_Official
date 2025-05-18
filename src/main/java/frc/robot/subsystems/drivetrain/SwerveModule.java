@@ -31,16 +31,15 @@ import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
 
 /**
- * This is the code to run a single swerve module. SwerveModules have a turning motor, a drive motor,
- * and associated turning and drive encoders.
- * It is called by the Drivetrain subsystem
+ * This is the code to run a single swerve module. SwerveModules have a turning motor, a drive motor, and associated
+ * turning and drive encoders. It is called by the Drivetrain subsystem
  */
 public class SwerveModule extends SubsystemBase {
 
     private static final double TOTAL_ROTATIONAL_RANGE = 2 * Math.PI;
 
-    private static final double POSITION_CONVERSION_FACTOR =
-            (Constants.Conversion.kWheelDiameterM * Math.PI) / Constants.Conversion.DriveGearRatio;
+    private static final double POSITION_CONVERSION_FACTOR = (Constants.Conversion.kWheelDiameterM * Math.PI)
+            / Constants.Conversion.DriveGearRatio;
 
     private static final double VELOCITY_CONVERSION_FACTOR = POSITION_CONVERSION_FACTOR / 60;
 
@@ -48,7 +47,8 @@ public class SwerveModule extends SubsystemBase {
 
     // meters per second or 12.1 ft/s (max speed of SDS Mk3 with Neo motor)
     // TODO KMaxSpeed needs to go with enum
-    private static final double MAX_ANGULAR_SPEED = Units.rotationsPerMinuteToRadiansPerSecond(NeoMaxSpeedRPM / TurnGearRatio); // 1/2
+    private static final double MAX_ANGULAR_SPEED = Units
+            .rotationsPerMinuteToRadiansPerSecond(NeoMaxSpeedRPM / TurnGearRatio); // 1/2
 
     private static final double MAX_ANGULAR_VELOCITY = MAX_ANGULAR_SPEED;
 
@@ -68,15 +68,8 @@ public class SwerveModule extends SubsystemBase {
     private final DutyCycleEncoder turningMotorEncoder;
 
     // Gains are for example purposes only - must be determined for your own robot!
-    private final ProfiledPIDController turningController =
-            new ProfiledPIDController(
-                    1,
-                    0,
-                    0,
-                    new TrapezoidProfile.Constraints(
-                            MAX_ANGULAR_VELOCITY,
-                            MODULE_MAX_ANGULAR_ACCELERATION)
-            );
+    private final ProfiledPIDController turningController = new ProfiledPIDController(1, 0, 0,
+            new TrapezoidProfile.Constraints(MAX_ANGULAR_VELOCITY, MODULE_MAX_ANGULAR_ACCELERATION));
 
     /**
      * Constructs a SwerveModule with a drive motor, turning motor, drive encoder and turning encoder.
@@ -95,15 +88,13 @@ public class SwerveModule extends SubsystemBase {
         // PWM encoder from CTRE mag encoders
         this.turningMotor = new SparkMax(this.settings.getTurningMotorChannel(), MotorType.kBrushless);
 
-        this.turningMotorEncoder = new DutyCycleEncoder(
-                this.settings.getTurnEncoderPWMChannel(),
-                TOTAL_ROTATIONAL_RANGE,
-                this.settings.getTurnOffset()
-        );
+        this.turningMotorEncoder = new DutyCycleEncoder(this.settings.getTurnEncoderPWMChannel(),
+                TOTAL_ROTATIONAL_RANGE, this.settings.getTurnOffset());
 
         this.turningMotorEncoder.setAssumedFrequency(TURNING_MOTOR_ASSUMED_FREQUENCY);
 
-        this.driveMotor.configure(this.assembleDriveMotorConfig(), ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
+        this.driveMotor.configure(this.assembleDriveMotorConfig(), ResetMode.kResetSafeParameters,
+                PersistMode.kPersistParameters);
 
         // Limit the PID Controller's input range between -pi and pi and set the input to be continuous.
         this.turningController.enableContinuousInput(-Math.PI, Math.PI);
@@ -116,24 +107,20 @@ public class SwerveModule extends SubsystemBase {
      */
     private SparkMaxConfig assembleDriveMotorConfig() {
         SparkMaxConfig config = new SparkMaxConfig();
-        config
-                .inverted(true)
-                .idleMode(IdleMode.kBrake);
-        config.encoder
-                .positionConversionFactor(POSITION_CONVERSION_FACTOR)
+        config.inverted(true).idleMode(IdleMode.kBrake);
+        config.encoder.positionConversionFactor(POSITION_CONVERSION_FACTOR)
                 .velocityConversionFactor(VELOCITY_CONVERSION_FACTOR);
 
         PIDSettings pidSettings = this.settings.getDriveMotorPIDSettings();
-        config.closedLoop
-                .feedbackSensor(FeedbackSensor.kPrimaryEncoder)
-                .pid(pidSettings.p(), pidSettings.i(), pidSettings.d());
+        config.closedLoop.feedbackSensor(FeedbackSensor.kPrimaryEncoder).pid(pidSettings.p(), pidSettings.i(),
+                pidSettings.d());
 
         return config;
     }
 
     /**
-     * Returns the current state of the module. <pi> This takes a current velocity for each different
-     * drive encoder and a current angle.
+     * Returns the current state of the module. <pi> This takes a current velocity for each different drive encoder and
+     * a current angle.
      *
      * @return The current state of each Swerve Module. --> The speed and angle of a Module
      */
@@ -141,41 +128,37 @@ public class SwerveModule extends SubsystemBase {
         // the getVelocity() function normally returns RPM but is scaled in the
         // SwerveModule constructor to return actual wheel speed
 
-        return new SwerveModuleState(
-                this.driveMotor.getEncoder().getVelocity(),
-                Rotation2d.fromRadians(this.turningMotorEncoder.get())
-        );
+        return new SwerveModuleState(this.driveMotor.getEncoder().getVelocity(),
+                Rotation2d.fromRadians(this.turningMotorEncoder.get()));
     }
 
     /**
-     * This gets a current Position (Distance per rotation in meters) for each different drive encoder
-     * and a current angle from the Duty Cycle encoder.
+     * This gets a current Position (Distance per rotation in meters) for each different drive encoder and a current
+     * angle from the Duty Cycle encoder.
      *
      * @return The current Position of each Swerve Module
      */
     public SwerveModulePosition getModulePosition() {
-        return new SwerveModulePosition(
-                this.driveMotor.getEncoder().getPosition(),
-                Rotation2d.fromRadians(this.turningMotorEncoder.get())
-        );
+        return new SwerveModulePosition(this.driveMotor.getEncoder().getPosition(),
+                Rotation2d.fromRadians(this.turningMotorEncoder.get()));
     }
 
     /**
      * Sets the desired state for the module.
      *
-     * <p>This means the speed it should be going and the angle it should be going.
+     * <p>
+     * This means the speed it should be going and the angle it should be going.
      *
-     * @param desiredState Desired state with speed and angle.
+     * @param desiredState
+     *            Desired state with speed and angle.
      */
     public void setDesiredState(final SwerveModuleState desiredState) {
 
         // Optimize the reference state to avoid spinning further than 90 degrees
         desiredState.optimize(getModulePosition().angle);
 
-        final double signedAngleDifference = closestAngleCalculator(
-                this.getModulePosition().angle.getRadians(),
-                desiredState.angle.getRadians()
-        );
+        final double signedAngleDifference = closestAngleCalculator(this.getModulePosition().angle.getRadians(),
+                desiredState.angle.getRadians());
 
         // proportion error control
         double rotateMotorPercentPower = signedAngleDifference / TOTAL_ROTATIONAL_RANGE;
@@ -186,13 +169,8 @@ public class SwerveModule extends SubsystemBase {
         double driveMotorPercentPower = desiredState.speedMetersPerSecond / DRIVE_MAX_SPEED;
         this.driveMotor.set(driveMotorPercentPower);
 
-        this.refreshSmartDashboard(
-                driveMotorPercentPower,
-                turnMotorPercentPower,
-                signedAngleDifference,
-                desiredState.angle.getRadians(),
-                this.getModulePosition().angle.getRadians()
-        );
+        this.refreshSmartDashboard(driveMotorPercentPower, turnMotorPercentPower, signedAngleDifference,
+                desiredState.angle.getRadians(), this.getModulePosition().angle.getRadians());
     }
 
     /**
@@ -204,54 +182,57 @@ public class SwerveModule extends SubsystemBase {
      * @param desiredAngle
      * @param currentAngle
      */
-    private void refreshSmartDashboard(
-            double driveMotorPercentPower,
-            double turnMotorPercentPower,
-            double signedAngleDifference,
-            double desiredAngle,
-            double currentAngle) {
+    private void refreshSmartDashboard(double driveMotorPercentPower, double turnMotorPercentPower,
+            double signedAngleDifference, double desiredAngle, double currentAngle) {
 
         String nameTag = format("DriveTrain/%s", this.getName());
         int driveMotorId = this.turningMotor.getDeviceId();
         int turningMotorId = this.turningMotor.getDeviceId();
 
         // TODO: Improve and cleanup these names
-        SmartDashboard.putNumber(
-                format("%s/Drive Encoder/ID:%s/DrivePercent", nameTag, driveMotorId), driveMotorPercentPower);
+        SmartDashboard.putNumber(format("%s/Drive Encoder/ID:%s/DrivePercent", nameTag, driveMotorId),
+                driveMotorPercentPower);
 
-        SmartDashboard.putNumber(
-                format("%s/Turn Encoder/ID:%s/DrivePercent", nameTag, turningMotorId), turnMotorPercentPower);
+        SmartDashboard.putNumber(format("%s/Turn Encoder/ID:%s/DrivePercent", nameTag, turningMotorId),
+                turnMotorPercentPower);
 
-        SmartDashboard.putNumber(
-                format("%s/Turn Encoder/SignedAngleDiff:%s/Angle", nameTag, turningMotorId), signedAngleDifference);
+        SmartDashboard.putNumber(format("%s/Turn Encoder/SignedAngleDiff:%s/Angle", nameTag, turningMotorId),
+                signedAngleDifference);
 
-        SmartDashboard.putNumber(
-                format("%s/Turn Encoder/DesiredState:%s/DesiredAngle", nameTag, turningMotorId), desiredAngle);
+        SmartDashboard.putNumber(format("%s/Turn Encoder/DesiredState:%s/DesiredAngle", nameTag, turningMotorId),
+                desiredAngle);
 
-        SmartDashboard.putNumber(
-                format("%s/Turn Encoder/CurrentState:%s/DesiredAngle", nameTag, turningMotorId), currentAngle);
+        SmartDashboard.putNumber(format("%s/Turn Encoder/CurrentState:%s/DesiredAngle", nameTag, turningMotorId),
+                currentAngle);
 
     }
 
     /**
      * Calculates the closest angle and direction between two points on a circle.
      *
-     * @param currentAngle <ul>
-     *                     <li>where you currently are
-     *                     </ul>
-     * @param desiredAngle <ul>
-     *                     <li>where you want to end up
-     *                     </ul>
-     * @return <ul>
-     * <li>signed double of the angle (rad) between the two points
-     * </ul>
+     * @param currentAngle
+     *            <ul>
+     *            <li>where you currently are
+     *            </ul>
+     * @param desiredAngle
+     *            <ul>
+     *            <li>where you want to end up
+     *            </ul>
+     * @return
+     *         <ul>
+     *         <li>signed double of the angle (rad) between the two points
+     *         </ul>
      */
     private double closestAngleCalculator(double currentAngle, double desiredAngle) {
         double signedDiff = 0.0;
-        double rawDiff =
-                currentAngle > desiredAngle
-                        ? currentAngle - desiredAngle
-                        : desiredAngle - currentAngle; // find the positive raw distance between the angles
+        double rawDiff = currentAngle > desiredAngle ? currentAngle - desiredAngle : desiredAngle - currentAngle; // find
+                                                                                                                  // the
+                                                                                                                  // positive
+                                                                                                                  // raw
+                                                                                                                  // distance
+                                                                                                                  // between
+                                                                                                                  // the
+                                                                                                                  // angles
         double modDiff = rawDiff % TOTAL_ROTATIONAL_RANGE; // constrain the difference to a full circle
         if (modDiff > Math.PI) { // if the angle is greater than half a rotation, go backwards
             signedDiff = (TOTAL_ROTATIONAL_RANGE - modDiff); // full circle minus the angle
@@ -259,7 +240,8 @@ public class SwerveModule extends SubsystemBase {
                 signedDiff = signedDiff * -1; // get the direction that was lost calculating raw diff
         } else {
             signedDiff = modDiff;
-            if (currentAngle > desiredAngle) signedDiff = signedDiff * -1;
+            if (currentAngle > desiredAngle)
+                signedDiff = signedDiff * -1;
         }
         return signedDiff;
     }
@@ -277,11 +259,13 @@ public class SwerveModule extends SubsystemBase {
         super.initSendable(builder);
         builder.publishConstInteger("TurnMotor/ID", this.turningMotor.getDeviceId());
         builder.publishConstInteger("DriveMotor/ID", this.driveMotor.getDeviceId());
-        builder.addDoubleProperty("TurnMotor/Angle", () -> Units.radiansToDegrees(this.turningMotorEncoder.get()), null);
+        builder.addDoubleProperty("TurnMotor/Angle", () -> Units.radiansToDegrees(this.turningMotorEncoder.get()),
+                null);
         builder.addDoubleProperty("DriveMotor/Pos", this.driveMotorEncoder::getPosition, null);
         builder.addDoubleProperty("DriveMotor/Vel", this.driveMotorEncoder::getVelocity, null);
         builder.addDoubleProperty("TurnMotor/Encoder/AbsolutePosition", this.turningMotorEncoder::get, null);
-        builder.addDoubleProperty("TurnMotor/Encoder/TurningEncoderPosition", this.turningMotor.getEncoder()::getPosition, null);
+        builder.addDoubleProperty("TurnMotor/Encoder/TurningEncoderPosition",
+                this.turningMotor.getEncoder()::getPosition, null);
         builder.setSafeState(this::stopMotors);
     }
 }

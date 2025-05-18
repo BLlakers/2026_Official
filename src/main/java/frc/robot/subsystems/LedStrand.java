@@ -43,7 +43,7 @@ public class LedStrand extends SubsystemBase {
     private void sendSerialCommand(String command) {
         long currentTime = System.currentTimeMillis();
 
-        if (currentTime - lastUpdateTime >= 10) {  // Only update every second
+        if (currentTime - lastUpdateTime >= 10) { // Only update every second
             lastUpdateTime = currentTime;
 
             if (arduinoSerial != null) {
