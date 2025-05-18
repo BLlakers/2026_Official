@@ -8,6 +8,8 @@ import edu.wpi.first.math.trajectory.TrapezoidProfile;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
+import frc.robot.Constants;
+import frc.robot.Constants.Limelights;
 import frc.robot.subsystems.drivetrain.Drivetrain;
 import frc.robot.subsystems.LedStrand;
 import frc.robot.support.limelight.LimelightHelpers;
@@ -140,9 +142,9 @@ public class AprilAlignCommand extends Command {
                 ySpeed = 0;
             }
             if (m_isLeft) {
-                aprilSkew = Math.toRadians(LimelightHelpers.getTX("limelight-frl"));
+                aprilSkew = Math.toRadians(LimelightHelpers.getTX(Limelights.LIMELIGHT_FRONT_LEFT));
             } else {
-                aprilSkew = Math.toRadians(LimelightHelpers.getTX("limelight-frr"));
+                aprilSkew = Math.toRadians(LimelightHelpers.getTX(Limelights.LIMELIGHT_FRONT_RIGHT));
             }
 
             rotSpeed = m_omegaController.calculate(aprilSkew);
@@ -163,16 +165,16 @@ public class AprilAlignCommand extends Command {
 
         SmartDashboard.putNumber(m_drivetrain.getName() + "/AprilAlignCommandV2/Command/MeasurementX", aprilTag.pose.getX());
         SmartDashboard.putNumber(m_drivetrain.getName() + "/AprilAlignCommandV2/Command/MeasurementY", aprilTag.pose.getY());
-        SmartDashboard.putNumber(m_drivetrain.getName() + "/AprilAlignCommandV2/Command/MeasurementRot", Math.toRadians(LimelightHelpers.getTX("limelight-frr")));
+        SmartDashboard.putNumber(m_drivetrain.getName() + "/AprilAlignCommandV2/Command/MeasurementRot", Math.toRadians(LimelightHelpers.getTX(Limelights.LIMELIGHT_FRONT_RIGHT)));
         SmartDashboard.putNumber(m_drivetrain.getName() + "/AprilAlignCommandV2/Command/MeasurementSkew", m_aprilRotation.get().getRadians());
 
         SmartDashboard.putNumber(m_drivetrain.getName() + "/AprilAlignCommandV2/Command/NEWGoalXController", m_goalX);
         SmartDashboard.putNumber(m_drivetrain.getName() + "/AprilAlignCommandV2/Command/NEWGoalOmegaController", m_goalRot);
         SmartDashboard.putNumber(m_drivetrain.getName() + "/AprilAlignCommandV2/Command/NEWGoalYController", m_goalY);
         SmartDashboard.putNumber(m_drivetrain.getName() + "/AprilAlignCommandV2/Command/NEWMeasurementXController", aprilTag.pose.getY());
-        SmartDashboard.putNumber(m_drivetrain.getName() + "/AprilAlignCommandV2/Command/NEWMeasurementOmegaControllerFRR", Math.toRadians(LimelightHelpers.getTX("limelight-frr")));
-        SmartDashboard.putNumber(m_drivetrain.getName() + "/AprilAlignCommandV2/Command/NEWMeasurementOmegaControllerFrl", Math.toRadians(LimelightHelpers.getTX("limelight-frl")));
-        SmartDashboard.putNumber(m_drivetrain.getName() + "/AprilAlignCommandV2/Command/NEWMeasurementOmegaControllerBack", Math.toRadians(LimelightHelpers.getTX("limelight-back")));
+        SmartDashboard.putNumber(m_drivetrain.getName() + "/AprilAlignCommandV2/Command/NEWMeasurementOmegaControllerFrl", Math.toRadians(LimelightHelpers.getTX(Limelights.LIMELIGHT_FRONT_LEFT)));
+        SmartDashboard.putNumber(m_drivetrain.getName() + "/AprilAlignCommandV2/Command/NEWMeasurementOmegaControllerFRR", Math.toRadians(LimelightHelpers.getTX(Limelights.LIMELIGHT_FRONT_RIGHT)));
+        SmartDashboard.putNumber(m_drivetrain.getName() + "/AprilAlignCommandV2/Command/NEWMeasurementOmegaControllerBack", Math.toRadians(LimelightHelpers.getTX(Limelights.LIMELIGHT_BACK)));
         SmartDashboard.putNumber(m_drivetrain.getName() + "/AprilAlignCommandV2/Command/NEWMeasurementYController", m_aprilRotation.get().getRadians());
         SmartDashboard.putBoolean(m_drivetrain.getName() + "/AprilAlignCommandV2/Command/NEWAtGoalXController", m_xController.atGoal());
         SmartDashboard.putBoolean(m_drivetrain.getName() + "/AprilAlignCommandV2/Command/NEWAtGoalXControllerBACK", Back_xController.atGoal());

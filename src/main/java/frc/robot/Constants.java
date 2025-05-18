@@ -14,6 +14,12 @@ import static edu.wpi.first.units.Units.Meters;
 
 public final class Constants {
 
+    public static final class Limelights {
+        public static final String LIMELIGHT_FRONT_LEFT = "limelight-front-left";
+        public static final String LIMELIGHT_FRONT_RIGHT = "limelight-front-right";
+        public static final String LIMELIGHT_BACK = "limelight-back";
+    }
+
     public static final class DriverLabels {
         public static final String ASA = "Asa";
         public static final String BEN = "Ben";
@@ -49,9 +55,9 @@ public final class Constants {
     }
 
     public static class Controller {
-        public static final int DriverControllerChannel = 0;
-        public static final int ManipControllerChannel = 1;
-        public static final int DebugControllerChannel = 2;
+        public static final int DRIVER_CONTROLLER_CHANNEL = 0;
+        public static final int MANIPULATION_CONTROLLER_CHANNEL = 1;
+        public static final int DEBUG_CONTROLLER_CHANNEL = 2;
         public static final int buttonA = 1;
         public static final int buttonB = 2;
         public static final int buttonX = 3;

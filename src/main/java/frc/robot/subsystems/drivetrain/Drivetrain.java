@@ -25,6 +25,7 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants;
+import frc.robot.Constants.Limelights;
 import frc.robot.support.limelight.LimelightHelpers;
 
 import java.util.Optional;
@@ -226,10 +227,10 @@ public class Drivetrain extends SubsystemBase {
      * Tells our wheels to go to the Wheel Locking position (0 m/s, forming an X)
      */
     private void lockWheels() {
-        this.rearLeftSwerveModule.setDesiredState(new SwerveModuleState(0, this.settings.getWheelLock135Degrees()));
-        this.frontLeftSwerveModule.setDesiredState(new SwerveModuleState(0, this.settings.getWheelLock45Degrees()));
-        this.rearRightSwerveModule.setDesiredState(new SwerveModuleState(0, this.settings.getWheelLock45Degrees()));
-        this.frontRightSwerveModule.setDesiredState(new SwerveModuleState(0, this.settings.getWheelLock135Degrees()));
+        this.rearLeftSwerveModule.setDesiredState(this.settings.getFullStopAt135Degrees());
+        this.frontLeftSwerveModule.setDesiredState(this.settings.getFullStopAt45Degrees());
+        this.rearRightSwerveModule.setDesiredState(this.settings.getFullStopAt45Degrees());
+        this.frontRightSwerveModule.setDesiredState(this.settings.getFullStopAt135Degrees());
     }
 
     /**
@@ -261,59 +262,101 @@ public class Drivetrain extends SubsystemBase {
     private void updatePoseEstimatorOdometry() {
         this.swerveDrivePoseEstimator.update(this.navXSensorModule.getRotation2d(), this.getSwerveModulePositions());
 
-        boolean useMegaTag2 = true; //set to false to use MegaTag1
         boolean doRejectUpdate = false;
-        if (!useMegaTag2) {
-            LimelightHelpers.PoseEstimate mt1 = LimelightHelpers.getBotPoseEstimate_wpiBlue("limelight-frl");
+        if (!this.settings.isLimelightMegaTag2AlgorithmEnabled()) {
+            LimelightHelpers.PoseEstimate mt1 = LimelightHelpers.getBotPoseEstimate_wpiBlue(Limelights.LIMELIGHT_FRONT_LEFT);
 
             if (mt1.tagCount == 1 && mt1.rawFiducials.length == 1) {
-                if (mt1.rawFiducials[0].ambiguity > .7) {
+                LimelightHelpers.RawFiducial rawFiducial0 = mt1.rawFiducials[0];
+                if (rawFiducial0.ambiguity > this.settings.getRawFiducialAmbiguityThreshold()
+                        || rawFiducial0.distToCamera > this.settings.getRawFiducialDistanceToCameraThreshold()) {
                     doRejectUpdate = true;
                 }
-                if (mt1.rawFiducials[0].distToCamera > 3) {
-                    doRejectUpdate = true;
-                }
-            }
-            if (mt1.tagCount == 0) {
+            } else if (mt1.tagCount == 0) {
                 doRejectUpdate = true;
             }
 
             if (!doRejectUpdate) {
-                swerveDrivePoseEstimator.setVisionMeasurementStdDevs(VecBuilder.fill(.5, .5, 9999999));
-                swerveDrivePoseEstimator.addVisionMeasurement(
-                        mt1.pose,
-                        mt1.timestampSeconds);
+                this.swerveDrivePoseEstimator.setVisionMeasurementStdDevs(VecBuilder.fill(.5, .5, 9999999));
+                this.swerveDrivePoseEstimator.addVisionMeasurement(mt1.pose, mt1.timestampSeconds);
             }
-        } else if (useMegaTag2) {
-            LimelightHelpers.SetRobotOrientation("limelight-frl", swerveDrivePoseEstimator.getEstimatedPosition().getRotation().getDegrees(), navXSensorModule.getRate(), navXSensorModule.getPitch(), 0, navXSensorModule.getRoll(), 0);
-            LimelightHelpers.PoseEstimate mt2 = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2("limelight-frl");
-            if (Math.abs(navXSensorModule.getRate()) > 720) // if our angular velocity is greater than 720 degrees per second, ignore vision updates
-            {
-                doRejectUpdate = true;
-            }
-            if (mt2 == null) {
-                doRejectUpdate = true;
-            } else if (mt2.tagCount == 0) {
-                doRejectUpdate = true;
-            }
-            if (!doRejectUpdate) {
+        } else {
+            LimelightHelpers.SetRobotOrientation(
+                    Limelights.LIMELIGHT_FRONT_LEFT,
+                    this.swerveDrivePoseEstimator.getEstimatedPosition().getRotation().getDegrees(),
+                    this.navXSensorModule.getRate(),
+                    this.navXSensorModule.getPitch(), 0,
+                    this.navXSensorModule.getRoll(), 0);
 
-                swerveDrivePoseEstimator.setVisionMeasurementStdDevs(VecBuilder.fill(.7, .7, 9999999));
-                swerveDrivePoseEstimator.addVisionMeasurement(
-                        mt2.pose,
-                        mt2.timestampSeconds);
+            LimelightHelpers.PoseEstimate mt2 = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2(Limelights.LIMELIGHT_FRONT_LEFT);
+
+            // if our angular velocity is greater than 720 degrees per second, ignore vision updates
+            if (Math.abs(navXSensorModule.getRate()) > this.settings.getAngularVelocityThreshold()) {
+                doRejectUpdate = true;
+            }
+
+            if (mt2 == null || mt2.tagCount == 0) {
+                doRejectUpdate = true;
+            }
+
+            if (!doRejectUpdate) {
+                this.swerveDrivePoseEstimator.setVisionMeasurementStdDevs(VecBuilder.fill(.7, .7, 9999999));
+                this.swerveDrivePoseEstimator.addVisionMeasurement(mt2.pose, mt2.timestampSeconds);
             }
         }
+    }
+
+    /**
+     * Reset's the Robots Odometry using the Gyro's Current Rotational Position
+     *
+     * @param pose2d
+     */
+    public void resetOdometry(final Pose2d pose2d) {
+        this.swerveDriveOdometry.resetPosition(
+                this.navXSensorModule.getRotation2d(),
+                this.getSwerveModulePositions(),
+                pose2d);
+    }
+
+    /**
+     * Converts raw module states into chassis speeds
+     *
+     * @return chassisSpeeds --> A reading of the speed in m/s our robot is going.
+     */
+    private ChassisSpeeds getChassisSpeeds() {
+        return this.swerveDriveKinematics.toChassisSpeeds(this.getSwerveModuleStates());
+    }
+
+    /**
+     * This command gets the 4 individual SwerveModule States, and groups it into 1 array. <pi> Used
+     * for getting our chassis (robots) speed.
+     *
+     * @return 4 different SwerveModuleStates
+     * @author Jared Forchheimer, Dimitri Lezcano
+     */
+    private SwerveModuleState[] getSwerveModuleStates() {
+        return new SwerveModuleState[]{
+                this.frontLeftSwerveModule.getModuleState(),
+                this.frontRightSwerveModule.getModuleState(),
+                this.rearLeftSwerveModule.getModuleState(),
+                this.rearRightSwerveModule.getModuleState()
+        };
+    }
+
+    private Pose2d refreshGoalPose2d() {
+        // TODO: Why is this hard-coded to PositionsRed?
+        this.goalPose = this.getPose2dEstimator().nearest(Constants.Poses.PositionsRed);
+        return this.goalPose;
     }
 
     /**
      * Stops all the motors on the SwerveModules
      */
     public void stopModules() {
-        frontLeftSwerveModule.stopMotors();
-        frontRightSwerveModule.stopMotors();
-        rearLeftSwerveModule.stopMotors();
-        rearRightSwerveModule.stopMotors();
+        this.frontLeftSwerveModule.stopMotors();
+        this.frontRightSwerveModule.stopMotors();
+        this.rearLeftSwerveModule.stopMotors();
+        this.rearRightSwerveModule.stopMotors();
     }
 
     /**
@@ -343,52 +386,9 @@ public class Drivetrain extends SubsystemBase {
     }
 
     /**
-     * Reset's the Robots Odometry using the Gyro's Current Rotational Position
-     *
-     * @param pose2d
-     */
-    public void resetOdometry(final Pose2d pose2d) {
-        this.swerveDriveOdometry.resetPosition(
-                this.navXSensorModule.getRotation2d(),
-                this.getSwerveModulePositions(),
-                pose2d);
-    }
-
-    /**
-     * Converts raw module states into chassis speeds
-     *
-     * @return chassisSpeeds --> A reading of the speed in m/s our robot is going.
-     */
-    public ChassisSpeeds getChassisSpeeds() {
-        return swerveDriveKinematics.toChassisSpeeds(getSwerveModuleStates());
-    }
-
-    /**
-     * This command gets the 4 individual SwerveModule States, and groups it into 1 array. <pi> Used
-     * for getting our chassis (robots) speed.
-     *
-     * @return 4 different SwerveModuleStates
-     * @author Jared Forchheimer, Dimitri Lezcano
-     */
-    public SwerveModuleState[] getSwerveModuleStates() {
-        return new SwerveModuleState[]{
-                frontLeftSwerveModule.getModuleState(),
-                frontRightSwerveModule.getModuleState(),
-                rearLeftSwerveModule.getModuleState(),
-                rearRightSwerveModule.getModuleState()
-        };
-    }
-
-    public Pose2d refreshGoalPose2d() {
-        // TODO: Why is this hard-coded to PositionsRed?
-        this.goalPose = this.getPose2dEstimator().nearest(Constants.Poses.PositionsRed);
-        return this.goalPose;
-    }
-
-    /**
      * Runnable Command.
      *
-     * <p>Tells the Wheels when to stop or not based off of a boolean varible named {@link
+     * <p>Tells the Wheels when to stop or not based off of a boolean variable named {@link
      * #wheelLock}.
      *
      * <p>Used in drive Method
@@ -429,7 +429,7 @@ public class Drivetrain extends SubsystemBase {
      * @author Jared Forchheimer, Dimitri Lezcano
      */
     public Command getToggleFieldRelativeCommand() {
-        return this.runOnce(() -> fieldRelativeEnable = !this.fieldRelativeEnable);
+        return this.runOnce(() -> this.fieldRelativeEnable = !this.fieldRelativeEnable);
     }
 
     /**
@@ -457,39 +457,41 @@ public class Drivetrain extends SubsystemBase {
     @Override
     public void initSendable(SendableBuilder builder) {
         super.initSendable(builder);
-        builder.addDoubleProperty("Odometry/Pose/X", () -> getPose2d().getX(), null);
-        builder.addDoubleProperty("Odometry/Pose/Y", () -> getPose2d().getY(), null);
+        builder.addDoubleProperty("Odometry/Pose/X", () -> this.getPose2d().getX(), null);
+        builder.addDoubleProperty("Odometry/Pose/Y", () -> this.getPose2d().getY(), null);
         builder.addDoubleProperty(
-                "Odometry/Pose/Rot", () -> getPose2d().getRotation().getDegrees(), null);
+                "Odometry/Pose/Rot", () -> this.getPose2d().getRotation().getDegrees(), null);
         builder.addDoubleProperty(
-                "Odometry/ChassisSpeeds/X", () -> getChassisSpeeds().vxMetersPerSecond, null);
+                "Odometry/ChassisSpeeds/X", () -> this.getChassisSpeeds().vxMetersPerSecond, null);
         builder.addDoubleProperty(
-                "Odometry/ChassisSpeeds/Y", () -> getChassisSpeeds().vyMetersPerSecond, null);
+                "Odometry/ChassisSpeeds/Y", () -> this.getChassisSpeeds().vyMetersPerSecond, null);
         builder.addDoubleProperty(
                 "Odometry/ChassisSpeeds/Rot",
-                () -> Units.radiansToDegrees(getChassisSpeeds().omegaRadiansPerSecond),
+                () -> Units.radiansToDegrees(this.getChassisSpeeds().omegaRadiansPerSecond),
                 null);
         builder.addDoubleProperty(
-                "Odometry/navx/Orientation", () -> navXSensorModule.getRotation2d().getDegrees(), null);
+                "Odometry/navx/Orientation", () -> this.navXSensorModule.getRotation2d().getDegrees(), null);
         builder.addBooleanProperty(
                 "FieldRelativeEnabled",
                 () -> this.fieldRelativeEnable,
-                (boolean fre) -> fieldRelativeEnable = fre);
-        builder.addDoubleProperty("EstimatedOdometry/Pose/X", () -> getPose2dEstimator().getX(), null);
-        builder.addDoubleProperty("EstimatedOdometry/Pose/Y", () -> getPose2dEstimator().getY(), null);
+                (boolean fre) -> this.fieldRelativeEnable = fre);
+        builder.addDoubleProperty("EstimatedOdometry/Pose/X", () -> this.getPose2dEstimator().getX(), null);
+        builder.addDoubleProperty("EstimatedOdometry/Pose/Y", () -> this.getPose2dEstimator().getY(), null);
         builder.addDoubleProperty(
-                "EstimatedOdometry/Pose/Rot", () -> getPose2dEstimator().getRotation().getDegrees(), null);
-        builder.addDoubleProperty("GOALPOSE/X", () -> refreshGoalPose2d().getX(), null);
-        builder.addDoubleProperty("GOALPOSE/Y", () -> refreshGoalPose2d().getY(), null);
-        builder.addDoubleProperty("GOALPOSE/ROT", () -> refreshGoalPose2d().getRotation().getRadians(), null);
-        SmartDashboard.putData("DriveTrain/" + frontLeftSwerveModule.getName(), frontLeftSwerveModule);
-        SmartDashboard.putData("DriveTrain/" + frontRightSwerveModule.getName(), frontRightSwerveModule);
-        SmartDashboard.putData("DriveTrain/" + rearLeftSwerveModule.getName(), rearLeftSwerveModule);
-        SmartDashboard.putData("DriveTrain/" + rearRightSwerveModule.getName(), rearRightSwerveModule);
-        SmartDashboard.putData("field", field);
-        builder.addDoubleProperty("GYRO ANGLE", navXSensorModule::getAngle, null);
-        SmartDashboard.putData("NAVX DATA", navXSensorModule);
-        builder.addDoubleProperty("NAVX ROTATION", () -> navXSensorModule.getRotation2d().getDegrees(), null);
-        builder.addDoubleProperty("NAVX AngleAdjustment", navXSensorModule::getAngleAdjustment, null);
+                "EstimatedOdometry/Pose/Rot", () -> this.getPose2dEstimator().getRotation().getDegrees(), null);
+        builder.addDoubleProperty("GOALPOSE/X", () -> this.refreshGoalPose2d().getX(), null);
+        builder.addDoubleProperty("GOALPOSE/Y", () -> this.refreshGoalPose2d().getY(), null);
+        builder.addDoubleProperty("GOALPOSE/ROT", () -> this.refreshGoalPose2d().getRotation().getRadians(), null);
+
+        SmartDashboard.putData("DriveTrain/" + this.frontLeftSwerveModule.getName(), this.frontLeftSwerveModule);
+        SmartDashboard.putData("DriveTrain/" + this.frontRightSwerveModule.getName(), this.frontRightSwerveModule);
+        SmartDashboard.putData("DriveTrain/" + this.rearLeftSwerveModule.getName(), this.rearLeftSwerveModule);
+        SmartDashboard.putData("DriveTrain/" + this.rearRightSwerveModule.getName(), this.rearRightSwerveModule);
+        SmartDashboard.putData("field", this.field);
+
+        builder.addDoubleProperty("GYRO ANGLE", this.navXSensorModule::getAngle, null);
+        SmartDashboard.putData("NAVX DATA", this.navXSensorModule);
+        builder.addDoubleProperty("NAVX ROTATION", () -> this.navXSensorModule.getRotation2d().getDegrees(), null);
+        builder.addDoubleProperty("NAVX AngleAdjustment", this.navXSensorModule::getAngleAdjustment, null);
     }
 }

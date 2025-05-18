@@ -23,37 +23,49 @@ import edu.wpi.first.wpilibj.DutyCycleEncoder;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants;
+import frc.robot.support.PIDSettings;
 
 import static frc.robot.Constants.Conversion.NeoMaxSpeedRPM;
 import static frc.robot.Constants.Conversion.TurnGearRatio;
+import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
 
 /**
- * This is the code to run a single swerve module. SwerveModules have a turning and drive motor
+ * This is the code to run a single swerve module. SwerveModules have a turning motor, a drive motor,
  * and associated turning and drive encoders.
  * It is called by the Drivetrain subsystem
  */
 public class SwerveModule extends SubsystemBase {
-    private static final double FULL_RANGE = 2 * Math.PI;
+
+    private static final double TOTAL_ROTATIONAL_RANGE = 2 * Math.PI;
+
     private static final double POSITION_CONVERSION_FACTOR =
             (Constants.Conversion.kWheelDiameterM * Math.PI) / Constants.Conversion.DriveGearRatio;
+
     private static final double VELOCITY_CONVERSION_FACTOR = POSITION_CONVERSION_FACTOR / 60;
+
     public static final double DRIVE_MAX_SPEED = Units.feetToMeters(12.5);
 
     // meters per second or 12.1 ft/s (max speed of SDS Mk3 with Neo motor)
     // TODO KMaxSpeed needs to go with enum
     private static final double MAX_ANGULAR_SPEED = Units.rotationsPerMinuteToRadiansPerSecond(NeoMaxSpeedRPM / TurnGearRatio); // 1/2
+
     private static final double MAX_ANGULAR_VELOCITY = MAX_ANGULAR_SPEED;
 
     // radians per second squared
-    private static final double MODULE_MAX_ANGULAR_ACCELERATION = 2 * Math.PI;
+    private static final double MODULE_MAX_ANGULAR_ACCELERATION = TOTAL_ROTATIONAL_RANGE;
 
     private static final int TURNING_MOTOR_ASSUMED_FREQUENCY = 242;
 
-    public final SparkMax driveMotor;
-    public final SparkMax turningMotor;
+    private final SwerveModuleSettings settings;
+
+    private final SparkMax driveMotor;
+
+    private final SparkMax turningMotor;
+
     private final RelativeEncoder driveMotorEncoder;
-    public final DutyCycleEncoder turningMotorEncoder;
+
+    private final DutyCycleEncoder turningMotorEncoder;
 
     // Gains are for example purposes only - must be determined for your own robot!
     private final ProfiledPIDController turningController =
@@ -62,7 +74,9 @@ public class SwerveModule extends SubsystemBase {
                     0,
                     0,
                     new TrapezoidProfile.Constraints(
-                            MAX_ANGULAR_VELOCITY, MODULE_MAX_ANGULAR_ACCELERATION));
+                            MAX_ANGULAR_VELOCITY,
+                            MODULE_MAX_ANGULAR_ACCELERATION)
+            );
 
     /**
      * Constructs a SwerveModule with a drive motor, turning motor, drive encoder and turning encoder.
@@ -70,23 +84,29 @@ public class SwerveModule extends SubsystemBase {
     public SwerveModule(final SwerveModuleSettings settings) {
         requireNonNull(settings, "SwerveModuleSettings cannot be null");
 
-        this.setName(settings.getName());
+        this.settings = settings;
 
-        this.driveMotor = new SparkMax(settings.getDriveMotorChannel(), MotorType.kBrushless);
+        this.setName(this.settings.getName());
+
+        this.driveMotor = new SparkMax(this.settings.getDriveMotorChannel(), MotorType.kBrushless);
 
         this.driveMotorEncoder = this.driveMotor.getEncoder();
 
         // PWM encoder from CTRE mag encoders
-        this.turningMotor = new SparkMax(settings.getTurningMotorChannel(), MotorType.kBrushless);
+        this.turningMotor = new SparkMax(this.settings.getTurningMotorChannel(), MotorType.kBrushless);
 
-        this.turningMotorEncoder = new DutyCycleEncoder(settings.getTurnEncoderPWMChannel(), FULL_RANGE, settings.getTurnOffset());
+        this.turningMotorEncoder = new DutyCycleEncoder(
+                this.settings.getTurnEncoderPWMChannel(),
+                TOTAL_ROTATIONAL_RANGE,
+                this.settings.getTurnOffset()
+        );
 
         this.turningMotorEncoder.setAssumedFrequency(TURNING_MOTOR_ASSUMED_FREQUENCY);
 
-        this.driveMotor.configure(assembleDriveMotorConfig(), ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
+        this.driveMotor.configure(this.assembleDriveMotorConfig(), ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
 
         // Limit the PID Controller's input range between -pi and pi and set the input to be continuous.
-        turningController.enableContinuousInput(-Math.PI, Math.PI);
+        this.turningController.enableContinuousInput(-Math.PI, Math.PI);
     }
 
     /**
@@ -96,16 +116,17 @@ public class SwerveModule extends SubsystemBase {
      */
     private SparkMaxConfig assembleDriveMotorConfig() {
         SparkMaxConfig config = new SparkMaxConfig();
-
         config
                 .inverted(true)
                 .idleMode(IdleMode.kBrake);
         config.encoder
                 .positionConversionFactor(POSITION_CONVERSION_FACTOR)
                 .velocityConversionFactor(VELOCITY_CONVERSION_FACTOR);
+
+        PIDSettings pidSettings = this.settings.getDriveMotorPIDSettings();
         config.closedLoop
                 .feedbackSensor(FeedbackSensor.kPrimaryEncoder)
-                .pid(1.0, 0, 0);
+                .pid(pidSettings.p(), pidSettings.i(), pidSettings.d());
 
         return config;
     }
@@ -151,56 +172,65 @@ public class SwerveModule extends SubsystemBase {
         // Optimize the reference state to avoid spinning further than 90 degrees
         desiredState.optimize(getModulePosition().angle);
 
-        final double signedAngleDifference =
-                closestAngleCalculator(
-                        this.getModulePosition().angle.getRadians(),
-                        desiredState.angle.getRadians()
-                );
+        final double signedAngleDifference = closestAngleCalculator(
+                this.getModulePosition().angle.getRadians(),
+                desiredState.angle.getRadians()
+        );
 
         // proportion error control
-        double rotateMotorPercentPower = signedAngleDifference / (2 * Math.PI);
+        double rotateMotorPercentPower = signedAngleDifference / TOTAL_ROTATIONAL_RANGE;
+
+        double turnMotorPercentPower = this.settings.getRotationalProportionalGain() * rotateMotorPercentPower;
+        this.turningMotor.set(turnMotorPercentPower);
 
         double driveMotorPercentPower = desiredState.speedMetersPerSecond / DRIVE_MAX_SPEED;
-
-        double turnMotorPercentPower = 1.6 * rotateMotorPercentPower;
-
-        SmartDashboard.putNumber(
-                "DriveTrain/"
-                        + getName()
-                        + "/Drive Encoder/ID: "
-                        + this.driveMotor.getDeviceId()
-                        + "/DrivePercent",
-                driveMotorPercentPower);
-        SmartDashboard.putNumber(
-                "DriveTrain/"
-                        + getName()
-                        + "/Turn Encoder/ID: "
-                        + this.turningMotor.getDeviceId()
-                        + "/DrivePercent",
-                turnMotorPercentPower);
-        SmartDashboard.putNumber(
-                "DriveTrain/"
-                        + getName()
-                        + "/Turn Encoder/SignedAngleBLAHBLAHBLAH:"
-                        + this.turningMotor.getDeviceId()
-                        + "/Angle",
-                signedAngleDifference);
-        SmartDashboard.putNumber(
-                "DriveTrain/"
-                        + getName()
-                        + "/Turn Encoder/DesiredState:"
-                        + this.turningMotor.getDeviceId()
-                        + "/DesiredAngle",
-                desiredState.angle.getRadians());
-        SmartDashboard.putNumber(
-                "DriveTrain/"
-                        + getName()
-                        + "/Turn Encoder/CurrentState:"
-                        + this.turningMotor.getDeviceId()
-                        + "/DesiredAngle",
-                getModulePosition().angle.getRadians());
         this.driveMotor.set(driveMotorPercentPower);
-        this.turningMotor.set(turnMotorPercentPower);
+
+        this.refreshSmartDashboard(
+                driveMotorPercentPower,
+                turnMotorPercentPower,
+                signedAngleDifference,
+                desiredState.angle.getRadians(),
+                this.getModulePosition().angle.getRadians()
+        );
+    }
+
+    /**
+     * Sends the specified values to the {@link SmartDashboard} under predefined keys
+     *
+     * @param driveMotorPercentPower
+     * @param turnMotorPercentPower
+     * @param signedAngleDifference
+     * @param desiredAngle
+     * @param currentAngle
+     */
+    private void refreshSmartDashboard(
+            double driveMotorPercentPower,
+            double turnMotorPercentPower,
+            double signedAngleDifference,
+            double desiredAngle,
+            double currentAngle) {
+
+        String nameTag = format("DriveTrain/%s", this.getName());
+        int driveMotorId = this.turningMotor.getDeviceId();
+        int turningMotorId = this.turningMotor.getDeviceId();
+
+        // TODO: Improve and cleanup these names
+        SmartDashboard.putNumber(
+                format("%s/Drive Encoder/ID:%s/DrivePercent", nameTag, driveMotorId), driveMotorPercentPower);
+
+        SmartDashboard.putNumber(
+                format("%s/Turn Encoder/ID:%s/DrivePercent", nameTag, turningMotorId), turnMotorPercentPower);
+
+        SmartDashboard.putNumber(
+                format("%s/Turn Encoder/SignedAngleDiff:%s/Angle", nameTag, turningMotorId), signedAngleDifference);
+
+        SmartDashboard.putNumber(
+                format("%s/Turn Encoder/DesiredState:%s/DesiredAngle", nameTag, turningMotorId), desiredAngle);
+
+        SmartDashboard.putNumber(
+                format("%s/Turn Encoder/CurrentState:%s/DesiredAngle", nameTag, turningMotorId), currentAngle);
+
     }
 
     /**
@@ -222,9 +252,9 @@ public class SwerveModule extends SubsystemBase {
                 currentAngle > desiredAngle
                         ? currentAngle - desiredAngle
                         : desiredAngle - currentAngle; // find the positive raw distance between the angles
-        double modDiff = rawDiff % (2 * Math.PI); // constrain the difference to a full circle
+        double modDiff = rawDiff % TOTAL_ROTATIONAL_RANGE; // constrain the difference to a full circle
         if (modDiff > Math.PI) { // if the angle is greater than half a rotation, go backwards
-            signedDiff = ((2 * Math.PI) - modDiff); // full circle minus the angle
+            signedDiff = (TOTAL_ROTATIONAL_RANGE - modDiff); // full circle minus the angle
             if (desiredAngle > currentAngle)
                 signedDiff = signedDiff * -1; // get the direction that was lost calculating raw diff
         } else {

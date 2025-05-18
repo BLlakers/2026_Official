@@ -14,6 +14,7 @@ import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.WaitUntilCommand;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
+import frc.robot.Constants.Limelights;
 import frc.robot.commands.AlgaePIDCommand;
 import frc.robot.commands.AprilAlignCommand;
 import frc.robot.commands.ElevatorPIDCommand;
@@ -29,6 +30,8 @@ import frc.robot.subsystems.climb.ClimbMechanism;
 import frc.robot.subsystems.climb.ClimbMechanismSettings;
 import frc.robot.subsystems.coral.CoralMechanism;
 import frc.robot.subsystems.coral.CoralMechanismSettings;
+import frc.robot.subsystems.coral.Servo;
+import frc.robot.subsystems.coral.ServoSettings;
 import frc.robot.subsystems.drivetrain.Drivetrain;
 import frc.robot.subsystems.drivetrain.DrivetrainSettings;
 
@@ -38,11 +41,11 @@ import java.util.List;
 
 public class RobotContainer {
 
-    private final Limelight limelightFrl = new Limelight("limelight-frl");
+    private final Limelight limelightFrl = new Limelight(Limelights.LIMELIGHT_FRONT_LEFT);
 
-    private final Limelight limelightFrr = new Limelight("limelight-frr");
+    private final Limelight limelightFrr = new Limelight(Limelights.LIMELIGHT_FRONT_RIGHT);
 
-    private final Limelight limelightBack = new Limelight("limelight-back");
+    private final Limelight limelightBack = new Limelight(Limelights.LIMELIGHT_BACK);
 
     private final LedStrand ledStrand = new LedStrand();
 
@@ -68,7 +71,7 @@ public class RobotContainer {
     private final ElevatorPIDCommand elevatorPIDL4Command = new ElevatorPIDCommand(this.elevatorMechanism, ElevatorMechanism.L4_POSITION);
     private final ElevatorPIDCommand elevatorPIDCommandAlgae3 = new ElevatorPIDCommand(this.elevatorMechanism, ElevatorMechanism.ALGAE_L3_POSITION);
 
-    private final Servo servo = new Servo();
+    private final Servo servo = new Servo(ServoSettings.defaults());
 
     private final AprilAlignCommand limelightCodeFrontLeft = new AprilAlignCommand(this.limelightFrl::getCurrentAprilTag, this.limelightFrl::getAprilRotation2d, this.driveTrain, new Transform2d(.18, 0.00, new Rotation2d(.15)), false, true, this.ledStrand);
     private final AprilAlignCommand limelightCodeFrontRight = new AprilAlignCommand(this.limelightFrr::getCurrentAprilTag, this.limelightFrr::getAprilRotation2d, this.driveTrain, new Transform2d(.07, 0.00, new Rotation2d(0.17)), false, false, this.ledStrand);
@@ -91,9 +94,9 @@ public class RobotContainer {
      * Creates buttons and controller for: - the driver controller (port 0) - the manipulator
      * controller (port 1) - the debug controller (port 2)
      */
-    private final CommandXboxController driverController = new CommandXboxController(Constants.Controller.DriverControllerChannel);
-    private final CommandXboxController manipController = new CommandXboxController(Constants.Controller.ManipControllerChannel);
-    private final CommandXboxController debugController = new CommandXboxController(Constants.Controller.DebugControllerChannel);
+    private final CommandXboxController driverController = new CommandXboxController(Constants.Controller.DRIVER_CONTROLLER_CHANNEL);
+    private final CommandXboxController manipController = new CommandXboxController(Constants.Controller.MANIPULATION_CONTROLLER_CHANNEL);
+    private final CommandXboxController debugController = new CommandXboxController(Constants.Controller.DEBUG_CONTROLLER_CHANNEL);
 
     // A chooser for autonomous commands
     private final SendableChooser<Command> autoChooser;
@@ -243,7 +246,7 @@ public class RobotContainer {
         this.manipController.rightTrigger(.5).whileTrue(this.coralMechanism.getAdvanceCoralCommand());
         this.manipController.povUp().whileTrue(this.coralMechanism.getCoralTroughCommand());
         this.manipController.povDown().whileTrue(this.climbMechanism.getFullyReverseClimbCommand());
-        this.servo.setDefaultCommand(this.servo.ServoForwardCommand());
+        this.servo.setDefaultCommand(this.servo.getForwardPositionCommand());
 
         this.debugController.rightBumper().whileTrue(this.elevatorMechanism.getElevatorDownLimitCommand());
         this.debugController.leftBumper().whileTrue(this.elevatorMechanism.getElevatorUpLimitCommand());

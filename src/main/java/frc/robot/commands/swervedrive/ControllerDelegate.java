@@ -8,7 +8,7 @@ import java.util.function.BooleanSupplier;
 import java.util.function.DoubleSupplier;
 
 /**
- * ControllerDelegate encapsulates a series pf {@link java.util.function.Supplier} which produce values
+ * ControllerDelegate encapsulates a series of {@link java.util.function.Supplier} which produce values
  * generated from driver controls, such as {@link CommandXboxController}. ControllerDelegate also maintains
  * {@link Driver} to identify the currently operating Driver. In this way supplied values can be interpreted
  * according to driver preference.

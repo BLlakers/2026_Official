@@ -9,6 +9,7 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import frc.robot.Constants.Limelights;
 import frc.robot.support.limelight.LimelightHelpers;
 
 public class Limelight extends SubsystemBase {
@@ -94,11 +95,11 @@ public class Limelight extends SubsystemBase {
     }
 
     public Command setLimelightUsageField() {
-        return Commands.runOnce(() -> LimelightHelpers.setCameraPose_RobotSpace("limelight-frl", 0, 0, 0, 0, -90, 0));
+        return Commands.runOnce(() -> LimelightHelpers.setCameraPose_RobotSpace(Limelights.LIMELIGHT_FRONT_LEFT, 0, 0, 0, 0, -90, 0));
     }
 
     public Command setLimelightUsageRobot() {
-        return Commands.runOnce(() -> LimelightHelpers.setCameraPose_RobotSpace("limelight-frl", .17, 0, .2, 0, 0, 0));
+        return Commands.runOnce(() -> LimelightHelpers.setCameraPose_RobotSpace(Limelights.LIMELIGHT_FRONT_LEFT, .17, 0, .2, 0, 0, 0));
     }
 
     public Command getPriorityIDCommand(int idBlue, int idRed) {
