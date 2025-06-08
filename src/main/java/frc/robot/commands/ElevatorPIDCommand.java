@@ -2,16 +2,16 @@ package frc.robot.commands;
 
 import edu.wpi.first.util.sendable.SendableBuilder;
 import edu.wpi.first.wpilibj2.command.Command;
-import frc.robot.subsystems.ElevatorMechanism;
+import frc.robot.subsystems.elevator.Elevator;
 
 public class ElevatorPIDCommand extends Command {
     private final Double position;
-    private final ElevatorMechanism elevator;
+    private final Elevator elevator;
 
-    public ElevatorPIDCommand(ElevatorMechanism elevatorMechanism, Double position) {
-        this.elevator = elevatorMechanism;
+    public ElevatorPIDCommand(Elevator elevator, Double position) {
+        this.elevator = elevator;
         this.position = position;
-        addRequirements(elevator);
+        addRequirements(this.elevator);
     }
 
     // Called when the command is initially scheduled.

@@ -62,8 +62,8 @@ public class AlgaeMechanism extends SubsystemBase {
                 PersistMode.kPersistParameters);
         PIDSettings pidSettings = this.settings.getAlgeaControllerPIDSettings();
         this.algaeController = new ProfiledPIDController(pidSettings.p(), pidSettings.i(), pidSettings.d(),
-                this.settings.getAlgaePIDControllerConstraints());
-        this.algaeController.setTolerance(this.settings.getAlgaePIDControllerTolerance());
+                this.settings.getAlgaeControllerConstraints());
+        this.algaeController.setTolerance(this.settings.getAlgaeControllerTolerance());
         this.algaeSensor = new AnalogInput(this.settings.getAlgaeSensorChannel());
         resetAlgaeMotorPosition();
     }

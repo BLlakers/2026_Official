@@ -20,9 +20,7 @@ import frc.robot.commands.AprilAlignCommand;
 import frc.robot.commands.ElevatorPIDCommand;
 import frc.robot.commands.swervedrive.ControllerDelegate;
 import frc.robot.commands.swervedrive.SwerveDriveCommand;
-import frc.robot.subsystems.ElevatorMechanism;
 import frc.robot.subsystems.LedStrand;
-import frc.robot.subsystems.Limelight;
 import frc.robot.subsystems.algae.AlgaeIntake;
 import frc.robot.subsystems.algae.AlgaeIntakeSettings;
 import frc.robot.subsystems.algae.AlgaeMechanism;
@@ -35,6 +33,9 @@ import frc.robot.subsystems.coral.Servo;
 import frc.robot.subsystems.coral.ServoSettings;
 import frc.robot.subsystems.drivetrain.Drivetrain;
 import frc.robot.subsystems.drivetrain.DrivetrainSettings;
+import frc.robot.subsystems.elevator.Elevator;
+import frc.robot.subsystems.elevator.ElevatorSettings;
+import frc.robot.subsystems.vision.Limelight;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -63,18 +64,20 @@ public class RobotContainer {
 
     private final AlgaeIntake algaeIntake = new AlgaeIntake(AlgaeIntakeSettings.defaults());
 
-    private final ElevatorMechanism elevatorMechanism = new ElevatorMechanism();
+    private final ElevatorSettings elevatorSettings = ElevatorSettings.defaults();
 
-    private final ElevatorPIDCommand elevatorPIDCommandDown = new ElevatorPIDCommand(this.elevatorMechanism,
-            ElevatorMechanism.DOWN_POSITION);
-    private final ElevatorPIDCommand elevatorPIDL2Command = new ElevatorPIDCommand(this.elevatorMechanism,
-            ElevatorMechanism.L2_POSITION);
-    private final ElevatorPIDCommand elevatorPIDL3Command = new ElevatorPIDCommand(this.elevatorMechanism,
-            ElevatorMechanism.L3_POSITION);
-    private final ElevatorPIDCommand elevatorPIDL4Command = new ElevatorPIDCommand(this.elevatorMechanism,
-            ElevatorMechanism.L4_POSITION);
-    private final ElevatorPIDCommand elevatorPIDCommandAlgae3 = new ElevatorPIDCommand(this.elevatorMechanism,
-            ElevatorMechanism.ALGAE_L3_POSITION);
+    private final Elevator elevator = new Elevator(elevatorSettings);
+
+    private final ElevatorPIDCommand elevatorPIDCommandDown = new ElevatorPIDCommand(this.elevator,
+            elevatorSettings.getDownPosition());
+    private final ElevatorPIDCommand elevatorPIDL2Command = new ElevatorPIDCommand(this.elevator,
+            elevatorSettings.getLevel2Position());
+    private final ElevatorPIDCommand elevatorPIDL3Command = new ElevatorPIDCommand(this.elevator,
+            elevatorSettings.getLevel3Position());
+    private final ElevatorPIDCommand elevatorPIDL4Command = new ElevatorPIDCommand(this.elevator,
+            elevatorSettings.getLevel4Position());
+    private final ElevatorPIDCommand elevatorPIDCommandAlgae3 = new ElevatorPIDCommand(this.elevator,
+            elevatorSettings.getAlgaeLevel3Position());
 
     private final Servo servo = new Servo(ServoSettings.defaults());
 
@@ -93,11 +96,11 @@ public class RobotContainer {
     private final Command algaeDownAndRunA3 = Commands.race(
             new AlgaePIDCommand(algaeMechanism, algaeMechanismSettings.getAlgaeUpPosition()),
             algaeIntake.getAdvanceIntakeOnceCommand(),
-            new ElevatorPIDCommand(this.elevatorMechanism, ElevatorMechanism.ALGAE_L3_POSITION));
+            new ElevatorPIDCommand(this.elevator, elevatorSettings.getAlgaeLevel3Position()));
     private final Command algaeDownAndRunA4 = Commands.race(
             new AlgaePIDCommand(algaeMechanism, algaeMechanismSettings.getAlgaeUpPosition()),
             algaeIntake.getAdvanceIntakeOnceCommand(),
-            new ElevatorPIDCommand(this.elevatorMechanism, ElevatorMechanism.ALGAE_L4_POSITION));
+            new ElevatorPIDCommand(this.elevator, elevatorSettings.getAlgaeLevel4Position()));
     private final Command algaeUpAndStop = Commands.race(
             new AlgaePIDCommand(algaeMechanism, algaeMechanismSettings.getAlgaeDownPosition()),
             algaeIntake.getStopIntakeCommand());
@@ -107,7 +110,7 @@ public class RobotContainer {
     private final Command algaeGroundCommand = Commands.race(
             new AlgaePIDCommand(algaeMechanism, algaeMechanismSettings.getAlgaeGroundPosition()),
             algaeIntake.getReverseIntakeOnceCommand(),
-            new ElevatorPIDCommand(this.elevatorMechanism, ElevatorMechanism.L2_POSITION));
+            new ElevatorPIDCommand(this.elevator, elevatorSettings.getLevel2Position()));
     private final Command resetPoseAuto = Commands.runOnce(() -> this.driveTrain.resetOdometry(this.currentPath.get(0)),
             this.driveTrain);
 
@@ -145,7 +148,7 @@ public class RobotContainer {
                                                                                                                      // path.
 
     public RobotContainer() {
-        this.elevatorMechanism.setName("ElevatorMechanism");
+        this.elevator.setName("ElevatorMechanism");
         this.driveTrain.setName("DriveTrain");
         this.coralMechanism.setName("CoralMechanism");
         this.algaeIntake.setName("AlgaeIntake");
@@ -210,21 +213,21 @@ public class RobotContainer {
         NamedCommands.registerCommand("PathRESETODMMiddle",
                 AutoBuilder.resetOdom(new Pose2d(5.802, 3.959, new Rotation2d(180))));
         NamedCommands.registerCommand("ElevatorL2",
-                new ElevatorPIDCommand(this.elevatorMechanism, ElevatorMechanism.L2_POSITION));
+                new ElevatorPIDCommand(this.elevator, elevatorSettings.getLevel2Position()));
         NamedCommands.registerCommand("ElevatorA3", this.algaeDownAndRunA3);
         NamedCommands.registerCommand("ElevatorA4", this.algaeDownAndRunA4);
         NamedCommands.registerCommand("IntakeCoral", this.coralMechanism.getCoralIntakeAutoCommand());
         NamedCommands.registerCommand("ResetOdom", this.driveTrain.getResetOdometryCommand());
         NamedCommands.registerCommand("ElevatorL4",
-                new ElevatorPIDCommand(this.elevatorMechanism, ElevatorMechanism.L4_POSITION)
-                        .onlyWhile(() -> !this.elevatorMechanism.isElevatorAtPosition()));
+                new ElevatorPIDCommand(this.elevator, elevatorSettings.getLevel4Position())
+                        .onlyWhile(() -> !this.elevator.isElevatorAtPosition()));
         NamedCommands.registerCommand("ElevatorBottom",
-                new ElevatorPIDCommand(this.elevatorMechanism, ElevatorMechanism.DOWN_POSITION));
-        NamedCommands.registerCommand("ElevatorUp", this.elevatorMechanism.getElevatorUpCommand());
+                new ElevatorPIDCommand(this.elevator, elevatorSettings.getDownPosition()));
+        NamedCommands.registerCommand("ElevatorUp", this.elevator.getElevatorUpCommand());
         NamedCommands.registerCommand("ShootCoral", this.coralMechanism.getAdvanceCoralCommand().withTimeout(.5));
         NamedCommands.registerCommand("ToggleFieldRelative", this.driveTrain.getToggleFieldRelativeCommand());
         NamedCommands.registerCommand("WaitUntilElevatorTop",
-                new WaitUntilCommand(this.elevatorMechanism::isElevatorAtPosition));
+                new WaitUntilCommand(this.elevator::isElevatorAtPosition));
         NamedCommands.registerCommand("StopDrive", this.driveTrain.getStopModulesCommand());
     }
 
@@ -250,7 +253,7 @@ public class RobotContainer {
                 .leftXSupplier(this.driverController::getLeftX).leftYSupplier(this.driverController::getLeftY)
                 .rightXSupplier(this.driverController::getRightX).rightYSupplier(this.driverController::getRightY)
                 .accelerationSupplier(this.driverController::getRightTriggerAxis)
-                .elevatorDecelerateRatioSupplier(this.elevatorMechanism::getElevatorDecelerateRatio)
+                .elevatorDecelerateRatioSupplier(this.elevator::getElevatorDecelerateRatio)
                 .runHalfSpeedConditionSupplier(() -> driverController.getLeftTriggerAxis() >= 0.5)
                 .driver(ControllerDelegate.Driver.ASA).build(), driveTrain));
 
@@ -267,7 +270,7 @@ public class RobotContainer {
         this.manipController.b().onTrue(this.elevatorPIDL2Command);
         this.manipController.y().onTrue(this.elevatorPIDL3Command);
         this.manipController.x().onTrue(this.elevatorPIDL4Command);
-        this.manipController.rightStick().onTrue(this.elevatorMechanism.getResetPositionCommand());
+        this.manipController.rightStick().onTrue(this.elevator.getResetPositionCommand());
         // Algae Commands
         this.manipController.leftBumper().onTrue(this.algaeDownAndRunA3);
         this.manipController.rightBumper().onTrue(this.algaeDownAndRunA4);
@@ -284,8 +287,8 @@ public class RobotContainer {
         this.manipController.povDown().whileTrue(this.climbMechanism.getFullyReverseClimbCommand());
         this.servo.setDefaultCommand(this.servo.getForwardPositionCommand());
 
-        this.debugController.rightBumper().whileTrue(this.elevatorMechanism.getElevatorDownLimitCommand());
-        this.debugController.leftBumper().whileTrue(this.elevatorMechanism.getElevatorUpLimitCommand());
+        this.debugController.rightBumper().whileTrue(this.elevator.getElevatorDownLimitCommand());
+        this.debugController.leftBumper().whileTrue(this.elevator.getElevatorUpLimitCommand());
         this.debugController.povUp().onTrue(this.algaeMechanism.getResetAlgaeCommand());
         this.debugController.a().onTrue(this.algaePIDCommandUp);
         this.debugController.b().onTrue(this.algaePIDCommandMiddle);
@@ -301,7 +304,7 @@ public class RobotContainer {
 
     private void configureShuffleboard() {
         SmartDashboard.putData("Command Scheduler", CommandScheduler.getInstance());
-        SmartDashboard.putData(this.elevatorMechanism);
+        SmartDashboard.putData(this.elevator);
 
         // Add subsystems
         SmartDashboard.putData(this.driveTrain);

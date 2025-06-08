@@ -105,7 +105,7 @@ public final class Constants {
         public static final int brDriveMtrC = 7;
         public static final int brSteerMtrC = 8;
         public static final int elevatorMotorChannel = 11;
-        public static final int climbMotoChannel = 12;
+        public static final int climbMotorChannel = 12;
         public static final int coralMotorRightChannel = 13;
         public static final int coralMotorLeftChannel = 14;
         public static final int elevatorFollowerMotorChannel = 15;

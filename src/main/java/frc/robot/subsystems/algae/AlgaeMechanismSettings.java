@@ -21,7 +21,7 @@ public class AlgaeMechanismSettings {
     }
 
     @Builder.Default
-    private Constraints algaePIDControllerConstraints = new Constraints(feetToMeters(10), feetToMeters(8));
+    private Constraints algaeControllerConstraints = new Constraints(feetToMeters(10), feetToMeters(8));
 
     @Builder.Default
     private PIDSettings algeaControllerPIDSettings = new PIDSettings(.75, 0, 0);
@@ -42,7 +42,7 @@ public class AlgaeMechanismSettings {
     private double algaeGroundPosition = -1.165;
 
     @Builder.Default
-    private double algaePIDControllerTolerance = 0.035;
+    private double algaeControllerTolerance = 0.035;
 
     @Builder.Default
     private final double advanceIncrement = .1;

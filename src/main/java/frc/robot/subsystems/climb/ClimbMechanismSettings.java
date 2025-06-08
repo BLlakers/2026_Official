@@ -19,7 +19,7 @@ public class ClimbMechanismSettings {
     }
 
     @Builder.Default
-    private int climbMotorChannel = Constants.Port.climbMotoChannel;
+    private int climbMotorChannel = Constants.Port.climbMotorChannel;
 
     @Builder.Default
     private int climbMagSwitchChannel = Constants.Port.climbMagSwitchDIOC;
