@@ -5,10 +5,10 @@ import lombok.Data;
 
 @Data
 @Builder
-public class CoralMechanismSettings {
+public class CoralMechanismContext {
 
-    public static CoralMechanismSettings defaults() {
-        return CoralMechanismSettings.builder().build();
+    public static CoralMechanismContext defaults() {
+        return CoralMechanismContext.builder().build();
     }
 
     @Builder.Default

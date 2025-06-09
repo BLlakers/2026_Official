@@ -14,64 +14,68 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants;
 import frc.robot.support.PIDSettings;
+import frc.robot.support.sparkmax.TeamSparkMax;
+
+import static java.util.Objects.requireNonNull;
 
 public class Elevator extends SubsystemBase {
 
-    private final ElevatorSettings settings;
+    private final ElevatorContext context;
 
     private double elevatorSpeed;
 
     private double elevatorPosition;
 
     // A motor to rotate up and down
-    private final SparkMax elevatorMotor;
-    private final SparkMax elevatorFollowerMotor;
+    private final TeamSparkMax elevatorMotor;
+    private final TeamSparkMax elevatorFollowerMotor;
     private final ProfiledPIDController elevatorController;
     private final DigitalInput elevatorLimitSwitchTop;
     private final DigitalInput elevatorLimitSwitchBottom;
 
     public Elevator() {
-        this(ElevatorSettings.defaults());
+        this(ElevatorContext.defaults());
     }
 
-    public Elevator(final ElevatorSettings settings) {
-        this.settings = settings;
+    public Elevator(final ElevatorContext context) {
+        requireNonNull(context, "ElevatorContext cannot be null");
 
-        this.elevatorLimitSwitchTop = new DigitalInput(this.settings.getElevatorLimitSwitchTopChannel());
+        this.context = context;
 
-        this.elevatorLimitSwitchBottom = new DigitalInput(this.settings.getElevatorLimitSwitchBottomChannel());
+        this.elevatorLimitSwitchTop = new DigitalInput(this.context.getElevatorLimitSwitchTopChannel());
 
-        this.elevatorMotor = new SparkMax(this.settings.getElevatorMotorChannel(), MotorType.kBrushless);
+        this.elevatorLimitSwitchBottom = new DigitalInput(this.context.getElevatorLimitSwitchBottomChannel());
+
+        this.elevatorMotor = this.context.getElevatorMotor();
 
         this.elevatorMotor.configure(this.assembleElevatorMotorConfig(), ResetMode.kNoResetSafeParameters,
                 PersistMode.kPersistParameters);
 
-        this.elevatorFollowerMotor = new SparkMax(this.settings.getElevatorFollowerMotorChannel(),
-                MotorType.kBrushless);
+        this.elevatorFollowerMotor = this.context.getElevatorFollowerMotor();
         this.elevatorFollowerMotor.configure(this.assembleElevatorFollowerMotorConfig(),
                 ResetMode.kNoResetSafeParameters, PersistMode.kPersistParameters);
 
-        PIDSettings pidSettings = this.settings.getElevatorControllerPIDSettings();
+        PIDSettings pidSettings = this.context.getElevatorControllerPIDSettings();
         this.elevatorController = new ProfiledPIDController(pidSettings.p(), pidSettings.i(), pidSettings.d(),
-                this.settings.getElevatorConstraints());
-        this.elevatorController.setTolerance(this.settings.getElevatorControllerTolerance());
+                this.context.getElevatorConstraints());
+        this.elevatorController.setTolerance(this.context.getElevatorControllerTolerance());
 
         this.resetPosition();
     }
 
     private void advanceElevatorMotorDown() {
-        this.elevatorMotor.set(this.settings.getReverseIncrement());
+        this.elevatorMotor.set(this.context.getReverseIncrement());
     }
 
     private SparkMaxConfig assembleElevatorMotorConfig() {
         SparkMaxConfig config = new SparkMaxConfig();
         config.inverted(false).idleMode(IdleMode.kBrake);
-        PIDSettings pidSettings = this.settings.getFeedbackSensorPIDSettings();
+        PIDSettings pidSettings = this.context.getFeedbackSensorPIDSettings();
         config.closedLoop.feedbackSensor(FeedbackSensor.kAlternateOrExternalEncoder).pid(pidSettings.p(),
                 pidSettings.i(), pidSettings.d());
-        config.alternateEncoder.positionConversionFactor(this.settings.getElevatorPositionConversionFactor())
-                .velocityConversionFactor(this.settings.getElevatorVelocityConversionFactor())
-                .countsPerRevolution(this.settings.getCountsPerRevolution());
+        config.alternateEncoder.positionConversionFactor(this.context.getElevatorPositionConversionFactor())
+                .velocityConversionFactor(this.context.getElevatorVelocityConversionFactor())
+                .countsPerRevolution(this.context.getCountsPerRevolution());
         return config;
     }
 
@@ -83,7 +87,7 @@ public class Elevator extends SubsystemBase {
 
     private void setElevatorMotorUp() {
         if (!elevatorLimitSwitchTop.get()) {
-            this.elevatorMotor.set(this.settings.getAdvanceIncrement());
+            this.elevatorMotor.set(this.context.getAdvanceIncrement());
         } else {
             this.elevatorMotor.set(0);
         }
@@ -111,9 +115,9 @@ public class Elevator extends SubsystemBase {
 
     private void updatePIDController(double position) {
         this.elevatorController.setGoal(position);
-        this.elevatorSpeed = ((this.settings.getElevatorSpeedBoostFactor())
+        this.elevatorSpeed = ((this.context.getElevatorSpeedBoostFactor())
                 * this.elevatorController.calculate(this.getElevatorMotorEncoderPosition())
-                + this.settings.getElevatorSpeedMotorPositionAdjustment());
+                + this.context.getElevatorSpeedMotorPositionAdjustment());
 
         if ((this.isElevatorLimitSwitchTop() && this.elevatorSpeed > 0)
                 || (this.isElevatorLimitSwitchBottom() && this.elevatorSpeed < 0)) {
@@ -132,11 +136,11 @@ public class Elevator extends SubsystemBase {
 
     public double getElevatorDecelerateRatio() {
         return 1 - ((this.getElevatorMotorEncoderPosition())
-                / (this.settings.getLevel4Position() + this.settings.getElevatorDecelerationOffset()));
+                / (this.context.getLevel4Position() + this.context.getElevatorDecelerationOffset()));
     }
 
     public boolean isElevatorAtPosition() {
-        return this.getElevatorMotorEncoderPosition() > this.settings.getElevatorCeiling();
+        return this.getElevatorMotorEncoderPosition() > this.context.getElevatorCeiling();
     }
 
     public Command getResetPositionCommand() {

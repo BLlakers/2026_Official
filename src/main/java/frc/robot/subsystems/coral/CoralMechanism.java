@@ -17,7 +17,7 @@ import static java.util.Objects.requireNonNull;
  */
 public class CoralMechanism extends SubsystemBase {
 
-    private final CoralMechanismSettings settings;
+    private final CoralMechanismContext context;
 
     private final TalonSRX coralMotorRight;
 
@@ -28,49 +28,49 @@ public class CoralMechanism extends SubsystemBase {
     private final AnalogInput frontSensor;
 
     /**
-     * Instantiates a new CoralMechanism with default {@link CoralMechanismSettings}
+     * Instantiates a new CoralMechanism with default {@link CoralMechanismContext}
      */
     public CoralMechanism() {
-        this(CoralMechanismSettings.defaults());
+        this(CoralMechanismContext.defaults());
     }
 
     /**
      * Instantiates a new CoralMechanism subsystem with the specified settings
      * 
-     * @param settings
+     * @param context
      *            The CoralMechanismSettings to apply to this instance
      */
-    public CoralMechanism(final CoralMechanismSettings settings) {
-        requireNonNull(settings, "CoralMechanismSettings cannot be null");
-        this.settings = settings;
+    public CoralMechanism(final CoralMechanismContext context) {
+        requireNonNull(context, "CoralMechanismContext cannot be null");
+        this.context = context;
         this.coralMotorRight = new TalonSRX(Constants.Port.coralMotorRightChannel);
         this.coralMotorLeft = new TalonSRX(Constants.Port.coralMotorLeftChannel);
-        this.rearSensor = new AnalogInput(this.settings.getRearSensorChannel());
-        this.frontSensor = new AnalogInput(this.settings.getFrontSensorChannel());
+        this.rearSensor = new AnalogInput(this.context.getRearSensorChannel());
+        this.frontSensor = new AnalogInput(this.context.getFrontSensorChannel());
     }
 
     /**
      * Advances the coral motors by the specified speed advancement increments
      */
     private void advanceCoralMotors() {
-        this.coralMotorRight.set(PercentOutput, this.settings.getAdvanceIncrement());
-        this.coralMotorLeft.set(PercentOutput, -this.settings.getAdvanceIncrement());
+        this.coralMotorRight.set(PercentOutput, this.context.getAdvanceIncrement());
+        this.coralMotorLeft.set(PercentOutput, -this.context.getAdvanceIncrement());
     }
 
     /**
      * Reverses the coral motors by the specified speed reversing increments
      */
     private void reverseCoralMotors() {
-        this.coralMotorRight.set(PercentOutput, this.settings.getReverseIncrement());
-        this.coralMotorLeft.set(PercentOutput, -this.settings.getReverseIncrement());
+        this.coralMotorRight.set(PercentOutput, this.context.getReverseIncrement());
+        this.coralMotorLeft.set(PercentOutput, -this.context.getReverseIncrement());
     }
 
     /**
      * Advances the coral motors to the trough by the specified speed advancement increments
      */
     private void advanceCoralMotorsToTrough() {
-        this.coralMotorRight.set(PercentOutput, this.settings.getAdvanceRightMotorToTroughIncrement());
-        this.coralMotorLeft.set(PercentOutput, this.settings.getAdvanceLeftMotorToTroughIncrement());
+        this.coralMotorRight.set(PercentOutput, this.context.getAdvanceRightMotorToTroughIncrement());
+        this.coralMotorLeft.set(PercentOutput, this.context.getAdvanceLeftMotorToTroughIncrement());
     }
 
     /**
@@ -156,8 +156,8 @@ public class CoralMechanism extends SubsystemBase {
      * @return Indication that a coral has been fully loaded
      */
     public boolean isCoralLoaded() {
-        return (this.getFrontSensorReading() > this.settings.getFrontSensorLoadedThreshold()
-                && this.getRearSensorReading() > this.settings.getRearSensorLoadedThreshold());
+        return (this.getFrontSensorReading() > this.context.getFrontSensorLoadedThreshold()
+                && this.getRearSensorReading() > this.context.getRearSensorLoadedThreshold());
     }
 
     /**

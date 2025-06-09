@@ -39,7 +39,7 @@ import static java.util.Objects.requireNonNull;
  */
 public class Drivetrain extends SubsystemBase {
 
-    private final DrivetrainSettings settings;
+    private final DrivetrainContext context;
 
     private final Field2d field = new Field2d();
 
@@ -86,22 +86,21 @@ public class Drivetrain extends SubsystemBase {
     private SwerveModuleState[] CurrentStates; // TODO: Unused? Eliminate
 
     /**
-     * Instantiates a new Drivetrain with default {@link DrivetrainSettings}
+     * Instantiates a new Drivetrain with default {@link DrivetrainContext}
      */
     public Drivetrain() {
-        this(DrivetrainSettings.defaults());
+        this(DrivetrainContext.defaults());
     }
 
     /**
      * Instantiates a new Drivetrain subsystem with the specified settings
      *
-     * @param settings
-     *            The DrivetrainSettings to apply to this instance
+     * @param context The DrivetrainSettings to apply to this instance
      */
-    public Drivetrain(final DrivetrainSettings settings) {
-        requireNonNull(settings, "DrivetrainSettings cannot be null");
+    public Drivetrain(final DrivetrainContext context) {
+        requireNonNull(context, "DrivetrainContext cannot be null");
 
-        this.settings = settings;
+        this.context = context;
 
         NetworkTableInstance nti = NetworkTableInstance.getDefault();
 
@@ -121,16 +120,16 @@ public class Drivetrain extends SubsystemBase {
 
         this.navXSensorModule = new AHRS(AHRS.NavXComType.kMXP_SPI);
 
-        this.settings.getRobotConfig().ifPresentOrElse(robotConfig -> {
+        this.context.getRobotConfig().ifPresentOrElse(robotConfig -> {
             AutoBuilder.configure(this::getPose2d, // Robot pose supplier NEEDS TO BE POSE2D IF WE ARE USING OLD
-                                                   // LIMELIGHT WAY TODO
+                    // LIMELIGHT WAY TODO
                     this::resetOdometry, // Method to reset odometry (will be called if your auto has a starting pose)
-                                         // NEEDS TO BE RESETPOSE2D IF WE ARE USING OLD LIMELIGHT
+                    // NEEDS TO BE RESETPOSE2D IF WE ARE USING OLD LIMELIGHT
                     this::getChassisSpeeds, this::driveRobotRelative, // ChassisSpeeds supplier. MUST BE ROBOT RELATIVE
                     // Method that will drive the robot given ROBOT RELATIVE ChassisSpeeds. Also, optionally outputs
                     // individual module feedforwards
-                    new PPHolonomicDriveController(new PIDConstants(this.settings.getLateralMovementPIDSettings().p()),
-                            new PIDConstants(this.settings.getRotationPIDSettings().p())),
+                    new PPHolonomicDriveController(new PIDConstants(this.context.getLateralMovementPIDSettings().p()),
+                            new PIDConstants(this.context.getRotationPIDSettings().p())),
                     // new PPHolonomicDriveController(Translation,Rotation), //PPHolonomicDriveController(Translation,
                     // Rotation, .2),
                     robotConfig, // The robot configuration
@@ -152,10 +151,10 @@ public class Drivetrain extends SubsystemBase {
                 Constants.Drive.SMFrontRightLocation, Constants.Drive.SMBackLeftLocation,
                 Constants.Drive.SMBackRightLocation);
 
-        this.frontRightSwerveModule = new SwerveModule(this.settings.getFrontRightSwerveModuleSettings());
-        this.frontLeftSwerveModule = new SwerveModule(this.settings.getFrontLeftSwerveModuleSettings());
-        this.rearLeftSwerveModule = new SwerveModule(this.settings.getRearLeftSwerveModuleSettings());
-        this.rearRightSwerveModule = new SwerveModule(this.settings.getRearRightSwerveModuleSettings());
+        this.frontRightSwerveModule = new SwerveModule(this.context.getFrontRightSwerveModuleContext());
+        this.frontLeftSwerveModule = new SwerveModule(this.context.getFrontLeftSwerveModuleContext());
+        this.rearLeftSwerveModule = new SwerveModule(this.context.getRearLeftSwerveModuleContext());
+        this.rearRightSwerveModule = new SwerveModule(this.context.getRearRightSwerveModuleContext());
 
         // initializes odometry
         this.swerveDriveOdometry = new SwerveDriveOdometry(this.swerveDriveKinematics,
@@ -163,7 +162,7 @@ public class Drivetrain extends SubsystemBase {
 
         this.swerveDrivePoseEstimator = new SwerveDrivePoseEstimator(this.swerveDriveKinematics,
                 this.navXSensorModule.getRotation2d(), this.getSwerveModulePositions(), new Pose2d(),
-                this.settings.getStateStdDevs(), this.settings.getVisionMeasurementStdDevs());
+                this.context.getStateStdDevs(), this.context.getVisionMeasurementStdDevs());
 
         this.addChild(frontLeftSwerveModule.getName(), frontLeftSwerveModule);
         this.addChild(frontRightSwerveModule.getName(), frontRightSwerveModule);
@@ -173,11 +172,11 @@ public class Drivetrain extends SubsystemBase {
     }
 
     public double getMaxSpeed() {
-        return this.settings.getMaxSpeed();
+        return this.context.getMaxSpeed();
     }
 
     public double getMaxTurnAngularSpeed() {
-        return this.settings.getMaxTurnAngularSpeed();
+        return this.context.getMaxTurnAngularSpeed();
     }
 
     public boolean isFieldRelativeEnable() {
@@ -192,9 +191,9 @@ public class Drivetrain extends SubsystemBase {
      * Gets our current position in meters on the field.
      *
      * @return A current position on the field.
-     *         <p>
-     *         <pi> A translation2d (X and Y on the field) -> {@link #swerveDriveKinematics} + A rotation2d (Rot X and Y
-     *         on the field) -> {@link #navXSensorModule}
+     * <p>
+     * <pi> A translation2d (X and Y on the field) -> {@link #swerveDriveKinematics} + A rotation2d (Rot X and Y
+     * on the field) -> {@link #navXSensorModule}
      */
     private Pose2d getPose2d() {
         return this.swerveDriveOdometry.getPoseMeters();
@@ -219,10 +218,10 @@ public class Drivetrain extends SubsystemBase {
      * Tells our wheels to go to the Wheel Locking position (0 m/s, forming an X)
      */
     private void lockWheels() {
-        this.rearLeftSwerveModule.setDesiredState(this.settings.getFullStopAt135Degrees());
-        this.frontLeftSwerveModule.setDesiredState(this.settings.getFullStopAt45Degrees());
-        this.rearRightSwerveModule.setDesiredState(this.settings.getFullStopAt45Degrees());
-        this.frontRightSwerveModule.setDesiredState(this.settings.getFullStopAt135Degrees());
+        this.rearLeftSwerveModule.setDesiredState(this.context.getFullStopAt135Degrees());
+        this.frontLeftSwerveModule.setDesiredState(this.context.getFullStopAt45Degrees());
+        this.rearRightSwerveModule.setDesiredState(this.context.getFullStopAt45Degrees());
+        this.frontRightSwerveModule.setDesiredState(this.context.getFullStopAt135Degrees());
     }
 
     /**
@@ -253,14 +252,14 @@ public class Drivetrain extends SubsystemBase {
         this.swerveDrivePoseEstimator.update(this.navXSensorModule.getRotation2d(), this.getSwerveModulePositions());
 
         boolean doRejectUpdate = false;
-        if (!this.settings.isLimelightMegaTag2AlgorithmEnabled()) {
+        if (!this.context.isLimelightMegaTag2AlgorithmEnabled()) {
             LimelightHelpers.PoseEstimate mt1 = LimelightHelpers
                     .getBotPoseEstimate_wpiBlue(Limelights.LIMELIGHT_FRONT_LEFT);
 
             if (mt1.tagCount == 1 && mt1.rawFiducials.length == 1) {
                 LimelightHelpers.RawFiducial rawFiducial0 = mt1.rawFiducials[0];
-                if (rawFiducial0.ambiguity > this.settings.getRawFiducialAmbiguityThreshold()
-                        || rawFiducial0.distToCamera > this.settings.getRawFiducialDistanceToCameraThreshold()) {
+                if (rawFiducial0.ambiguity > this.context.getRawFiducialAmbiguityThreshold()
+                        || rawFiducial0.distToCamera > this.context.getRawFiducialDistanceToCameraThreshold()) {
                     doRejectUpdate = true;
                 }
             } else if (mt1.tagCount == 0) {
@@ -281,7 +280,7 @@ public class Drivetrain extends SubsystemBase {
                     .getBotPoseEstimate_wpiBlue_MegaTag2(Limelights.LIMELIGHT_FRONT_LEFT);
 
             // if our angular velocity is greater than 720 degrees per second, ignore vision updates
-            if (Math.abs(navXSensorModule.getRate()) > this.settings.getAngularVelocityThreshold()) {
+            if (Math.abs(navXSensorModule.getRate()) > this.context.getAngularVelocityThreshold()) {
                 doRejectUpdate = true;
             }
 
@@ -347,12 +346,9 @@ public class Drivetrain extends SubsystemBase {
     /**
      * Method to drive the robot using joystick info.
      *
-     * @param xSpeed
-     *            Speed of the robot in the x direction (forward).
-     * @param ySpeed
-     *            Speed of the robot in the y direction (sideways).
-     * @param rot
-     *            Angular rate of the robot.
+     * @param xSpeed Speed of the robot in the x direction (forward).
+     * @param ySpeed Speed of the robot in the y direction (sideways).
+     * @param rot    Angular rate of the robot.
      */
     public void drive(double xSpeed, double ySpeed, double rot) {
         SmartDashboard.putNumber(getName() + "/Command/X Speed", xSpeed);

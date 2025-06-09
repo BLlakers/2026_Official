@@ -6,10 +6,10 @@ import lombok.Data;
 
 @Data
 @Builder
-public class AlgaeIntakeSettings {
+public class AlgaeIntakeContext {
 
-    public static AlgaeIntakeSettings defaults() {
-        return AlgaeIntakeSettings.builder().build();
+    public static AlgaeIntakeContext defaults() {
+        return AlgaeIntakeContext.builder().build();
     }
 
     @Builder.Default

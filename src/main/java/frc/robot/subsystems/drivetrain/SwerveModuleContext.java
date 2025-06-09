@@ -1,27 +1,24 @@
 package frc.robot.subsystems.drivetrain;
 
+import com.revrobotics.spark.SparkLowLevel;
+import com.revrobotics.spark.SparkLowLevel.MotorType;
 import frc.robot.support.PIDSettings;
+import frc.robot.support.sparkmax.TeamSparkMax;
+import frc.robot.support.sparkmax.TeamSparkMaxImpl;
+import frc.robot.support.sparkmax.TeamSparkMaxSimImpl;
 import lombok.Builder;
 import lombok.Getter;
 
 @Builder
-public class SwerveModuleSettings {
+public class SwerveModuleContext {
 
-    public static SwerveModuleSettings defaults() {
-        return SwerveModuleSettings.builder().build();
+    public static SwerveModuleContext defaults() {
+        return SwerveModuleContext.builder().build();
     }
 
     // Name of the SwerveModule
     @Getter
     private String name;
-
-    // CAN ID for the drive motor
-    @Getter
-    private final int driveMotorChannel;
-
-    // CAN ID for the turning motor
-    @Getter
-    private final int turningMotorChannel;
 
     // DIO input for the drive encoder channel B
     @Getter
@@ -39,4 +36,10 @@ public class SwerveModuleSettings {
     @Builder.Default
     // Used to scale the normalized angular error into motor power for the turning motor
     private final double rotationalProportionalGain = 1.6;
+
+    @Getter
+    private TeamSparkMax driveMotor;
+
+    @Getter
+    private TeamSparkMax turningMotor;
 }

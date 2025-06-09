@@ -17,6 +17,7 @@ import edu.wpi.first.wpilibj2.command.Subsystem;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants;
 import frc.robot.support.PIDSettings;
+import frc.robot.support.sparkmax.TeamSparkMax;
 
 import static java.util.Objects.requireNonNull;
 
@@ -29,9 +30,9 @@ public class AlgaeMechanism extends SubsystemBase {
     // off this class as a static member. Presently toggled from our frc.robot.Robot implementation
     public static boolean AUTO_RUNNING;
 
-    private final AlgaeMechanismSettings settings;
+    private final AlgaeMechanismContext context;
 
-    private final SparkMax algaeMotor;
+    private final TeamSparkMax algaeMotor;
 
     private final ProfiledPIDController algaeController;
 
@@ -42,29 +43,29 @@ public class AlgaeMechanism extends SubsystemBase {
     private double nextAlgaePosition;
 
     /**
-     * Instantiates a new AlgaeMechanism with default {@link AlgaeMechanismSettings}
+     * Instantiates a new AlgaeMechanism with default {@link AlgaeMechanismContext}
      */
     public AlgaeMechanism() {
-        this(AlgaeMechanismSettings.defaults());
+        this(AlgaeMechanismContext.defaults());
     }
 
     /**
      * Instantiates a new AlgaeMechanism with the specified settings
      * 
-     * @param settings
-     *            The {@link AlgaeMechanismSettings}
+     * @param context
+     *            The {@link AlgaeMechanismContext}
      */
-    public AlgaeMechanism(final AlgaeMechanismSettings settings) {
-        requireNonNull(settings, "AlgaeMechanismSettings cannot be null");
-        this.settings = settings;
-        this.algaeMotor = new SparkMax(Constants.Algae.m_AlgaeMtrC, MotorType.kBrushless);
+    public AlgaeMechanism(final AlgaeMechanismContext context) {
+        requireNonNull(context, "AlgaeMechanismContext cannot be null");
+        this.context = context;
+        this.algaeMotor = this.context.getAlgaeMotor();
         this.algaeMotor.configure(this.assembleAlgaeMotorConfig(), ResetMode.kNoResetSafeParameters,
                 PersistMode.kPersistParameters);
-        PIDSettings pidSettings = this.settings.getAlgeaControllerPIDSettings();
+        PIDSettings pidSettings = this.context.getAlgeaControllerPIDSettings();
         this.algaeController = new ProfiledPIDController(pidSettings.p(), pidSettings.i(), pidSettings.d(),
-                this.settings.getAlgaeControllerConstraints());
-        this.algaeController.setTolerance(this.settings.getAlgaeControllerTolerance());
-        this.algaeSensor = new AnalogInput(this.settings.getAlgaeSensorChannel());
+                this.context.getAlgaeControllerConstraints());
+        this.algaeController.setTolerance(this.context.getAlgaeControllerTolerance());
+        this.algaeSensor = new AnalogInput(this.context.getAlgaeSensorChannel());
         resetAlgaeMotorPosition();
     }
 
@@ -75,14 +76,14 @@ public class AlgaeMechanism extends SubsystemBase {
      */
     private SparkMaxConfig assembleAlgaeMotorConfig() {
         SparkMaxConfig config = new SparkMaxConfig();
-        PIDSettings pidSettings = this.settings.getAlgeaMotorPIDSettings();
+        PIDSettings pidSettings = this.context.getAlgeaMotorPIDSettings();
         config.closedLoop.feedbackSensor(FeedbackSensor.kPrimaryEncoder).pid(pidSettings.p(), pidSettings.i(),
                 pidSettings.d());
         config.inverted(false).idleMode(IdleMode.kCoast);
         config.alternateEncoder // TODO MAKE SURE TO USE RIGHT TYPE OF ENCODER WHEN DOING CONFIGS!
-                .positionConversionFactor(this.settings.getAlgaePositionConversionFactor())
-                .velocityConversionFactor(this.settings.getAlgaeVelocityConversionFactor())
-                .countsPerRevolution(this.settings.getCountsPerRevolution());
+                .positionConversionFactor(this.context.getAlgaePositionConversionFactor())
+                .velocityConversionFactor(this.context.getAlgaeVelocityConversionFactor())
+                .countsPerRevolution(this.context.getCountsPerRevolution());
         return config;
     }
 
@@ -116,14 +117,14 @@ public class AlgaeMechanism extends SubsystemBase {
      * Advances the algae motor by the specified speed advancement increment
      */
     private void advanceAlgaeMotor() {
-        this.moveAlgaeMotor(this.settings.getAdvanceIncrement());
+        this.moveAlgaeMotor(this.context.getAdvanceIncrement());
     }
 
     /**
      * Reverses the algae motor by the specified speed reversing increment
      */
     private void reverseAlgaeMotor() {
-        this.moveAlgaeMotor(this.settings.getReverseIncrement());
+        this.moveAlgaeMotor(this.context.getReverseIncrement());
     }
 
     /**
@@ -142,7 +143,7 @@ public class AlgaeMechanism extends SubsystemBase {
      * @return Indication
      */
     private boolean isAlgaeSensorIntakeForwardIR() {
-        return this.algaeSensor.getValue() >= this.settings.getAlgaeSensorForwardIRValue();
+        return this.algaeSensor.getValue() >= this.context.getAlgaeSensorForwardIRValue();
     }
 
     /**
@@ -192,13 +193,13 @@ public class AlgaeMechanism extends SubsystemBase {
      * PID controller when the Robot is being teleoperated, according to the currently assigned "next" position
      * according to {@link AlgaeMechanism#setNextAlgaePosition(double)}. This implementation will also ensure that if
      * the algae IR sensor recognizes that algae is present within the mechanism, the next position for the algae motor
-     * to achieve with be the value provided by {@link AlgaeMechanismSettings#getAlgaeMiddlePosition()}
+     * to achieve with be the value provided by {@link AlgaeMechanismContext#getAlgaeMiddlePosition()}
      */
     @Override
     public void periodic() {
         if (!AUTO_RUNNING) {
             if (isAlgaeSensorIntakeForwardIR()) {
-                this.nextAlgaePosition = this.settings.getAlgaeMiddlePosition();
+                this.nextAlgaePosition = this.context.getAlgaeMiddlePosition();
             }
             this.updateAlgaeControllerPosition(this.nextAlgaePosition);
         }

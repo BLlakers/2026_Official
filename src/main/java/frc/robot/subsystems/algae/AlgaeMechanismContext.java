@@ -1,7 +1,13 @@
 package frc.robot.subsystems.algae;
 
+import com.revrobotics.spark.SparkLowLevel;
 import edu.wpi.first.math.trajectory.TrapezoidProfile.Constraints;
+import frc.robot.Constants;
+import frc.robot.Robot;
 import frc.robot.support.PIDSettings;
+import frc.robot.support.sparkmax.TeamSparkMax;
+import frc.robot.support.sparkmax.TeamSparkMaxImpl;
+import frc.robot.support.sparkmax.TeamSparkMaxSimImpl;
 import lombok.Builder;
 import lombok.Data;
 
@@ -9,15 +15,19 @@ import static edu.wpi.first.math.util.Units.feetToMeters;
 
 @Data
 @Builder
-public class AlgaeMechanismSettings {
+public class AlgaeMechanismContext {
 
     /**
      * Instantiates an AlgaeMechanismSettings instance with default values.
      *
      * @return Default AlgaeMechanismSettings
      */
-    public static AlgaeMechanismSettings defaults() {
-        return AlgaeMechanismSettings.builder().build();
+    public static AlgaeMechanismContext defaults() {
+        return AlgaeMechanismContext.builder()
+                .algaeMotor((Robot.isReal())
+                        ? new TeamSparkMaxImpl(Constants.Algae.m_AlgaeMtrC, SparkLowLevel.MotorType.kBrushless)
+                        : new TeamSparkMaxSimImpl(Constants.Algae.m_AlgaeMtrC, SparkLowLevel.MotorType.kBrushless))
+                .build();
     }
 
     @Builder.Default
@@ -59,13 +69,15 @@ public class AlgaeMechanismSettings {
     @Builder.Default
     private int algaeSensorForwardIRValue = 2400;
 
+    @Builder.Default
+    private double algaeVelocityConversionFactor = 1;
+
     // TODO: This channel was never represented within our frc.robot.Constants class. Consider moving the definition
     // of this channel to frc.robot.Constants once initial refactor is complete
     @Builder.Default
-    private int algaeSensorChannel = 2;
+    int algaeSensorChannel = 2;
 
-    @Builder.Default
-    private double algaeVelocityConversionFactor = 1;
+    private TeamSparkMax algaeMotor;
 
     public double getAlgaePositionConversionFactor() {
         // revolutions -> radians

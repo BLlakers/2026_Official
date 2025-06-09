@@ -13,41 +13,41 @@ import static java.util.Objects.requireNonNull;
  */
 public class AlgaeIntake extends SubsystemBase {
 
-    private final AlgaeIntakeSettings settings;
+    private final AlgaeIntakeContext context;
 
     private final TalonSRX algaeIntakeMotor;
 
     /**
-     * Instantiates a new AlgaeIntake with default {@link AlgaeIntakeSettings}
+     * Instantiates a new AlgaeIntake with default {@link AlgaeIntakeContext}
      */
     public AlgaeIntake() {
-        this(AlgaeIntakeSettings.defaults());
+        this(AlgaeIntakeContext.defaults());
     }
 
     /**
      * Instantiates a new AlgaeIntake subsystem with the specified settings
      * 
-     * @param settings
+     * @param context
      *            The AlgaeIntakeSettings to apply to this instance
      */
-    public AlgaeIntake(final AlgaeIntakeSettings settings) {
-        requireNonNull(settings, "AlgaeIntakeSettings cannot be null");
-        this.settings = settings;
-        this.algaeIntakeMotor = new TalonSRX(this.settings.getAlgaeIntakeMotorChannel());
+    public AlgaeIntake(final AlgaeIntakeContext context) {
+        requireNonNull(context, "AlgaeIntakeContext cannot be null");
+        this.context = context;
+        this.algaeIntakeMotor = new TalonSRX(this.context.getAlgaeIntakeMotorChannel());
     }
 
     /**
      * Advances the intake motor by the specified speed advancement increment
      */
     private void advanceIntake() {
-        this.algaeIntakeMotor.set(PercentOutput, this.settings.getAdvanceIncrement());
+        this.algaeIntakeMotor.set(PercentOutput, this.context.getAdvanceIncrement());
     }
 
     /**
      * Reverses the intake motor by the specified speed reversing increment
      */
     private void reverseIntake() {
-        this.algaeIntakeMotor.set(PercentOutput, this.settings.getReverseIncrement());
+        this.algaeIntakeMotor.set(PercentOutput, this.context.getReverseIncrement());
     }
 
     /**

@@ -1,19 +1,31 @@
 package frc.robot.subsystems.elevator;
 
+import com.revrobotics.spark.SparkLowLevel.MotorType;
 import edu.wpi.first.math.trajectory.TrapezoidProfile;
 import edu.wpi.first.math.util.Units;
 import frc.robot.Constants;
+import frc.robot.Robot;
 import frc.robot.support.DIOChannel;
 import frc.robot.support.PIDSettings;
+import frc.robot.support.sparkmax.TeamSparkMax;
+import frc.robot.support.sparkmax.TeamSparkMaxImpl;
+import frc.robot.support.sparkmax.TeamSparkMaxSimImpl;
 import lombok.Builder;
 import lombok.Data;
 
 @Data
 @Builder
-public class ElevatorSettings {
+public class ElevatorContext {
 
-    public static ElevatorSettings defaults() {
-        return ElevatorSettings.builder().build();
+    public static ElevatorContext defaults() {
+        return ElevatorContext.builder()
+                .elevatorMotor((Robot.isReal()
+                        ? new TeamSparkMaxImpl(Constants.Port.elevatorMotorChannel, MotorType.kBrushless)
+                        : new TeamSparkMaxSimImpl(Constants.Port.elevatorMotorChannel, MotorType.kBrushless)))
+                .elevatorFollowerMotor((Robot.isReal()
+                        ? new TeamSparkMaxImpl(Constants.Port.elevatorFollowerMotorChannel, MotorType.kBrushless)
+                        : new TeamSparkMaxSimImpl(Constants.Port.elevatorFollowerMotorChannel, MotorType.kBrushless)))
+                .build();
     }
 
     @Builder.Default
@@ -92,4 +104,8 @@ public class ElevatorSettings {
     @Builder.Default
     private TrapezoidProfile.Constraints elevatorConstraints = new TrapezoidProfile.Constraints(Units.feetToMeters(140),
             Units.feetToMeters(125));
+
+    private TeamSparkMax elevatorMotor;
+
+    private TeamSparkMax elevatorFollowerMotor;
 }

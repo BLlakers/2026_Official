@@ -15,6 +15,7 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Subsystem;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.support.PIDSettings;
+import frc.robot.support.sparkmax.TeamSparkMax;
 
 import static java.util.Objects.requireNonNull;
 
@@ -23,32 +24,32 @@ import static java.util.Objects.requireNonNull;
  */
 public class ClimbMechanism extends SubsystemBase {
 
-    private final SparkMax climbMotor;
+    private final TeamSparkMax climbMotor;
 
     private final DigitalInput climbMagSwitch;
 
-    private final ClimbMechanismSettings settings;
+    private final ClimbMechanismContext context;
 
     /**
-     * Instantiates a new AlgaeIntake with default {@link ClimbMechanismSettings}
+     * Instantiates a new AlgaeIntake with default {@link ClimbMechanismContext}
      */
     public ClimbMechanism() {
-        this(ClimbMechanismSettings.defaults());
+        this(ClimbMechanismContext.defaults());
     }
 
     /**
      * Instantiates a new ClimbMechanism subsystem with the specified settings
      * 
-     * @param settings
+     * @param context
      *            The ClimbMechanismSettings to apply to this instance
      */
-    public ClimbMechanism(final ClimbMechanismSettings settings) {
-        requireNonNull(settings, "ClimbMechanismSettings cannot be null");
-        this.settings = settings;
-        this.climbMotor = new SparkMax(this.settings.getClimbMotorChannel(), MotorType.kBrushless);
+    public ClimbMechanism(final ClimbMechanismContext context) {
+        requireNonNull(context, "ClimbMechanismContext cannot be null");
+        this.context = context;
+        this.climbMotor = this.context.getClimbMotor();
         this.climbMotor.configure(this.assembleClimbMotorConfig(), ResetMode.kNoResetSafeParameters,
                 PersistMode.kPersistParameters);
-        this.climbMagSwitch = new DigitalInput(this.settings.getClimbMagSwitchChannel());
+        this.climbMagSwitch = new DigitalInput(this.context.getClimbMagSwitchChannel());
     }
 
     /**
@@ -59,9 +60,9 @@ public class ClimbMechanism extends SubsystemBase {
     private SparkMaxConfig assembleClimbMotorConfig() {
         SparkMaxConfig config = new SparkMaxConfig();
         config.inverted(true).idleMode(IdleMode.kBrake);
-        config.encoder.positionConversionFactor(this.settings.getClimbPositionConversionFactor())
-                .velocityConversionFactor(this.settings.getClimbVelocityConversionFactor());
-        PIDSettings pidSettings = this.settings.getClimbControllerPIDSettings();
+        config.encoder.positionConversionFactor(this.context.getClimbPositionConversionFactor())
+                .velocityConversionFactor(this.context.getClimbVelocityConversionFactor());
+        PIDSettings pidSettings = this.context.getClimbControllerPIDSettings();
         config.closedLoop.feedbackSensor(FeedbackSensor.kAlternateOrExternalEncoder).pid(pidSettings.p(),
                 pidSettings.i(), pidSettings.d());
         return config;
@@ -71,14 +72,14 @@ public class ClimbMechanism extends SubsystemBase {
      * Advances the climb motor by the specified speed advancement increment
      */
     private void advanceClimbMotor() {
-        this.climbMotor.set(this.settings.getAdvanceIncrement());
+        this.climbMotor.set(this.context.getAdvanceIncrement());
     }
 
     /**
      * Reverses the climb motor by the specified speed reversing increment
      */
     private void reverseClimbMotor() {
-        this.climbMotor.set(this.settings.getReverseIncrement());
+        this.climbMotor.set(this.context.getReverseIncrement());
     }
 
     /**

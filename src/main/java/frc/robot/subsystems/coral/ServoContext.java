@@ -5,10 +5,10 @@ import lombok.Data;
 
 @Builder
 @Data
-public class ServoSettings {
+public class ServoContext {
 
-    public static ServoSettings defaults() {
-        return ServoSettings.builder().build();
+    public static ServoContext defaults() {
+        return ServoContext.builder().build();
     }
 
     @Builder.Default

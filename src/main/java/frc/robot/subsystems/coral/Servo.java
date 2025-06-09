@@ -4,32 +4,35 @@ import edu.wpi.first.wpilibj.PWM;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
+import static java.util.Objects.requireNonNull;
+
 // PMW(Pulse Width Modulation)
 public class Servo extends SubsystemBase {
 
-    private final ServoSettings settings;
+    private final ServoContext context;
 
     private final PWM servo;
 
     public Servo() {
-        this(ServoSettings.defaults());
+        this(ServoContext.defaults());
     }
 
-    public Servo(final ServoSettings settings) {
-        this.settings = settings;
-        this.servo = new PWM(this.settings.getChannel());
+    public Servo(final ServoContext context) {
+        requireNonNull(context, "ServoContext cannot be null");
+        this.context = context;
+        this.servo = new PWM(this.context.getChannel());
     }
 
     public void forwardPosition() {
-        servo.setPosition(this.settings.getForwardPosition());
+        servo.setPosition(this.context.getForwardPosition());
     }
 
     public void backwardPosition() {
-        servo.setPosition(this.settings.getBackwardPosition());
+        servo.setPosition(this.context.getBackwardPosition());
     }
 
     public void middlePosition() {
-        servo.setPosition(this.settings.getMiddlePosition());
+        servo.setPosition(this.context.getMiddlePosition());
     }
 
     public Command getForwardPositionCommand() {
