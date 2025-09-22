@@ -95,7 +95,8 @@ public class Drivetrain extends SubsystemBase {
     /**
      * Instantiates a new Drivetrain subsystem with the specified settings
      *
-     * @param context The DrivetrainSettings to apply to this instance
+     * @param context
+     *            The DrivetrainSettings to apply to this instance
      */
     public Drivetrain(final DrivetrainContext context) {
         requireNonNull(context, "DrivetrainContext cannot be null");
@@ -191,9 +192,9 @@ public class Drivetrain extends SubsystemBase {
      * Gets our current position in meters on the field.
      *
      * @return A current position on the field.
-     * <p>
-     * <pi> A translation2d (X and Y on the field) -> {@link #swerveDriveKinematics} + A rotation2d (Rot X and Y
-     * on the field) -> {@link #navXSensorModule}
+     *         <p>
+     *         <pi> A translation2d (X and Y on the field) -> {@link #swerveDriveKinematics} + A rotation2d (Rot X and Y
+     *         on the field) -> {@link #navXSensorModule}
      */
     private Pose2d getPose2d() {
         return this.swerveDriveOdometry.getPoseMeters();
@@ -245,7 +246,7 @@ public class Drivetrain extends SubsystemBase {
      * Updates our current Odometry
      */
     private void updateOdometry() {
-        this.swerveDriveOdometry.update(this.navXSensorModule.getRotation2d(), getSwerveModulePositions());
+        this.swerveDriveOdometry.update(this.navXSensorModule.getRotation2d(), this.getSwerveModulePositions());
     }
 
     private void updatePoseEstimatorOdometry() {
@@ -346,9 +347,12 @@ public class Drivetrain extends SubsystemBase {
     /**
      * Method to drive the robot using joystick info.
      *
-     * @param xSpeed Speed of the robot in the x direction (forward).
-     * @param ySpeed Speed of the robot in the y direction (sideways).
-     * @param rot    Angular rate of the robot.
+     * @param xSpeed
+     *            Speed of the robot in the x direction (forward).
+     * @param ySpeed
+     *            Speed of the robot in the y direction (sideways).
+     * @param rot
+     *            Angular rate of the robot.
      */
     public void drive(double xSpeed, double ySpeed, double rot) {
         SmartDashboard.putNumber(getName() + "/Command/X Speed", xSpeed);

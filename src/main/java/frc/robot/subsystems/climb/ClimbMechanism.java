@@ -39,7 +39,7 @@ public class ClimbMechanism extends SubsystemBase {
 
     /**
      * Instantiates a new ClimbMechanism subsystem with the specified settings
-     * 
+     *
      * @param context
      *            The ClimbMechanismSettings to apply to this instance
      */
@@ -54,7 +54,7 @@ public class ClimbMechanism extends SubsystemBase {
 
     /**
      * Prepares and configures a {@link SparkMaxConfig} to be applied to this mechanism's climb motor
-     * 
+     *
      * @return The SparkMaxConfig
      */
     private SparkMaxConfig assembleClimbMotorConfig() {
@@ -62,9 +62,10 @@ public class ClimbMechanism extends SubsystemBase {
         config.inverted(true).idleMode(IdleMode.kBrake);
         config.encoder.positionConversionFactor(this.context.getClimbPositionConversionFactor())
                 .velocityConversionFactor(this.context.getClimbVelocityConversionFactor());
-        PIDSettings pidSettings = this.context.getClimbControllerPIDSettings();
-        config.closedLoop.feedbackSensor(FeedbackSensor.kAlternateOrExternalEncoder).pid(pidSettings.p(),
-                pidSettings.i(), pidSettings.d());
+        // PIDSettings pidSettings = this.context.getClimbControllerPIDSettings();
+        // config
+        // .closedLoop.feedbackSensor(FeedbackSensor.kAlternateOrExternalEncoder)
+        // .pid(pidSettings.p(), pidSettings.i(), pidSettings.d());
         return config;
     }
 
@@ -91,7 +92,7 @@ public class ClimbMechanism extends SubsystemBase {
 
     /**
      * Indicates that the climb mechanism is in the "down" position
-     * 
+     *
      * @return Indication
      */
     private boolean isClimbDown() {
@@ -101,7 +102,7 @@ public class ClimbMechanism extends SubsystemBase {
     /**
      * Obtains a "runEnd" Command which will advance the climb mechanism motor on each iteration. Interruption of the
      * Command will trigger stopping of the climb mechanism motor.
-     * 
+     *
      * @return The Command
      */
     // TODO: Remove if unused
@@ -112,7 +113,7 @@ public class ClimbMechanism extends SubsystemBase {
     /**
      * Obtains a "runEnd" Command which will reverse the climb mechanism motor on each iteration. Interruption of the
      * Command will trigger stopping of the climb mechanism motor.
-     * 
+     *
      * @return The Command
      */
     // TODO: Remove if unused
@@ -124,7 +125,7 @@ public class ClimbMechanism extends SubsystemBase {
      * Obtains a "runEnd" Command which will reverse the climb mechanism motor until it is fully down per
      * {@link ClimbMechanism#isClimbDown()} and which point it will stop. Interruption of the Command will trigger
      * stopping of the climb mechanism motor.
-     * 
+     *
      * @return The Command
      */
     public Command getFullyReverseClimbCommand() {
@@ -134,7 +135,7 @@ public class ClimbMechanism extends SubsystemBase {
 
     /**
      * Obtains a "runOnce" Command which will stop the climb mechanism motor.
-     * 
+     *
      * @return The Command
      */
     public Command getStopClimbCommand() {
@@ -143,7 +144,7 @@ public class ClimbMechanism extends SubsystemBase {
 
     /**
      * Obtains the climb motor's {@link RelativeEncoder} position
-     * 
+     *
      * @return The position
      */
     private double getCurrentClimbPosition() {
@@ -152,7 +153,7 @@ public class ClimbMechanism extends SubsystemBase {
 
     /**
      * {@link Sendable#initSendable(SendableBuilder)} implementation
-     * 
+     *
      * @param builder
      *            The sendable builder
      */

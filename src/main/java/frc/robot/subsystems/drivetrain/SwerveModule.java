@@ -143,7 +143,8 @@ public class SwerveModule extends SubsystemBase {
      * <p>
      * This means the speed it should be going and the angle it should be going.
      *
-     * @param desiredState Desired state with speed and angle.
+     * @param desiredState
+     *            Desired state with speed and angle.
      */
     public void setDesiredState(final SwerveModuleState desiredState) {
 
@@ -176,7 +177,7 @@ public class SwerveModule extends SubsystemBase {
      * @param currentAngle
      */
     private void refreshSmartDashboard(double driveMotorPercentPower, double turnMotorPercentPower,
-                                       double signedAngleDifference, double desiredAngle, double currentAngle) {
+            double signedAngleDifference, double desiredAngle, double currentAngle) {
 
         String nameTag = format("DriveTrain/%s", this.getName());
         int driveMotorId = this.driveMotor.getDeviceId();
@@ -203,13 +204,16 @@ public class SwerveModule extends SubsystemBase {
     /**
      * Calculates the closest angle and direction between two points on a circle.
      *
-     * @param currentAngle <ul>
-     *                                <li>where you currently are
-     *                                </ul>
-     * @param desiredAngle <ul>
-     *                                <li>where you want to end up
-     *                                </ul>
-     * @return <ul>
+     * @param currentAngle
+     *            <ul>
+     *            <li>where you currently are
+     *            </ul>
+     * @param desiredAngle
+     *            <ul>
+     *            <li>where you want to end up
+     *            </ul>
+     * @return
+     *         <ul>
      *         <li>signed double of the angle (rad) between the two points
      *         </ul>
      */
