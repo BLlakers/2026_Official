@@ -1,7 +1,7 @@
 package frc.robot.subsystems.drivetrain;
 
-import com.revrobotics.spark.SparkLowLevel;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
+import frc.robot.Robot;
 import frc.robot.support.PIDSettings;
 import frc.robot.support.sparkmax.TeamSparkMax;
 import frc.robot.support.sparkmax.TeamSparkMaxImpl;
@@ -15,6 +15,12 @@ public class SwerveModuleContext {
     public static SwerveModuleContext defaults() {
         return SwerveModuleContext.builder().build();
     }
+
+    // Drive motor CAN ID
+    private final int driveMotorId;
+
+    // Turning motor CAN ID
+    private final int turningMotorId;
 
     // Name of the SwerveModule
     @Getter
@@ -37,9 +43,23 @@ public class SwerveModuleContext {
     // Used to scale the normalized angular error into motor power for the turning motor
     private final double rotationalProportionalGain = 1.6;
 
-    @Getter
-    private TeamSparkMax driveMotor;
+    @Getter(lazy = true)
+    private final TeamSparkMax driveMotor = createMotor(driveMotorId, MotorType.kBrushless);
 
-    @Getter
-    private TeamSparkMax turningMotor;
+    @Getter(lazy = true)
+    private final TeamSparkMax turningMotor = createMotor(turningMotorId, MotorType.kBrushless);
+
+    /**
+     * Private static utility to conditionally construct a TeamSparkMaxImpl or TeamSparkMaxSimImpl instance with the
+     * given canId and motor type, based on the state of {@link Robot#isReal()}
+     * 
+     * @param canId
+     *            The id of the motor to instantiate
+     * @param type
+     *            The type of the motor to instantiate
+     * @return The instantiated TeamSparkMax instance
+     */
+    private static TeamSparkMax createMotor(int canId, MotorType type) {
+        return (Robot.isReal()) ? new TeamSparkMaxImpl(canId, type) : new TeamSparkMaxSimImpl(canId, type);
+    }
 }

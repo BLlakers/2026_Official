@@ -38,49 +38,41 @@ public class DrivetrainContext {
     @Builder.Default
     private PIDSettings rotationPIDSettings = new PIDSettings(3, 0, 0);
 
+    // spotless:off
+
     @Builder.Default
     private SwerveModuleContext frontLeftSwerveModuleContext = SwerveModuleContext.builder()
             .name("Swerve Module/Front Left")
-            .driveMotor((Robot.isReal())
-                    ? new TeamSparkMaxImpl(Constants.Port.flDriveMtrC, MotorType.kBrushless)
-                    : new TeamSparkMaxSimImpl(Constants.Port.flDriveMtrC, MotorType.kBrushless))
-            .turningMotor((Robot.isReal())
-                    ? new TeamSparkMaxImpl(Constants.Port.flSteerMtrC, MotorType.kBrushless)
-                    : new TeamSparkMaxSimImpl(Constants.Port.flSteerMtrC, MotorType.kBrushless))
+            .driveMotorId(Constants.Port.flDriveMtrC)
+            .turningMotorId(Constants.Port.flSteerMtrC)
             .turnEncoderPWMChannel(Constants.Port.flTurnEncoderDIOC)
             .turnOffset(Constants.RobotVersion2025.flTurnEncoderOffset).build();
 
     @Builder.Default
     private SwerveModuleContext frontRightSwerveModuleContext = SwerveModuleContext.builder()
             .name("Swerve Module/Front Right")
-            .driveMotor((Robot.isReal())
-                    ? new TeamSparkMaxImpl(Constants.Port.frDriveMtrC, MotorType.kBrushless)
-                    : new TeamSparkMaxSimImpl(Constants.Port.frDriveMtrC, MotorType.kBrushless))
-            .turningMotor((Robot.isReal())
-                    ? new TeamSparkMaxImpl(Constants.Port.frSteerMtrC, MotorType.kBrushless)
-                    : new TeamSparkMaxSimImpl(Constants.Port.frSteerMtrC, MotorType.kBrushless))
+            .driveMotorId(Constants.Port.frDriveMtrC)
+            .turningMotorId(Constants.Port.frSteerMtrC)
             .turnEncoderPWMChannel(Constants.Port.frTurnEncoderDIOC)
             .turnOffset(Constants.RobotVersion2025.frTurnEncoderOffset).build();
 
     @Builder.Default
     private SwerveModuleContext rearLeftSwerveModuleContext = SwerveModuleContext.builder()
             .name("Swerve Module/Back Left")
-            .driveMotor((Robot.isReal())
-                    ? new TeamSparkMaxImpl(Constants.Port.blDriveMtrC, MotorType.kBrushless)
-                    : new TeamSparkMaxSimImpl(Constants.Port.blDriveMtrC, MotorType.kBrushless))
-            .turningMotor(new TeamSparkMaxImpl(Constants.Port.blSteerMtrC, MotorType.kBrushless))
+            .driveMotorId(Constants.Port.blDriveMtrC)
+            .turningMotorId(Constants.Port.blSteerMtrC)
             .turnEncoderPWMChannel(Constants.Port.blTurnEncoderDIOC)
             .turnOffset(Constants.RobotVersion2025.blTurnEncoderOffset).build();
 
     @Builder.Default
     private SwerveModuleContext rearRightSwerveModuleContext = SwerveModuleContext.builder()
             .name("Swerve Module/Back Right")
-            .driveMotor((Robot.isReal())
-                    ? new TeamSparkMaxImpl(Constants.Port.brDriveMtrC, MotorType.kBrushless)
-                    : new TeamSparkMaxSimImpl(Constants.Port.brDriveMtrC, MotorType.kBrushless))
-            .turningMotor(new TeamSparkMaxImpl(Constants.Port.brSteerMtrC, MotorType.kBrushless))
+            .driveMotorId(Constants.Port.brDriveMtrC)
+            .turningMotorId(Constants.Port.brSteerMtrC)
             .turnEncoderPWMChannel(Constants.Port.brTurnEncoderDIOC)
             .turnOffset(Constants.RobotVersion2025.brTurnEncoderOffset).build();
+
+    // spotless:on
 
     @Builder.Default
     private double flTurnOffset = Constants.RobotVersion2025.flTurnEncoderOffset;

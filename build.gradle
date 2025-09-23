@@ -119,5 +119,6 @@ spotless {
     java {
         eclipse().configFile 'formatter.xml'
         target 'src/**/*.java'
+        toggleOffOn()
     }
 }
