@@ -18,9 +18,9 @@ import static edu.wpi.first.math.util.Units.feetToMeters;
 public class AlgaeMechanismContext {
 
     /**
-     * Instantiates an AlgaeMechanismSettings instance with default values.
+     * Instantiates an AlgaeMechanismContext instance with default values.
      *
-     * @return Default AlgaeMechanismSettings
+     * @return Default AlgaeMechanismContext
      */
     public static AlgaeMechanismContext defaults() {
         return AlgaeMechanismContext.builder()
@@ -31,57 +31,56 @@ public class AlgaeMechanismContext {
     }
 
     @Builder.Default
-    private Constraints algaeControllerConstraints = new Constraints(feetToMeters(10), feetToMeters(8));
+    private final Constraints algaeControllerConstraints = new Constraints(feetToMeters(10), feetToMeters(8));
 
     @Builder.Default
-    private PIDSettings algaeControllerPIDSettings = new PIDSettings(.75, 0, 0);
+    private final PIDSettings algaeControllerPIDSettings = new PIDSettings(0.75, 0, 0);
 
     @Builder.Default
-    private PIDSettings algaeMotorPIDSettings = new PIDSettings(1, 0, 0);
+    private final PIDSettings algaeMotorPIDSettings = new PIDSettings(1, 0, 0);
 
     @Builder.Default
-    private double algaeUpPosition = -1.03;
+    private final double algaeUpPosition = -1.03;
 
     @Builder.Default
-    private double algaeDownPosition = -0.14;
+    private final double algaeDownPosition = -0.14;
 
     @Builder.Default
-    private double algaeMiddlePosition = -0.75;
+    private final double algaeMiddlePosition = -0.75;
 
     @Builder.Default
-    private double algaeGroundPosition = -1.165;
+    private final double algaeGroundPosition = -1.165;
 
     @Builder.Default
-    private double algaeControllerTolerance = 0.035;
+    private final double algaeControllerTolerance = 0.035;
 
     @Builder.Default
-    private final double advanceIncrement = .1;
+    private final double advanceIncrement = 0.1;
 
     @Builder.Default
-    private double reverseIncrement = -.1;
+    private final double reverseIncrement = -0.1;
 
     @Builder.Default
     private final double gearRatio = 75;
 
     @Builder.Default
-    private int countsPerRevolution = 8192;
+    private final int countsPerRevolution = 8192;
 
     @Builder.Default
-    private int algaeSensorForwardIRValue = 2400;
+    private final int algaeSensorForwardIRValue = 2400;
 
     @Builder.Default
-    private double algaeVelocityConversionFactor = 1;
+    private final double algaeVelocityConversionFactor = 1.0;
 
     // TODO: This channel was never represented within our frc.robot.Constants class. Consider moving the definition
     // of this channel to frc.robot.Constants once initial refactor is complete
     @Builder.Default
-    int algaeSensorChannel = 2;
+    private final int algaeSensorChannel = 2;
 
     private TeamSparkMax algaeMotor;
 
     public double getAlgaePositionConversionFactor() {
         // revolutions -> radians
-        return 360 / this.gearRatio;
+        return (2 * Math.PI) / this.gearRatio;
     }
-
 }
