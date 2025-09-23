@@ -34,10 +34,10 @@ public class AlgaeMechanismContext {
     private Constraints algaeControllerConstraints = new Constraints(feetToMeters(10), feetToMeters(8));
 
     @Builder.Default
-    private PIDSettings algeaControllerPIDSettings = new PIDSettings(.75, 0, 0);
+    private PIDSettings algaeControllerPIDSettings = new PIDSettings(.75, 0, 0);
 
     @Builder.Default
-    private PIDSettings algeaMotorPIDSettings = new PIDSettings(1, 0, 0);
+    private PIDSettings algaeMotorPIDSettings = new PIDSettings(1, 0, 0);
 
     @Builder.Default
     private double algaeUpPosition = -1.03;

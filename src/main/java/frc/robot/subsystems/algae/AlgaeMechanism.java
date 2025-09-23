@@ -3,8 +3,6 @@ package frc.robot.subsystems.algae;
 import com.revrobotics.RelativeEncoder;
 import com.revrobotics.spark.SparkBase.PersistMode;
 import com.revrobotics.spark.SparkBase.ResetMode;
-import com.revrobotics.spark.SparkLowLevel.MotorType;
-import com.revrobotics.spark.SparkMax;
 import com.revrobotics.spark.config.ClosedLoopConfig.FeedbackSensor;
 import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 import com.revrobotics.spark.config.SparkMaxConfig;
@@ -15,7 +13,6 @@ import edu.wpi.first.wpilibj.AnalogInput;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Subsystem;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
-import frc.robot.Constants;
 import frc.robot.support.PIDSettings;
 import frc.robot.support.sparkmax.TeamSparkMax;
 
@@ -61,7 +58,7 @@ public class AlgaeMechanism extends SubsystemBase {
         this.algaeMotor = this.context.getAlgaeMotor();
         this.algaeMotor.configure(this.assembleAlgaeMotorConfig(), ResetMode.kNoResetSafeParameters,
                 PersistMode.kPersistParameters);
-        PIDSettings pidSettings = this.context.getAlgeaControllerPIDSettings();
+        PIDSettings pidSettings = this.context.getAlgaeControllerPIDSettings();
         this.algaeController = new ProfiledPIDController(pidSettings.p(), pidSettings.i(), pidSettings.d(),
                 this.context.getAlgaeControllerConstraints());
         this.algaeController.setTolerance(this.context.getAlgaeControllerTolerance());
@@ -76,7 +73,7 @@ public class AlgaeMechanism extends SubsystemBase {
      */
     private SparkMaxConfig assembleAlgaeMotorConfig() {
         SparkMaxConfig config = new SparkMaxConfig();
-        PIDSettings pidSettings = this.context.getAlgeaMotorPIDSettings();
+        PIDSettings pidSettings = this.context.getAlgaeMotorPIDSettings();
         config.closedLoop.feedbackSensor(FeedbackSensor.kPrimaryEncoder).pid(pidSettings.p(), pidSettings.i(),
                 pidSettings.d());
         config.inverted(false).idleMode(IdleMode.kCoast);
