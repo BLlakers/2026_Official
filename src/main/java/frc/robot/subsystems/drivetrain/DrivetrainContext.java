@@ -1,7 +1,6 @@
 package frc.robot.subsystems.drivetrain;
 
 import com.pathplanner.lib.config.RobotConfig;
-import com.revrobotics.spark.SparkLowLevel.MotorType;
 import edu.wpi.first.math.Matrix;
 import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.geometry.Rotation2d;
@@ -10,16 +9,12 @@ import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.math.util.Units;
 import frc.robot.Constants;
-import frc.robot.Robot;
 import frc.robot.support.PIDSettings;
-import frc.robot.support.sparkmax.TeamSparkMaxImpl;
-import frc.robot.support.sparkmax.TeamSparkMaxSimImpl;
+import java.io.IOException;
+import java.util.Optional;
 import lombok.Builder;
 import lombok.Data;
 import org.json.simple.parser.ParseException;
-
-import java.io.IOException;
-import java.util.Optional;
 
 @Data
 @Builder
@@ -38,15 +33,14 @@ public class DrivetrainContext {
     @Builder.Default
     private PIDSettings rotationPIDSettings = new PIDSettings(3, 0, 0);
 
-    // spotless:off
-
     @Builder.Default
     private SwerveModuleContext frontLeftSwerveModuleContext = SwerveModuleContext.builder()
             .name("Swerve Module/Front Left")
             .driveMotorId(Constants.Port.flDriveMtrC)
             .turningMotorId(Constants.Port.flSteerMtrC)
             .turnEncoderPWMChannel(Constants.Port.flTurnEncoderDIOC)
-            .turnOffset(Constants.RobotVersion2025.flTurnEncoderOffset).build();
+            .turnOffset(Constants.RobotVersion2025.flTurnEncoderOffset)
+            .build();
 
     @Builder.Default
     private SwerveModuleContext frontRightSwerveModuleContext = SwerveModuleContext.builder()
@@ -54,7 +48,8 @@ public class DrivetrainContext {
             .driveMotorId(Constants.Port.frDriveMtrC)
             .turningMotorId(Constants.Port.frSteerMtrC)
             .turnEncoderPWMChannel(Constants.Port.frTurnEncoderDIOC)
-            .turnOffset(Constants.RobotVersion2025.frTurnEncoderOffset).build();
+            .turnOffset(Constants.RobotVersion2025.frTurnEncoderOffset)
+            .build();
 
     @Builder.Default
     private SwerveModuleContext rearLeftSwerveModuleContext = SwerveModuleContext.builder()
@@ -62,7 +57,8 @@ public class DrivetrainContext {
             .driveMotorId(Constants.Port.blDriveMtrC)
             .turningMotorId(Constants.Port.blSteerMtrC)
             .turnEncoderPWMChannel(Constants.Port.blTurnEncoderDIOC)
-            .turnOffset(Constants.RobotVersion2025.blTurnEncoderOffset).build();
+            .turnOffset(Constants.RobotVersion2025.blTurnEncoderOffset)
+            .build();
 
     @Builder.Default
     private SwerveModuleContext rearRightSwerveModuleContext = SwerveModuleContext.builder()
@@ -70,9 +66,8 @@ public class DrivetrainContext {
             .driveMotorId(Constants.Port.brDriveMtrC)
             .turningMotorId(Constants.Port.brSteerMtrC)
             .turnEncoderPWMChannel(Constants.Port.brTurnEncoderDIOC)
-            .turnOffset(Constants.RobotVersion2025.brTurnEncoderOffset).build();
-
-    // spotless:on
+            .turnOffset(Constants.RobotVersion2025.brTurnEncoderOffset)
+            .build();
 
     @Builder.Default
     private double flTurnOffset = Constants.RobotVersion2025.flTurnEncoderOffset;

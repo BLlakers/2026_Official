@@ -55,7 +55,6 @@ public class Robot extends TimedRobot {
     public void robotPeriodic() {
         SmartDashboard.putData(PDH);
         CommandScheduler.getInstance().run();
-
     }
 
     @Override
@@ -72,7 +71,6 @@ public class Robot extends TimedRobot {
         AlgaeMechanism.AUTO_RUNNING = true;
         if (m_autonomousCommand != null) {
             m_autonomousCommand.schedule();
-
         }
     }
 

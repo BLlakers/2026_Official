@@ -117,8 +117,7 @@ tasks.withType(JavaCompile) {
 
 spotless {
     java {
-        eclipse().configFile 'formatter.xml'
+        palantirJavaFormat()
         target 'src/**/*.java'
-        toggleOffOn()
     }
 }

@@ -12,7 +12,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.wpi.first.math.geometry.*;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.networktables.*;
-
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
@@ -121,7 +120,6 @@ public class LimelightHelpers {
             targetPose_CameraSpace = new double[6];
             targetPose_RobotSpace = new double[6];
         }
-
     }
 
     /**
@@ -264,8 +262,7 @@ public class LimelightHelpers {
         @JsonProperty("pts")
         public double[][] corners;
 
-        public LimelightTarget_Barcode() {
-        }
+        public LimelightTarget_Barcode() {}
 
         public String getFamily() {
             return family;
@@ -301,8 +298,7 @@ public class LimelightHelpers {
         @JsonProperty("typ")
         public double ty_pixels;
 
-        public LimelightTarget_Classifier() {
-        }
+        public LimelightTarget_Classifier() {}
     }
 
     /**
@@ -340,8 +336,7 @@ public class LimelightHelpers {
         @JsonProperty("ty_nocross")
         public double ty_nocrosshair;
 
-        public LimelightTarget_Detector() {
-        }
+        public LimelightTarget_Detector() {}
     }
 
     /**
@@ -460,7 +455,13 @@ public class LimelightHelpers {
         public double distToRobot = 0;
         public double ambiguity = 0;
 
-        public RawFiducial(int id, double txnc, double tync, double ta, double distToCamera, double distToRobot,
+        public RawFiducial(
+                int id,
+                double txnc,
+                double tync,
+                double ta,
+                double distToCamera,
+                double distToRobot,
                 double ambiguity) {
             this.id = id;
             this.txnc = txnc;
@@ -489,8 +490,18 @@ public class LimelightHelpers {
         public double corner3_X = 0;
         public double corner3_Y = 0;
 
-        public RawDetection(int classId, double txnc, double tync, double ta, double corner0_X, double corner0_Y,
-                double corner1_X, double corner1_Y, double corner2_X, double corner2_Y, double corner3_X,
+        public RawDetection(
+                int classId,
+                double txnc,
+                double tync,
+                double ta,
+                double corner0_X,
+                double corner0_Y,
+                double corner1_X,
+                double corner1_Y,
+                double corner2_X,
+                double corner2_Y,
+                double corner3_X,
                 double corner3_Y) {
             this.classId = classId;
             this.txnc = txnc;
@@ -533,12 +544,20 @@ public class LimelightHelpers {
             this.tagSpan = 0;
             this.avgTagDist = 0;
             this.avgTagArea = 0;
-            this.rawFiducials = new RawFiducial[]{};
+            this.rawFiducials = new RawFiducial[] {};
             this.isMegaTag2 = false;
         }
 
-        public PoseEstimate(Pose2d pose, double timestampSeconds, double latency, int tagCount, double tagSpan,
-                double avgTagDist, double avgTagArea, RawFiducial[] rawFiducials, boolean isMegaTag2) {
+        public PoseEstimate(
+                Pose2d pose,
+                double timestampSeconds,
+                double latency,
+                int tagCount,
+                double tagSpan,
+                double avgTagDist,
+                double avgTagArea,
+                RawFiducial[] rawFiducials,
+                boolean isMegaTag2) {
 
             this.pose = pose;
             this.timestampSeconds = timestampSeconds;
@@ -550,7 +569,6 @@ public class LimelightHelpers {
             this.rawFiducials = rawFiducials;
             this.isMegaTag2 = isMegaTag2;
         }
-
     }
 
     private static ObjectMapper mapper;
@@ -580,8 +598,11 @@ public class LimelightHelpers {
             // System.err.println("Bad LL 3D Pose Data!");
             return new Pose3d();
         }
-        return new Pose3d(new Translation3d(inData[0], inData[1], inData[2]),
-                new Rotation3d(Units.degreesToRadians(inData[3]), Units.degreesToRadians(inData[4]),
+        return new Pose3d(
+                new Translation3d(inData[0], inData[1], inData[2]),
+                new Rotation3d(
+                        Units.degreesToRadians(inData[3]),
+                        Units.degreesToRadians(inData[4]),
                         Units.degreesToRadians(inData[5])));
     }
 
@@ -691,8 +712,8 @@ public class LimelightHelpers {
             }
         }
 
-        return new PoseEstimate(pose, adjustedTimestamp, latency, tagCount, tagSpan, tagDist, tagArea, rawFiducials,
-                isMegaTag2);
+        return new PoseEstimate(
+                pose, adjustedTimestamp, latency, tagCount, tagSpan, tagDist, tagArea, rawFiducials, isMegaTag2);
     }
 
     /**
@@ -762,8 +783,9 @@ public class LimelightHelpers {
             double corner3_X = extractArrayEntry(rawDetectionArray, baseIndex + 10);
             double corner3_Y = extractArrayEntry(rawDetectionArray, baseIndex + 11);
 
-            rawDetections[i] = new RawDetection(classId, txnc, tync, ta, corner0_X, corner0_Y, corner1_X, corner1_Y,
-                    corner2_X, corner2_Y, corner3_X, corner3_Y);
+            rawDetections[i] = new RawDetection(
+                    classId, txnc, tync, ta, corner0_X, corner0_Y, corner1_X, corner1_Y, corner2_X, corner2_Y,
+                    corner3_X, corner3_Y);
         }
 
         return rawDetections;
@@ -1290,7 +1312,6 @@ public class LimelightHelpers {
 
         double[] result = getBotPose_wpiRed(limelightName);
         return toPose2D(result);
-
     }
 
     /**
@@ -1325,7 +1346,6 @@ public class LimelightHelpers {
 
         double[] result = getBotPose(limelightName);
         return toPose2D(result);
-
     }
 
     /// //
@@ -1405,8 +1425,8 @@ public class LimelightHelpers {
      * @param cropYMax
      *            Maximum Y value (-1 to 1)
      */
-    public static void setCropWindow(String limelightName, double cropXMin, double cropXMax, double cropYMin,
-            double cropYMax) {
+    public static void setCropWindow(
+            String limelightName, double cropXMin, double cropXMax, double cropYMin, double cropYMax) {
         double[] entries = new double[4];
         entries[0] = cropXMin;
         entries[1] = cropXMax;
@@ -1444,18 +1464,37 @@ public class LimelightHelpers {
      * @param rollRate
      *            (Unnecessary) Angular velocity of robot roll in degrees per second
      */
-    public static void SetRobotOrientation(String limelightName, double yaw, double yawRate, double pitch,
-            double pitchRate, double roll, double rollRate) {
+    public static void SetRobotOrientation(
+            String limelightName,
+            double yaw,
+            double yawRate,
+            double pitch,
+            double pitchRate,
+            double roll,
+            double rollRate) {
         SetRobotOrientation_INTERNAL(limelightName, yaw, yawRate, pitch, pitchRate, roll, rollRate, true);
     }
 
-    public static void SetRobotOrientation_NoFlush(String limelightName, double yaw, double yawRate, double pitch,
-            double pitchRate, double roll, double rollRate) {
+    public static void SetRobotOrientation_NoFlush(
+            String limelightName,
+            double yaw,
+            double yawRate,
+            double pitch,
+            double pitchRate,
+            double roll,
+            double rollRate) {
         SetRobotOrientation_INTERNAL(limelightName, yaw, yawRate, pitch, pitchRate, roll, rollRate, false);
     }
 
-    private static void SetRobotOrientation_INTERNAL(String limelightName, double yaw, double yawRate, double pitch,
-            double pitchRate, double roll, double rollRate, boolean flush) {
+    private static void SetRobotOrientation_INTERNAL(
+            String limelightName,
+            double yaw,
+            double yawRate,
+            double pitch,
+            double pitchRate,
+            double roll,
+            double rollRate,
+            boolean flush) {
 
         double[] entries = new double[6];
         entries[0] = yaw;
@@ -1556,8 +1595,8 @@ public class LimelightHelpers {
      * @param yaw
      *            Yaw angle in degrees
      */
-    public static void setCameraPose_RobotSpace(String limelightName, double forward, double side, double up,
-            double roll, double pitch, double yaw) {
+    public static void setCameraPose_RobotSpace(
+            String limelightName, double forward, double side, double up, double roll, double pitch, double yaw) {
         double[] entries = new double[6];
         entries[0] = forward;
         entries[1] = side;

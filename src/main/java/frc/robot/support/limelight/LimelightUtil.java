@@ -1,9 +1,9 @@
 package frc.robot.support.limelight;
 
+import static java.lang.String.format;
+
 import edu.wpi.first.net.PortForwarder;
 import frc.robot.support.Telemetry;
-
-import static java.lang.String.format;
 
 /**
  * A collection of Limelight related utilities

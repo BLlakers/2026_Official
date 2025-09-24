@@ -1,12 +1,11 @@
 package frc.robot.support;
 
+import static java.util.Objects.requireNonNull;
+
 import edu.wpi.first.util.datalog.*;
 import edu.wpi.first.wpilibj.DataLogManager;
-
 import java.util.HashMap;
 import java.util.Map;
-
-import static java.util.Objects.requireNonNull;
 
 /**
  * Telemetry provides a convenience utility around {@link DataLogManager} and {@link DataLog} in support of capturing

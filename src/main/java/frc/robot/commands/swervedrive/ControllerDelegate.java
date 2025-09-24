@@ -2,10 +2,9 @@ package frc.robot.commands.swervedrive;
 
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import frc.robot.Constants;
-import lombok.Builder;
-
 import java.util.function.BooleanSupplier;
 import java.util.function.DoubleSupplier;
+import lombok.Builder;
 
 /**
  * ControllerDelegate encapsulates a series of {@link java.util.function.Supplier} which produce values generated from
@@ -23,10 +22,15 @@ public class ControllerDelegate {
     private final BooleanSupplier runHalfSpeedConditionSupplier;
     private final Driver driver;
 
-    public ControllerDelegate(final DoubleSupplier leftXSupplier, final DoubleSupplier leftYSupplier,
-            final DoubleSupplier rightXSupplier, final DoubleSupplier rightYSupplier,
-            final DoubleSupplier accelerationSupplier, final DoubleSupplier elevatorDecelerateRatioSupplier,
-            final BooleanSupplier runHalfSpeedConditionSupplier, final Driver driver) {
+    public ControllerDelegate(
+            final DoubleSupplier leftXSupplier,
+            final DoubleSupplier leftYSupplier,
+            final DoubleSupplier rightXSupplier,
+            final DoubleSupplier rightYSupplier,
+            final DoubleSupplier accelerationSupplier,
+            final DoubleSupplier elevatorDecelerateRatioSupplier,
+            final BooleanSupplier runHalfSpeedConditionSupplier,
+            final Driver driver) {
         this.leftXSupplier = leftXSupplier;
         this.leftYSupplier = leftYSupplier;
         this.rightXSupplier = rightXSupplier;
@@ -73,7 +77,8 @@ public class ControllerDelegate {
      * An enumeration of available drivers and their associated label
      */
     public enum Driver {
-        ASA(Constants.DriverLabels.ASA), BEN(Constants.DriverLabels.BEN);
+        ASA(Constants.DriverLabels.ASA),
+        BEN(Constants.DriverLabels.BEN);
 
         private final String label;
 

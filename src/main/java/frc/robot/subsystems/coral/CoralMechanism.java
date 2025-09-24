@@ -1,5 +1,8 @@
 package frc.robot.subsystems.coral;
 
+import static com.ctre.phoenix.motorcontrol.ControlMode.PercentOutput;
+import static java.util.Objects.requireNonNull;
+
 import com.ctre.phoenix.motorcontrol.can.TalonSRX;
 import edu.wpi.first.util.sendable.Sendable;
 import edu.wpi.first.util.sendable.SendableBuilder;
@@ -8,9 +11,6 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Subsystem;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants;
-
-import static com.ctre.phoenix.motorcontrol.ControlMode.PercentOutput;
-import static java.util.Objects.requireNonNull;
 
 /**
  * A {@link Subsystem} implementation responsible for the operation of the coral mechanism
@@ -36,7 +36,7 @@ public class CoralMechanism extends SubsystemBase {
 
     /**
      * Instantiates a new CoralMechanism subsystem with the specified settings
-     * 
+     *
      * @param context
      *            The CoralMechanismSettings to apply to this instance
      */
@@ -83,7 +83,7 @@ public class CoralMechanism extends SubsystemBase {
 
     /**
      * Obtains the reading value from the front sensor
-     * 
+     *
      * @return The value
      */
     private int getFrontSensorReading() {
@@ -92,7 +92,7 @@ public class CoralMechanism extends SubsystemBase {
 
     /**
      * Obtains the reading value from the rear sensor
-     * 
+     *
      * @return The value
      */
     private int getRearSensorReading() {
@@ -102,7 +102,7 @@ public class CoralMechanism extends SubsystemBase {
     /**
      * Obtains a "runEnd" Command which will advance the coral motors on each iteration. Interruption of the Command
      * will trigger stopping of the coral motors.
-     * 
+     *
      * @return The Command
      */
     public Command getAdvanceCoralCommand() {
@@ -112,7 +112,7 @@ public class CoralMechanism extends SubsystemBase {
     /**
      * Obtains a "runEnd" Command which will reverse the coral motors on each iteration. Interruption of the Command
      * will trigger stopping of the coral motors.
-     * 
+     *
      * @return The Command
      */
     // TODO: Remove if unused
@@ -123,7 +123,7 @@ public class CoralMechanism extends SubsystemBase {
     /**
      * Obtains a "runEnd" Command which will advance the coral motors to the trough on each iteration. Interruption of
      * the Command will trigger stopping of the coral motors.
-     * 
+     *
      * @return The Command
      */
     public Command getCoralTroughCommand() {
@@ -133,7 +133,7 @@ public class CoralMechanism extends SubsystemBase {
     /**
      * Obtains a "runEnd" Command which will advance the coral motors on each iteration and until the coral has been
      * fully loaded per {@link CoralMechanism#isCoralLoaded()}.
-     * 
+     *
      * @return The Command
      */
     public Command getCoralIntakeAutoCommand() {
@@ -142,7 +142,7 @@ public class CoralMechanism extends SubsystemBase {
 
     /**
      * Obtains a "runOnce" command that will stop the coral motors
-     * 
+     *
      * @return The Command
      */
     public Command getStopCoralCommand() {
@@ -152,7 +152,7 @@ public class CoralMechanism extends SubsystemBase {
     /**
      * Indicates that a coral has been fully loaded into the mechanism, as indicated by the front and rear sensors
      * detecting coral at their corresponding thresholds.
-     * 
+     *
      * @return Indication that a coral has been fully loaded
      */
     public boolean isCoralLoaded() {
@@ -162,7 +162,7 @@ public class CoralMechanism extends SubsystemBase {
 
     /**
      * {@link Sendable#initSendable(SendableBuilder)} implementation
-     * 
+     *
      * @param builder
      *            The sendable builder
      */

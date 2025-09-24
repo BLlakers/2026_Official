@@ -1,9 +1,9 @@
 package frc.robot.subsystems.elevator;
 
+import static java.util.Objects.requireNonNull;
+
 import com.revrobotics.spark.SparkBase.PersistMode;
 import com.revrobotics.spark.SparkBase.ResetMode;
-import com.revrobotics.spark.SparkLowLevel.MotorType;
-import com.revrobotics.spark.SparkMax;
 import com.revrobotics.spark.config.ClosedLoopConfig.FeedbackSensor;
 import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 import com.revrobotics.spark.config.SparkMaxConfig;
@@ -15,8 +15,6 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants;
 import frc.robot.support.PIDSettings;
 import frc.robot.support.sparkmax.TeamSparkMax;
-
-import static java.util.Objects.requireNonNull;
 
 public class Elevator extends SubsystemBase {
 
@@ -48,16 +46,18 @@ public class Elevator extends SubsystemBase {
 
         this.elevatorMotor = this.context.getElevatorMotor();
 
-        this.elevatorMotor.configure(this.assembleElevatorMotorConfig(), ResetMode.kNoResetSafeParameters,
-                PersistMode.kPersistParameters);
+        this.elevatorMotor.configure(
+                this.assembleElevatorMotorConfig(), ResetMode.kNoResetSafeParameters, PersistMode.kPersistParameters);
 
         this.elevatorFollowerMotor = this.context.getElevatorFollowerMotor();
-        this.elevatorFollowerMotor.configure(this.assembleElevatorFollowerMotorConfig(),
-                ResetMode.kNoResetSafeParameters, PersistMode.kPersistParameters);
+        this.elevatorFollowerMotor.configure(
+                this.assembleElevatorFollowerMotorConfig(),
+                ResetMode.kNoResetSafeParameters,
+                PersistMode.kPersistParameters);
 
         PIDSettings pidSettings = this.context.getElevatorControllerPIDSettings();
-        this.elevatorController = new ProfiledPIDController(pidSettings.p(), pidSettings.i(), pidSettings.d(),
-                this.context.getElevatorConstraints());
+        this.elevatorController = new ProfiledPIDController(
+                pidSettings.p(), pidSettings.i(), pidSettings.d(), this.context.getElevatorConstraints());
         this.elevatorController.setTolerance(this.context.getElevatorControllerTolerance());
 
         this.resetPosition();
@@ -71,9 +71,11 @@ public class Elevator extends SubsystemBase {
         SparkMaxConfig config = new SparkMaxConfig();
         config.inverted(false).idleMode(IdleMode.kBrake);
         PIDSettings pidSettings = this.context.getFeedbackSensorPIDSettings();
-        config.closedLoop.feedbackSensor(FeedbackSensor.kAlternateOrExternalEncoder).pid(pidSettings.p(),
-                pidSettings.i(), pidSettings.d());
-        config.alternateEncoder.positionConversionFactor(this.context.getElevatorPositionConversionFactor())
+        config.closedLoop
+                .feedbackSensor(FeedbackSensor.kAlternateOrExternalEncoder)
+                .pid(pidSettings.p(), pidSettings.i(), pidSettings.d());
+        config.alternateEncoder
+                .positionConversionFactor(this.context.getElevatorPositionConversionFactor())
                 .velocityConversionFactor(this.context.getElevatorVelocityConversionFactor())
                 .countsPerRevolution(this.context.getCountsPerRevolution());
         return config;
@@ -116,7 +118,7 @@ public class Elevator extends SubsystemBase {
     private void updatePIDController(double position) {
         this.elevatorController.setGoal(position);
         this.elevatorSpeed = ((this.context.getElevatorSpeedBoostFactor())
-                * this.elevatorController.calculate(this.getElevatorMotorEncoderPosition())
+                        * this.elevatorController.calculate(this.getElevatorMotorEncoderPosition())
                 + this.context.getElevatorSpeedMotorPositionAdjustment());
 
         if ((this.isElevatorLimitSwitchTop() && this.elevatorSpeed > 0)
@@ -135,8 +137,9 @@ public class Elevator extends SubsystemBase {
     }
 
     public double getElevatorDecelerateRatio() {
-        return 1 - ((this.getElevatorMotorEncoderPosition())
-                / (this.context.getLevel4Position() + this.context.getElevatorDecelerationOffset()));
+        return 1
+                - ((this.getElevatorMotorEncoderPosition())
+                        / (this.context.getLevel4Position() + this.context.getElevatorDecelerationOffset()));
     }
 
     public boolean isElevatorAtPosition() {
@@ -176,10 +179,10 @@ public class Elevator extends SubsystemBase {
     @Override
     public void initSendable(SendableBuilder builder) {
         super.initSendable(builder);
-        builder.addDoubleProperty(getName() + "ElevatorCommand/Command/elevatorSpeedInVolts", () -> this.elevatorSpeed,
-                null);
-        builder.addDoubleProperty(getName() + "ElevatorCommand/Command/elevatorDesirePIDPos",
-                () -> this.elevatorPosition, null);
+        builder.addDoubleProperty(
+                getName() + "ElevatorCommand/Command/elevatorSpeedInVolts", () -> this.elevatorSpeed, null);
+        builder.addDoubleProperty(
+                getName() + "ElevatorCommand/Command/elevatorDesirePIDPos", () -> this.elevatorPosition, null);
         builder.addDoubleProperty("Elevator/Position", this::getElevatorMotorEncoderPosition, null);
         builder.addBooleanProperty("Elevator/LimitSwitchTop", this::isElevatorLimitSwitchTop, null);
         builder.addBooleanProperty("Elevator/LimitSwitchBottom", this::isElevatorLimitSwitchBottom, null);

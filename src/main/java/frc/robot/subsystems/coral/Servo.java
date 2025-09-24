@@ -1,10 +1,10 @@
 package frc.robot.subsystems.coral;
 
+import static java.util.Objects.requireNonNull;
+
 import edu.wpi.first.wpilibj.PWM;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
-
-import static java.util.Objects.requireNonNull;
 
 // PMW(Pulse Width Modulation)
 public class Servo extends SubsystemBase {

@@ -27,5 +27,4 @@ public class TeamSparkMaxSimImpl extends TeamSparkMaxImpl {
     public double getVelocity() {
         return this.sparkMaxSim.getRelativeEncoderSim().getVelocity();
     }
-
 }

@@ -1,11 +1,10 @@
 package frc.robot.subsystems.climb;
 
+import static java.util.Objects.requireNonNull;
+
 import com.revrobotics.RelativeEncoder;
 import com.revrobotics.spark.SparkBase.PersistMode;
 import com.revrobotics.spark.SparkBase.ResetMode;
-import com.revrobotics.spark.SparkLowLevel.MotorType;
-import com.revrobotics.spark.SparkMax;
-import com.revrobotics.spark.config.ClosedLoopConfig.FeedbackSensor;
 import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 import com.revrobotics.spark.config.SparkMaxConfig;
 import edu.wpi.first.util.sendable.Sendable;
@@ -14,10 +13,7 @@ import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Subsystem;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
-import frc.robot.support.PIDSettings;
 import frc.robot.support.sparkmax.TeamSparkMax;
-
-import static java.util.Objects.requireNonNull;
 
 /**
  * A {@link Subsystem} implementation responsible for the operation of the climbing mechanism
@@ -47,8 +43,8 @@ public class ClimbMechanism extends SubsystemBase {
         requireNonNull(context, "ClimbMechanismContext cannot be null");
         this.context = context;
         this.climbMotor = this.context.getClimbMotor();
-        this.climbMotor.configure(this.assembleClimbMotorConfig(), ResetMode.kNoResetSafeParameters,
-                PersistMode.kPersistParameters);
+        this.climbMotor.configure(
+                this.assembleClimbMotorConfig(), ResetMode.kNoResetSafeParameters, PersistMode.kPersistParameters);
         this.climbMagSwitch = new DigitalInput(this.context.getClimbMagSwitchChannel());
     }
 
@@ -60,7 +56,8 @@ public class ClimbMechanism extends SubsystemBase {
     private SparkMaxConfig assembleClimbMotorConfig() {
         SparkMaxConfig config = new SparkMaxConfig();
         config.inverted(true).idleMode(IdleMode.kBrake);
-        config.encoder.positionConversionFactor(this.context.getClimbPositionConversionFactor())
+        config.encoder
+                .positionConversionFactor(this.context.getClimbPositionConversionFactor())
                 .velocityConversionFactor(this.context.getClimbVelocityConversionFactor());
         // PIDSettings pidSettings = this.context.getClimbControllerPIDSettings();
         // config
@@ -129,7 +126,8 @@ public class ClimbMechanism extends SubsystemBase {
      * @return The Command
      */
     public Command getFullyReverseClimbCommand() {
-        return this.runEnd(this::reverseClimbMotor, this::stopClimbMotor).until(this::isClimbDown)
+        return this.runEnd(this::reverseClimbMotor, this::stopClimbMotor)
+                .until(this::isClimbDown)
                 .finallyDo(this::stopClimbMotor);
     }
 

@@ -29,15 +29,14 @@ public class Limelight extends SubsystemBase {
     public Limelight(final String limelightName) {
         this.limelightName = limelightName;
         NetworkTable table = NetworkTableInstance.getDefault().getTable(this.limelightName);
-        this.aprilTagPoseTopic = table.getDoubleArrayTopic("targetpose_robotspace")
-                .subscribe(new double[]{0, 0, 0, 0, 0, 0});
+        this.aprilTagPoseTopic =
+                table.getDoubleArrayTopic("targetpose_robotspace").subscribe(new double[] {0, 0, 0, 0, 0, 0});
         this.priorityTagIdPub = table.getIntegerTopic("priorityid").publish();
         this.priorityID = table.getEntry("priorityID").getDouble(-1); // Default to -1 if no value is found
     }
 
     public void SetTagIDToTrack(int tagID) {
         this.priorityTagIdPub.accept(tagID);
-
     }
 
     @Override
@@ -47,16 +46,27 @@ public class Limelight extends SubsystemBase {
         SmartDashboard.putNumber("AprilTag/pose/X", this.currentAprilTag.pose.getX());
         SmartDashboard.putNumber("AprilTag/pose/Y", this.currentAprilTag.pose.getY());
         SmartDashboard.putNumber("AprilTag/pose/Z", this.currentAprilTag.pose.getZ());
-        SmartDashboard.putNumber("AprilTag/pose/rotX", Math.toDegrees(this.currentAprilTag.pose.getRotation().getX()));
-        SmartDashboard.putNumber("AprilTag/pose/rotY", Math.toDegrees(this.currentAprilTag.pose.getRotation().getY()));
-        SmartDashboard.putNumber("AprilTag/pose/rotZ", Math.toDegrees(this.currentAprilTag.pose.getRotation().getZ()));
-        SmartDashboard.putNumber("AprilTag/pose/measureRotZ",
+        SmartDashboard.putNumber(
+                "AprilTag/pose/rotX",
+                Math.toDegrees(this.currentAprilTag.pose.getRotation().getX()));
+        SmartDashboard.putNumber(
+                "AprilTag/pose/rotY",
+                Math.toDegrees(this.currentAprilTag.pose.getRotation().getY()));
+        SmartDashboard.putNumber(
+                "AprilTag/pose/rotZ",
+                Math.toDegrees(this.currentAprilTag.pose.getRotation().getZ()));
+        SmartDashboard.putNumber(
+                "AprilTag/pose/measureRotZ",
                 this.currentAprilTag.pose.getRotation().getMeasureZ().magnitude());
-        SmartDashboard.putNumber("AprilTag/pose/GetAngle", this.currentAprilTag.pose.getRotation().getAngle());
-        SmartDashboard.putNumber("AprilTag/pose/GetAxis", this.currentAprilTag.pose.getRotation().getAxis().get(2));
+        SmartDashboard.putNumber(
+                "AprilTag/pose/GetAngle",
+                this.currentAprilTag.pose.getRotation().getAngle());
+        SmartDashboard.putNumber(
+                "AprilTag/pose/GetAxis",
+                this.currentAprilTag.pose.getRotation().getAxis().get(2));
         // SmartDashboard.putNumber("AprilTag/pose/RAWz", aprilTagPoseTopic.getAtomic().value[5]);
-        SmartDashboard.putNumber("AprilTag/pose/RAWZFromMethod", this.getAprilRotation2d().getDegrees());
-
+        SmartDashboard.putNumber(
+                "AprilTag/pose/RAWZFromMethod", this.getAprilRotation2d().getDegrees());
     }
 
     /**
@@ -71,18 +81,19 @@ public class Limelight extends SubsystemBase {
         int aprilTagId = (int) tid.getInteger(-1);
         TimestampedDoubleArray poseArray = this.aprilTagPoseTopic.getAtomic(); // (x, y, z, rotx, roty, rotz)
 
-        if (poseArray.value.length < 6)
-            return new AprilTag(-1, new Pose3d());
+        if (poseArray.value.length < 6) return new AprilTag(-1, new Pose3d());
 
-        Translation3d poseTranslation = new Translation3d(poseArray.value[0], // x
+        Translation3d poseTranslation = new Translation3d(
+                poseArray.value[0], // x
                 poseArray.value[1], // y
                 poseArray.value[2] // z
-        );
+                );
 
-        Rotation3d poseOrientation = new Rotation3d(poseArray.value[3], // roll = rotx
+        Rotation3d poseOrientation = new Rotation3d(
+                poseArray.value[3], // roll = rotx
                 poseArray.value[4], // pitch = roty
                 poseArray.value[5] // yaw = rotz
-        );
+                );
 
         Pose3d aprilTagPose = new Pose3d(poseTranslation, poseOrientation); // creating pose3d based off of our
         // translation3d and rot3d and tid

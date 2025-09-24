@@ -49,10 +49,27 @@ public class SwerveModuleContext {
     @Getter(lazy = true)
     private final TeamSparkMax turningMotor = createMotor(turningMotorId, MotorType.kBrushless);
 
+    // 🆕 Simulation parameters
+    @Getter
+    @Builder.Default
+    private double driveGearRatio = 6.75;
+
+    @Getter
+    @Builder.Default
+    private double turnGearRatio = 150.0;
+
+    @Getter
+    @Builder.Default
+    private double driveInertia = 0.025; // kg·m²
+
+    @Getter
+    @Builder.Default
+    private double turnInertia = 0.004; // kg·m²
+
     /**
      * Private static utility to conditionally construct a TeamSparkMaxImpl or TeamSparkMaxSimImpl instance with the
      * given canId and motor type, based on the state of {@link Robot#isReal()}
-     * 
+     *
      * @param canId
      *            The id of the motor to instantiate
      * @param type

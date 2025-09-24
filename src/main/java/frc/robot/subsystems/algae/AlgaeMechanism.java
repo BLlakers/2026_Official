@@ -1,5 +1,7 @@
 package frc.robot.subsystems.algae;
 
+import static java.util.Objects.requireNonNull;
+
 import com.revrobotics.RelativeEncoder;
 import com.revrobotics.spark.SparkBase.PersistMode;
 import com.revrobotics.spark.SparkBase.ResetMode;
@@ -15,8 +17,6 @@ import edu.wpi.first.wpilibj2.command.Subsystem;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.support.PIDSettings;
 import frc.robot.support.sparkmax.TeamSparkMax;
-
-import static java.util.Objects.requireNonNull;
 
 /**
  * A {@link Subsystem} implementation responsible for the operation of the Algae mechanism
@@ -48,7 +48,7 @@ public class AlgaeMechanism extends SubsystemBase {
 
     /**
      * Instantiates a new AlgaeMechanism with the specified settings
-     * 
+     *
      * @param context
      *            The {@link AlgaeMechanismContext}
      */
@@ -56,11 +56,11 @@ public class AlgaeMechanism extends SubsystemBase {
         requireNonNull(context, "AlgaeMechanismContext cannot be null");
         this.context = context;
         this.algaeMotor = this.context.getAlgaeMotor();
-        this.algaeMotor.configure(this.assembleAlgaeMotorConfig(), ResetMode.kNoResetSafeParameters,
-                PersistMode.kPersistParameters);
+        this.algaeMotor.configure(
+                this.assembleAlgaeMotorConfig(), ResetMode.kNoResetSafeParameters, PersistMode.kPersistParameters);
         PIDSettings pidSettings = this.context.getAlgaeControllerPIDSettings();
-        this.algaeController = new ProfiledPIDController(pidSettings.p(), pidSettings.i(), pidSettings.d(),
-                this.context.getAlgaeControllerConstraints());
+        this.algaeController = new ProfiledPIDController(
+                pidSettings.p(), pidSettings.i(), pidSettings.d(), this.context.getAlgaeControllerConstraints());
         this.algaeController.setTolerance(this.context.getAlgaeControllerTolerance());
         this.algaeSensor = new AnalogInput(this.context.getAlgaeSensorChannel());
         resetAlgaeMotorPosition();
@@ -68,14 +68,15 @@ public class AlgaeMechanism extends SubsystemBase {
 
     /**
      * Prepares and configures a {@link SparkMaxConfig} to be applied to this mechanism's algae motor
-     * 
+     *
      * @return The SparkMaxConfig
      */
     private SparkMaxConfig assembleAlgaeMotorConfig() {
         SparkMaxConfig config = new SparkMaxConfig();
         PIDSettings pidSettings = this.context.getAlgaeMotorPIDSettings();
-        config.closedLoop.feedbackSensor(FeedbackSensor.kPrimaryEncoder).pid(pidSettings.p(), pidSettings.i(),
-                pidSettings.d());
+        config.closedLoop
+                .feedbackSensor(FeedbackSensor.kPrimaryEncoder)
+                .pid(pidSettings.p(), pidSettings.i(), pidSettings.d());
         config.inverted(false).idleMode(IdleMode.kCoast);
         config.alternateEncoder // TODO MAKE SURE TO USE RIGHT TYPE OF ENCODER WHEN DOING CONFIGS!
                 .positionConversionFactor(this.context.getAlgaePositionConversionFactor())
@@ -89,7 +90,7 @@ public class AlgaeMechanism extends SubsystemBase {
      * position, and subsequently applies the calculated speed to the algae motor. When the specified position is
      * reached, the algae motor's speed is set to 0. This method is intended to be invoked by this subsystem's
      * {@link Subsystem#periodic()} implementation.
-     * 
+     *
      * @param position
      *            The desired position
      */
@@ -126,7 +127,7 @@ public class AlgaeMechanism extends SubsystemBase {
 
     /**
      * Moves the algae motor per the specified speed
-     * 
+     *
      * @param speed
      *            The speed to move the algae motor by
      */
@@ -136,7 +137,7 @@ public class AlgaeMechanism extends SubsystemBase {
 
     /**
      * Provides indication of whether the algae IR sensor as reached or exceeded the specified threshold
-     * 
+     *
      * @return Indication
      */
     private boolean isAlgaeSensorIntakeForwardIR() {
@@ -152,7 +153,7 @@ public class AlgaeMechanism extends SubsystemBase {
 
     /**
      * Obtains the algae motor's {@link RelativeEncoder} position
-     * 
+     *
      * @return The position
      */
     public double getCurrentAlgaePosition() {
@@ -161,7 +162,7 @@ public class AlgaeMechanism extends SubsystemBase {
 
     /**
      * Sets the next position for the algae mechanism's PID controller to achieve
-     * 
+     *
      * @param nextAlgaePosition
      *            The desired position
      */
@@ -178,7 +179,7 @@ public class AlgaeMechanism extends SubsystemBase {
 
     /**
      * Provides indication of whether the algae mechanism's PID controller has achieved its currently assigned goal
-     * 
+     *
      * @return Indication that the goal has been achieved
      */
     public boolean isAlgaePIDControllerAtGoal() {
@@ -205,7 +206,7 @@ public class AlgaeMechanism extends SubsystemBase {
     /**
      * Obtains a "runEnd" Command which will advance the algae mechanism motor on each iteration. Interruption of the
      * Command will trigger stopping of the algae mechanism motor.
-     * 
+     *
      * @return The Command
      */
     // TODO: Remove if unused
@@ -216,7 +217,7 @@ public class AlgaeMechanism extends SubsystemBase {
     /**
      * Obtains a "runEnd" Command which will reverse the algae mechanism motor on each iteration. Interruption of the
      * Command will trigger stopping of the algae mechanism motor.
-     * 
+     *
      * @return The Command
      */
     // TODO: Remove if unused
@@ -226,7 +227,7 @@ public class AlgaeMechanism extends SubsystemBase {
 
     /**
      * Obtains a "runOnce" Command which will stop the algae mechanism motor.
-     * 
+     *
      * @return The Command
      */
     // TODO: Remove if unused
@@ -236,7 +237,7 @@ public class AlgaeMechanism extends SubsystemBase {
 
     /**
      * Obtains a "runOnce" Command which will reset the algae mechanism motor position to 0.
-     * 
+     *
      * @return The Command
      */
     public Command getResetAlgaeCommand() {
@@ -245,7 +246,7 @@ public class AlgaeMechanism extends SubsystemBase {
 
     /**
      * {@link Sendable#initSendable(SendableBuilder)} implementation
-     * 
+     *
      * @param builder
      *            The sendable builder
      */
@@ -253,8 +254,8 @@ public class AlgaeMechanism extends SubsystemBase {
     public void initSendable(SendableBuilder builder) {
         super.initSendable(builder);
         builder.addDoubleProperty(this.getName() + "/Algae/Position/EncoderPos", this::getCurrentAlgaePosition, null);
-        builder.addDoubleProperty(this.getName() + "/Algae/Position/Goal",
-                () -> this.algaeController.getGoal().position, null);
+        builder.addDoubleProperty(
+                this.getName() + "/Algae/Position/Goal", () -> this.algaeController.getGoal().position, null);
         builder.addBooleanProperty(this.getName() + "/Algae/Position/atGoal", this::isAlgaePIDControllerAtGoal, null);
         builder.addDoubleProperty(this.getName() + "/Algae/Position/Speed", () -> this.algaeSpeed, null);
         builder.addBooleanProperty(this.getName() + "/Intake/IRGood", this::isAlgaeSensorIntakeForwardIR, null);

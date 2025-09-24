@@ -9,7 +9,6 @@ import frc.robot.support.sparkmax.TeamSparkMaxImpl;
 import frc.robot.support.sparkmax.TeamSparkMaxSimImpl;
 import lombok.Builder;
 import lombok.Data;
-import lombok.Getter;
 
 @Data
 @Builder
@@ -22,9 +21,12 @@ public class ClimbMechanismContext {
      */
     public static ClimbMechanismContext defaults() {
         return ClimbMechanismContext.builder()
-                .climbMotor((Robot.isReal())
-                        ? new TeamSparkMaxImpl(Constants.Port.climbMotorChannel, SparkLowLevel.MotorType.kBrushless)
-                        : new TeamSparkMaxSimImpl(Constants.Port.climbMotorChannel, SparkLowLevel.MotorType.kBrushless))
+                .climbMotor(
+                        (Robot.isReal())
+                                ? new TeamSparkMaxImpl(
+                                        Constants.Port.climbMotorChannel, SparkLowLevel.MotorType.kBrushless)
+                                : new TeamSparkMaxSimImpl(
+                                        Constants.Port.climbMotorChannel, SparkLowLevel.MotorType.kBrushless))
                 .build();
     }
 

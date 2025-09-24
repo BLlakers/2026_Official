@@ -16,8 +16,8 @@ public class TeamSparkMaxImpl implements TeamSparkMax {
     }
 
     @Override
-    public REVLibError configure(SparkBaseConfig config, SparkBase.ResetMode resetMode,
-            SparkBase.PersistMode persistMode) {
+    public REVLibError configure(
+            SparkBaseConfig config, SparkBase.ResetMode resetMode, SparkBase.PersistMode persistMode) {
         return this.sparkMax.configure(config, resetMode, persistMode);
     }
 

@@ -1,5 +1,7 @@
 package frc.robot.subsystems.algae;
 
+import static edu.wpi.first.math.util.Units.feetToMeters;
+
 import com.revrobotics.spark.SparkLowLevel;
 import edu.wpi.first.math.trajectory.TrapezoidProfile.Constraints;
 import frc.robot.Constants;
@@ -10,8 +12,6 @@ import frc.robot.support.sparkmax.TeamSparkMaxImpl;
 import frc.robot.support.sparkmax.TeamSparkMaxSimImpl;
 import lombok.Builder;
 import lombok.Data;
-
-import static edu.wpi.first.math.util.Units.feetToMeters;
 
 @Data
 @Builder
@@ -24,9 +24,11 @@ public class AlgaeMechanismContext {
      */
     public static AlgaeMechanismContext defaults() {
         return AlgaeMechanismContext.builder()
-                .algaeMotor((Robot.isReal())
-                        ? new TeamSparkMaxImpl(Constants.Algae.m_AlgaeMtrC, SparkLowLevel.MotorType.kBrushless)
-                        : new TeamSparkMaxSimImpl(Constants.Algae.m_AlgaeMtrC, SparkLowLevel.MotorType.kBrushless))
+                .algaeMotor(
+                        (Robot.isReal())
+                                ? new TeamSparkMaxImpl(Constants.Algae.m_AlgaeMtrC, SparkLowLevel.MotorType.kBrushless)
+                                : new TeamSparkMaxSimImpl(
+                                        Constants.Algae.m_AlgaeMtrC, SparkLowLevel.MotorType.kBrushless))
                 .build();
     }
 

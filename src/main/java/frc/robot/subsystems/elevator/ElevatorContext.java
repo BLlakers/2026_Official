@@ -19,12 +19,16 @@ public class ElevatorContext {
 
     public static ElevatorContext defaults() {
         return ElevatorContext.builder()
-                .elevatorMotor((Robot.isReal()
-                        ? new TeamSparkMaxImpl(Constants.Port.elevatorMotorChannel, MotorType.kBrushless)
-                        : new TeamSparkMaxSimImpl(Constants.Port.elevatorMotorChannel, MotorType.kBrushless)))
-                .elevatorFollowerMotor((Robot.isReal()
-                        ? new TeamSparkMaxImpl(Constants.Port.elevatorFollowerMotorChannel, MotorType.kBrushless)
-                        : new TeamSparkMaxSimImpl(Constants.Port.elevatorFollowerMotorChannel, MotorType.kBrushless)))
+                .elevatorMotor(
+                        (Robot.isReal()
+                                ? new TeamSparkMaxImpl(Constants.Port.elevatorMotorChannel, MotorType.kBrushless)
+                                : new TeamSparkMaxSimImpl(Constants.Port.elevatorMotorChannel, MotorType.kBrushless)))
+                .elevatorFollowerMotor(
+                        (Robot.isReal()
+                                ? new TeamSparkMaxImpl(
+                                        Constants.Port.elevatorFollowerMotorChannel, MotorType.kBrushless)
+                                : new TeamSparkMaxSimImpl(
+                                        Constants.Port.elevatorFollowerMotorChannel, MotorType.kBrushless)))
                 .build();
     }
 
@@ -102,8 +106,8 @@ public class ElevatorContext {
     private final int elevatorLimitSwitchBottomChannel = DIOChannel.SEVEN.getChannel();
 
     @Builder.Default
-    private TrapezoidProfile.Constraints elevatorConstraints = new TrapezoidProfile.Constraints(Units.feetToMeters(140),
-            Units.feetToMeters(125));
+    private TrapezoidProfile.Constraints elevatorConstraints =
+            new TrapezoidProfile.Constraints(Units.feetToMeters(140), Units.feetToMeters(125));
 
     private TeamSparkMax elevatorMotor;
 
