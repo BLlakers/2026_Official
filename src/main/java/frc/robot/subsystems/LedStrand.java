@@ -31,7 +31,6 @@ public class LedStrand extends SubsystemBase {
     }
 
     public void changeLed(int r, int g, int b) {
-        System.out.println("Here");
         sendSerialCommand("R" + r + "G" + g + "B" + b);
     }
 

@@ -148,6 +148,7 @@ public class RobotContainer {
 
     private final CommandXboxController manipController =
             new CommandXboxController(Constants.Controller.MANIPULATION_CONTROLLER_CHANNEL);
+
     private final CommandXboxController debugController =
             new CommandXboxController(Constants.Controller.DEBUG_CONTROLLER_CHANNEL);
 

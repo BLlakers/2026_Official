@@ -10,6 +10,7 @@ import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.config.PIDConstants;
 import com.pathplanner.lib.controllers.PPHolonomicDriveController;
 import com.studica.frc.AHRS;
+import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.estimator.SwerveDrivePoseEstimator;
 import edu.wpi.first.math.geometry.Pose2d;
@@ -40,6 +41,8 @@ import java.util.Optional;
  * {@link #swerveDriveOdometry}. Various other DriveTrain Related thing are initialized here too.
  */
 public class Drivetrain extends SubsystemBase {
+
+    private static final double NOMINAL_BATT_VOLTS = 12.0;
 
     private final DrivetrainContext context;
 
@@ -87,7 +90,7 @@ public class Drivetrain extends SubsystemBase {
 
     private boolean wheelLock = false;
 
-    private boolean fieldRelativeEnable = true;
+    private boolean fieldRelativeEnable = false;
 
     private Pose2d goalPose;
 
@@ -110,8 +113,7 @@ public class Drivetrain extends SubsystemBase {
     /**
      * Instantiates a new Drivetrain subsystem with the specified settings
      *
-     * @param context
-     *            The DrivetrainSettings to apply to this instance
+     * @param context The DrivetrainSettings to apply to this instance
      */
     public Drivetrain(final DrivetrainContext context) {
         requireNonNull(context, "DrivetrainContext cannot be null");
@@ -242,9 +244,9 @@ public class Drivetrain extends SubsystemBase {
      * Gets our current position in meters on the field.
      *
      * @return A current position on the field.
-     *         <p>
-     *         <pi> A translation2d (X and Y on the field) -> {@link #swerveDriveKinematics} + A rotation2d (Rot X and Y
-     *         on the field) -> {@link #navXSensorModule}
+     * <p>
+     * <pi> A translation2d (X and Y on the field) -> {@link #swerveDriveKinematics} + A rotation2d (Rot X and Y
+     * on the field) -> {@link #navXSensorModule}
      */
     private Pose2d getPose2d() {
         return this.swerveDriveOdometry.getPoseMeters();
@@ -299,10 +301,12 @@ public class Drivetrain extends SubsystemBase {
      * Updates our current Odometry
      */
     private void updateOdometry() {
+        if (RobotBase.isSimulation()) return;
         this.swerveDriveOdometry.update(this.navXSensorModule.getRotation2d(), this.getSwerveModulePositions());
     }
 
     private void updatePoseEstimatorOdometry() {
+        if (RobotBase.isSimulation()) return;
         this.swerveDrivePoseEstimator.update(this.getHeading(), this.getSwerveModulePositions());
 
         boolean doRejectUpdate = false;
@@ -428,24 +432,34 @@ public class Drivetrain extends SubsystemBase {
     /**
      * Method to drive the robot using joystick info.
      *
-     * @param xSpeed
-     *            Speed of the robot in the x direction (forward).
-     * @param ySpeed
-     *            Speed of the robot in the y direction (sideways).
-     * @param rot
-     *            Angular rate of the robot.
+     * @param xSpeed Speed of the robot in the x direction (forward).
+     * @param ySpeed Speed of the robot in the y direction (sideways).
+     * @param rot    Angular rate of the robot.
      */
     public void drive(double xSpeed, double ySpeed, double rot) {
-        SmartDashboard.putNumber(getName() + "/Command/X Speed", xSpeed);
-        SmartDashboard.putNumber(getName() + "/Command/Y Speed", ySpeed);
-        SmartDashboard.putNumber(getName() + "/Command/Rot Speed", rot);
-        SmartDashboard.putBoolean(getName() + "/Command/RobotRelative", this.fieldRelativeEnable);
-        Rotation2d robotRotation =
-                new Rotation2d(navXSensorModule.getRotation2d().getRadians());
-        this.desiredStates = this.swerveDriveKinematics.toSwerveModuleStates(
-                this.fieldRelativeEnable
-                        ? ChassisSpeeds.fromFieldRelativeSpeeds(xSpeed, ySpeed, rot, robotRotation)
-                        : new ChassisSpeeds(xSpeed, ySpeed, rot));
+        // Commanded inputs (m/s, rad/s)
+        SmartDashboard.putNumber(getName() + "/Cmd/xSpeed_in", xSpeed);
+        SmartDashboard.putNumber(getName() + "/Cmd/ySpeed_in", ySpeed);
+        SmartDashboard.putNumber(getName() + "/Cmd/rot_in", rot);
+        SmartDashboard.putBoolean(getName() + "/Cmd/FieldRelative", this.fieldRelativeEnable);
+
+        Rotation2d rawHeading = getHeading();
+
+        ChassisSpeeds speeds = fieldRelativeEnable
+                ? ChassisSpeeds.fromFieldRelativeSpeeds(xSpeed, ySpeed, rot, rawHeading)
+                : new ChassisSpeeds(xSpeed, ySpeed, rot);
+
+        // IMPORTANT: NavX is CW+, WPILib is CCW+. Negate heading for fromFieldRelativeSpeeds.
+        SmartDashboard.putNumber(getName() + "/HeadingUsedDeg", rawHeading.getDegrees());
+
+        // What we will pass to kinematics
+        SmartDashboard.putNumber(getName() + "/Chassis/vx", speeds.vxMetersPerSecond);
+        SmartDashboard.putNumber(getName() + "/Chassis/vy", speeds.vyMetersPerSecond);
+        SmartDashboard.putNumber(getName() + "/Chassis/omega", speeds.omegaRadiansPerSecond);
+
+        // Compute and apply
+        this.desiredStates = this.swerveDriveKinematics.toSwerveModuleStates(speeds);
+        SwerveDriveKinematics.desaturateWheelSpeeds(this.desiredStates, SwerveModule.DRIVE_MAX_SPEED);
 
         if (!this.wheelLock) {
             this.setModuleStates(this.desiredStates);
@@ -531,56 +545,88 @@ public class Drivetrain extends SubsystemBase {
         // 1. Compute elapsed time since last loop
         double currentTime = Timer.getFPGATimestamp();
         double dt = currentTime - lastSimTime;
-        this.lastSimTime = currentTime;
+        lastSimTime = currentTime;
 
-        // 2. Update each simulated swerve module using stored percent outputs
-        frontLeftSwerveModuleSim.setDriveVoltage(frontLeftSwerveModule.getLastDrivePercent() * 12.0);
-        frontLeftSwerveModuleSim.setTurnVoltage(frontLeftSwerveModule.getLastTurnPercent() * 12.0);
+        // 2. Skip if no desired states yet (e.g., before first drive command)
+        if (desiredStates == null) {
+            return;
+        }
+
+        // --- constants for sim behavior ---
+        final double kMaxSpeed = this.getMaxSpeed(); // m/s
+        final double kAzimuthP = 6.0; // V per radian (tune 4–10)
+        final double kDriveVPerMS = NOMINAL_BATT_VOLTS / kMaxSpeed; // volts per (m/s)
+
+        // 3. Compute each module’s commanded (optimized) state
+        var flCmd = SwerveModuleState.optimize(desiredStates[0], frontLeftSwerveModuleSim.getTurnAngle());
+        var frCmd = SwerveModuleState.optimize(desiredStates[1], frontRightSwerveModuleSim.getTurnAngle());
+        var blCmd = SwerveModuleState.optimize(desiredStates[2], rearLeftSwerveModuleSim.getTurnAngle());
+        var brCmd = SwerveModuleState.optimize(desiredStates[3], rearRightSwerveModuleSim.getTurnAngle());
+
+        // 4. Apply drive voltages (scale m/s → ±12 V)
+        frontLeftSwerveModuleSim.setDriveVoltage(Math.copySign(
+                Math.min(Math.abs(flCmd.speedMetersPerSecond) * kDriveVPerMS, NOMINAL_BATT_VOLTS),
+                flCmd.speedMetersPerSecond));
+        frontRightSwerveModuleSim.setDriveVoltage(Math.copySign(
+                Math.min(Math.abs(frCmd.speedMetersPerSecond) * kDriveVPerMS, NOMINAL_BATT_VOLTS),
+                frCmd.speedMetersPerSecond));
+        rearLeftSwerveModuleSim.setDriveVoltage(Math.copySign(
+                Math.min(Math.abs(blCmd.speedMetersPerSecond) * kDriveVPerMS, NOMINAL_BATT_VOLTS),
+                blCmd.speedMetersPerSecond));
+        rearRightSwerveModuleSim.setDriveVoltage(Math.copySign(
+                Math.min(Math.abs(brCmd.speedMetersPerSecond) * kDriveVPerMS, NOMINAL_BATT_VOLTS),
+                brCmd.speedMetersPerSecond));
+
+        // 5. Apply turn voltages (simple proportional control on angle error)
+        double flErr =
+                flCmd.angle.minus(frontLeftSwerveModuleSim.getTurnAngle()).getRadians();
+        double frErr =
+                frCmd.angle.minus(frontRightSwerveModuleSim.getTurnAngle()).getRadians();
+        double blErr = blCmd.angle.minus(rearLeftSwerveModuleSim.getTurnAngle()).getRadians();
+        double brErr =
+                brCmd.angle.minus(rearRightSwerveModuleSim.getTurnAngle()).getRadians();
+
+        frontLeftSwerveModuleSim.setTurnVoltage(
+                MathUtil.clamp(kAzimuthP * flErr, -NOMINAL_BATT_VOLTS, NOMINAL_BATT_VOLTS));
+        frontRightSwerveModuleSim.setTurnVoltage(
+                MathUtil.clamp(kAzimuthP * frErr, -NOMINAL_BATT_VOLTS, NOMINAL_BATT_VOLTS));
+        rearLeftSwerveModuleSim.setTurnVoltage(
+                MathUtil.clamp(kAzimuthP * blErr, -NOMINAL_BATT_VOLTS, NOMINAL_BATT_VOLTS));
+        rearRightSwerveModuleSim.setTurnVoltage(
+                MathUtil.clamp(kAzimuthP * brErr, -NOMINAL_BATT_VOLTS, NOMINAL_BATT_VOLTS));
+
+        // 6. Update each simulated module
         frontLeftSwerveModuleSim.update(dt);
-
-        frontRightSwerveModuleSim.setDriveVoltage(frontRightSwerveModule.getLastDrivePercent() * 12.0);
-        frontRightSwerveModuleSim.setTurnVoltage(frontRightSwerveModule.getLastTurnPercent() * 12.0);
         frontRightSwerveModuleSim.update(dt);
-
-        rearLeftSwerveModuleSim.setDriveVoltage(rearLeftSwerveModule.getLastDrivePercent() * 12.0);
-        rearLeftSwerveModuleSim.setTurnVoltage(rearLeftSwerveModule.getLastTurnPercent() * 12.0);
         rearLeftSwerveModuleSim.update(dt);
-
-        rearRightSwerveModuleSim.setDriveVoltage(rearRightSwerveModule.getLastDrivePercent() * 12.0);
-        rearRightSwerveModuleSim.setTurnVoltage(rearRightSwerveModule.getLastTurnPercent() * 12.0);
         rearRightSwerveModuleSim.update(dt);
 
-        // 3. Build simulated module states for kinematics
+        // 7. Build module states for kinematics
         SwerveModuleState[] states = new SwerveModuleState[] {
             new SwerveModuleState(
-                    this.frontLeftSwerveModuleSim.getWheelSpeedMetersPerSecond(),
-                    this.frontLeftSwerveModuleSim.getTurnAngle()),
+                    frontLeftSwerveModuleSim.getWheelSpeedMetersPerSecond(), frontLeftSwerveModuleSim.getTurnAngle()),
             new SwerveModuleState(
-                    this.frontRightSwerveModuleSim.getWheelSpeedMetersPerSecond(),
-                    this.frontRightSwerveModuleSim.getTurnAngle()),
+                    frontRightSwerveModuleSim.getWheelSpeedMetersPerSecond(), frontRightSwerveModuleSim.getTurnAngle()),
             new SwerveModuleState(
-                    this.rearLeftSwerveModuleSim.getWheelSpeedMetersPerSecond(),
-                    this.rearLeftSwerveModuleSim.getTurnAngle()),
+                    rearLeftSwerveModuleSim.getWheelSpeedMetersPerSecond(), rearLeftSwerveModuleSim.getTurnAngle()),
             new SwerveModuleState(
-                    this.rearRightSwerveModuleSim.getWheelSpeedMetersPerSecond(),
-                    this.rearRightSwerveModuleSim.getTurnAngle())
+                    rearRightSwerveModuleSim.getWheelSpeedMetersPerSecond(), rearRightSwerveModuleSim.getTurnAngle())
         };
 
-        // 4. Convert to chassis speeds and integrate heading
-        ChassisSpeeds chassisSpeeds = this.swerveDriveKinematics.toChassisSpeeds(states);
-        Rotation2d delta = new Rotation2d(chassisSpeeds.omegaRadiansPerSecond * dt);
-        this.simYaw = this.simYaw.rotateBy(delta);
+        // 8. Convert to chassis speeds and integrate heading
+        ChassisSpeeds chassisSpeeds = swerveDriveKinematics.toChassisSpeeds(states);
+        simYaw = simYaw.plus(Rotation2d.fromRadians(chassisSpeeds.omegaRadiansPerSecond * dt));
 
-        // 5. Update pose estimator with sim yaw and module positions
-        this.swerveDrivePoseEstimator.update(this.simYaw, new SwerveModulePosition[] {
-            this.frontLeftSwerveModuleSim.getPosition(),
-            this.frontRightSwerveModuleSim.getPosition(),
-            this.rearLeftSwerveModuleSim.getPosition(),
-            this.rearRightSwerveModuleSim.getPosition()
+        // 9. Update pose estimator with sim yaw and module positions
+        swerveDrivePoseEstimator.update(simYaw, new SwerveModulePosition[] {
+            frontLeftSwerveModuleSim.getPosition(),
+            frontRightSwerveModuleSim.getPosition(),
+            rearLeftSwerveModuleSim.getPosition(),
+            rearRightSwerveModuleSim.getPosition()
         });
 
-        // 6. Push pose to Field2d for visualization
-        this.field.setRobotPose(swerveDrivePoseEstimator.getEstimatedPosition());
+        // 10. Push pose to Field2d for visualization
+        field.setRobotPose(swerveDrivePoseEstimator.getEstimatedPosition());
     }
 
     @Override

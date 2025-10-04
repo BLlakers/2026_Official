@@ -41,7 +41,7 @@ public class SwerveModuleSim {
         this.driveDistanceMeters += wheelSpeed * dtSeconds;
 
         double turnRotations = turnMotorSim.getAngularPositionRotations();
-        this.turnAngle = Rotation2d.fromRotations(turnRotations % 1.0);
+        this.turnAngle = Rotation2d.fromRotations(turnRotations);
     }
 
     public void setDriveVoltage(double volts) {
