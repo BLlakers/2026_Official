@@ -89,23 +89,23 @@ public final class Constants {
     }
 
     public static class Port {
-        public static final int blSteerMtrC = 1;
-        public static final int blDriveMtrC = 2;
-        public static final int flDriveMtrC = 3;
-        public static final int flSteerMtrC = 4;
-        public static final int frSteerMtrC = 5;
-        public static final int frDriveMtrC = 6;
-        public static final int brDriveMtrC = 7;
-        public static final int brSteerMtrC = 8;
-        public static final int elevatorMotorChannel = 11;
-        public static final int climbMotorChannel = 12;
-        public static final int coralMotorRightChannel = 13;
-        public static final int coralMotorLeftChannel = 14;
-        public static final int elevatorFollowerMotorChannel = 15;
-        public static final int blTurnEncoderDIOC = DIOChannel.ZERO.getChannel();
-        public static final int flTurnEncoderDIOC = DIOChannel.ONE.getChannel();
-        public static final int frTurnEncoderDIOC = DIOChannel.TWO.getChannel();
-        public static final int brTurnEncoderDIOC = DIOChannel.THREE.getChannel();
+        public static final int REAR_LEFT_TURN_CHANNEL = 1;
+        public static final int REAR_LEFT_DRIVE_CHANNEL = 2;
+        public static final int FRONT_LEFT_DRIVE_CHANNEL = 3;
+        public static final int FRONT_LEFT_STEER_CHANNEL = 4;
+        public static final int FRONT_RIGHT_STEER_CHANNEL = 5;
+        public static final int FRONT_RIGHT_DRIVE_CHANNEL = 6;
+        public static final int REAR_RIGHT_DRIVE_CHANNEL = 7;
+        public static final int REAR_RIGHT_STEER_CHANNEL = 8;
+        public static final int ELEVATOR_DRIVE_CHANNEL = 11;
+        public static final int CLIMB_DRIVE_CHANNEL = 12;
+        public static final int RIGHT_CORAL_DRIVE_CHANNEL = 13;
+        public static final int LEFT_CORAL_DRIVE_CHANNEL = 14;
+        public static final int ELEVATOR_FOLLOWER_DRIVE_CHANNEL = 15;
+        public static final int REAR_LEFT_TURN_ENCODER_DIO_CHANNEL = DIOChannel.ZERO.getChannel();
+        public static final int FRONT_LEFT_TURN_ENCODER_DIO_CHANNEL = DIOChannel.ONE.getChannel();
+        public static final int FRONT_RIGHT_TURN_ENCODER_DIO_CHANNEL = DIOChannel.TWO.getChannel();
+        public static final int REAR_RIGHT_TURN_ENCODER_DIO_CHANNEL = DIOChannel.THREE.getChannel();
         public static final int climbMagSwitchDIOC = DIOChannel.FOUR.getChannel();
         ;
         public static final int hangerLeftMagSwitchDIOC = DIOChannel.SEVEN.getChannel();
@@ -130,15 +130,15 @@ public final class Constants {
     public class RobotVersion2025 extends RobotVersionConstants {
         public static final double flTurnEncoderOffset = 3.84 - .04 + Math.PI;
         public static final double frTurnEncoderOffset = 1.7 + Math.PI - .03 + Math.PI;
-        public static final double blTurnEncoderOffset = 3.284 + Math.PI;
-        public static final double brTurnEncoderOffset = 4.49 + Math.PI;
+        public static final double rlTurnEncoderOffset = 3.284 + Math.PI;
+        public static final double rrTurnEncoderOffset = 4.49 + Math.PI;
     }
 
     public class RobotVersion2023 extends RobotVersionConstants {
         public static final double flTurnEncoderOffset = 5.3038;
         public static final double frTurnEncoderOffset = Math.PI / 2 - 0.1242 - .05759;
-        public static final double blTurnEncoderOffset = 4.2 + 0.0385;
-        public static final double brTurnEncoderOffset = 2.736 - .06098;
+        public static final double rlTurnEncoderOffset = 4.2 + 0.0385;
+        public static final double rrTurnEncoderOffset = 2.736 - .06098;
     }
 
     public static final class Poses {

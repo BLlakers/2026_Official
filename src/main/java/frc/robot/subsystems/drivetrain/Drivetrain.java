@@ -46,12 +46,12 @@ public class Drivetrain extends SubsystemBase {
 
     private static final double NOMINAL_BATT_VOLTS = 12.0;
 
-    private final double SIM_VOLTS_PER_RADIAN_TURN_VOLTAGE = 24.0;
+    private final double SIM_VOLTS_PER_RADIAN_TURN_VOLTAGE = 48.0;
+
+    private final DrivetrainContext context;
 
     // Scale from desired wheel speed (meters-per-second) to motor voltage (V)
     private final double simVoltsMetPerSec;
-
-    private final DrivetrainContext context;
 
     private final Field2d field = new Field2d();
 
@@ -80,7 +80,6 @@ public class Drivetrain extends SubsystemBase {
 
     private final SwerveDrivePoseEstimator swerveDrivePoseEstimator;
 
-    // TODO: These publishers should
     private final StructArrayPublisher<SwerveModuleState> desiredStatePublisher;
 
     private final StructArrayPublisher<SwerveModuleState> currentStatePublisher;
@@ -202,15 +201,15 @@ public class Drivetrain extends SubsystemBase {
                 Constants.Drive.SMBackLeftLocation,
                 Constants.Drive.SMBackRightLocation);
 
-        this.frSwerve = new SwerveModule(this.context.getFrontRightSwerveModuleContext());
-        this.flSwerve = new SwerveModule(this.context.getFrontLeftSwerveModuleContext());
-        this.rlSwerve = new SwerveModule(this.context.getRearLeftSwerveModuleContext());
-        this.rrSwerve = new SwerveModule(this.context.getRearRightSwerveModuleContext());
+        this.frSwerve = new SwerveModule(this.context.getFrSwerveContext());
+        this.flSwerve = new SwerveModule(this.context.getFlSwerveContext());
+        this.rlSwerve = new SwerveModule(this.context.getRlSwerveContext());
+        this.rrSwerve = new SwerveModule(this.context.getRrSwerveContext());
 
-        this.frSwerveSim = new SwerveModuleSim(context.getFrontRightSwerveModuleContext());
-        this.flSwerveSim = new SwerveModuleSim(context.getFrontLeftSwerveModuleContext());
-        this.rlSwerveSim = new SwerveModuleSim(context.getRearLeftSwerveModuleContext());
-        this.rrSwerveSim = new SwerveModuleSim(context.getRearRightSwerveModuleContext());
+        this.frSwerveSim = new SwerveModuleSim(context.getFrSwerveContext());
+        this.flSwerveSim = new SwerveModuleSim(context.getFlSwerveContext());
+        this.rlSwerveSim = new SwerveModuleSim(context.getRlSwerveContext());
+        this.rrSwerveSim = new SwerveModuleSim(context.getRrSwerveContext());
 
         // initializes odometry
         this.swerveDriveOdometry = new SwerveDriveOdometry(

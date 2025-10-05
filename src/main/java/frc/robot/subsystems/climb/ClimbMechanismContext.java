@@ -24,14 +24,14 @@ public class ClimbMechanismContext {
                 .climbMotor(
                         (Robot.isReal())
                                 ? new TeamSparkMaxImpl(
-                                        Constants.Port.climbMotorChannel, SparkLowLevel.MotorType.kBrushless)
+                                        Constants.Port.CLIMB_DRIVE_CHANNEL, SparkLowLevel.MotorType.kBrushless)
                                 : new TeamSparkMaxSimImpl(
-                                        Constants.Port.climbMotorChannel, SparkLowLevel.MotorType.kBrushless))
+                                        Constants.Port.CLIMB_DRIVE_CHANNEL, SparkLowLevel.MotorType.kBrushless))
                 .build();
     }
 
     @Builder.Default
-    private int climbMotorChannel = Constants.Port.climbMotorChannel;
+    private int climbMotorChannel = Constants.Port.CLIMB_DRIVE_CHANNEL;
 
     @Builder.Default
     private int climbMagSwitchChannel = Constants.Port.climbMagSwitchDIOC;
@@ -50,6 +50,12 @@ public class ClimbMechanismContext {
 
     @Builder.Default
     private double reverseIncrement = -.75;
+
+    @Builder.Default
+    // TODO: Look up the datasheet for the exact encoder you installed on the climb mechanism.
+    //  If we're not using a quadrature encoder at all, then don’t pick kAlternateOrExternalEncoder
+    //  Instead use the primary encoder or the appropriate sensor type.
+    private int climbAltEncoderCPR = (int) Constants.Conversion.MagEncoderCountsPerRev;
 
     private TeamSparkMax climbMotor;
 }
