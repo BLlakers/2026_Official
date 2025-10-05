@@ -4,13 +4,15 @@
 
 package frc.robot.subsystems.drivetrain;
 
+import static edu.wpi.first.math.MathUtil.clamp;
+import static edu.wpi.first.math.kinematics.SwerveModuleState.optimize;
+import static java.lang.Math.min;
 import static java.util.Objects.requireNonNull;
 
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.config.PIDConstants;
 import com.pathplanner.lib.controllers.PPHolonomicDriveController;
 import com.studica.frc.AHRS;
-import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.estimator.SwerveDrivePoseEstimator;
 import edu.wpi.first.math.geometry.Pose2d;
@@ -37,12 +39,17 @@ import java.util.Optional;
 
 /**
  * Represents a swerve drive style drivetrain. In here, we initialize our swerve modules (example ->
- * {@link #frontLeftSwerveModule}), Get input from autonomous and initialize our odometry ->
+ * {@link #flSwerve}), Get input from autonomous and initialize our odometry ->
  * {@link #swerveDriveOdometry}. Various other DriveTrain Related thing are initialized here too.
  */
 public class Drivetrain extends SubsystemBase {
 
     private static final double NOMINAL_BATT_VOLTS = 12.0;
+
+    private final double SIM_VOLTS_PER_RADIAN_TURN_VOLTAGE = 24.0;
+
+    // Scale from desired wheel speed (meters-per-second) to motor voltage (V)
+    private final double simVoltsMetPerSec;
 
     private final DrivetrainContext context;
 
@@ -53,21 +60,21 @@ public class Drivetrain extends SubsystemBase {
     // The gyro object. Gyro gives the robots rotation/ where the robot is pointed.
     private final AHRS navXSensorModule;
 
-    public final SwerveModule frontLeftSwerveModule;
+    public final SwerveModule flSwerve;
 
-    public final SwerveModule frontRightSwerveModule;
+    public final SwerveModule frSwerve;
 
-    public final SwerveModule rearLeftSwerveModule;
+    public final SwerveModule rlSwerve;
 
-    public final SwerveModule rearRightSwerveModule;
+    public final SwerveModule rrSwerve;
 
-    private final SwerveModuleSim frontLeftSwerveModuleSim;
+    private final SwerveModuleSim flSwerveSim;
 
-    private final SwerveModuleSim frontRightSwerveModuleSim;
+    private final SwerveModuleSim frSwerveSim;
 
-    private final SwerveModuleSim rearLeftSwerveModuleSim;
+    private final SwerveModuleSim rlSwerveSim;
 
-    private final SwerveModuleSim rearRightSwerveModuleSim;
+    private final SwerveModuleSim rrSwerveSim;
 
     private final SwerveDriveOdometry swerveDriveOdometry;
 
@@ -101,8 +108,6 @@ public class Drivetrain extends SubsystemBase {
 
     private double lastSimTime = Timer.getFPGATimestamp();
 
-    private SwerveModuleState[] CurrentStates; // TODO: Unused? Eliminate
-
     /**
      * Instantiates a new Drivetrain with default {@link DrivetrainContext}
      */
@@ -119,6 +124,8 @@ public class Drivetrain extends SubsystemBase {
         requireNonNull(context, "DrivetrainContext cannot be null");
 
         this.context = context;
+
+        this.simVoltsMetPerSec = NOMINAL_BATT_VOLTS / this.getMaxSpeed();
 
         NetworkTableInstance nti = NetworkTableInstance.getDefault();
 
@@ -195,15 +202,15 @@ public class Drivetrain extends SubsystemBase {
                 Constants.Drive.SMBackLeftLocation,
                 Constants.Drive.SMBackRightLocation);
 
-        this.frontRightSwerveModule = new SwerveModule(this.context.getFrontRightSwerveModuleContext());
-        this.frontLeftSwerveModule = new SwerveModule(this.context.getFrontLeftSwerveModuleContext());
-        this.rearLeftSwerveModule = new SwerveModule(this.context.getRearLeftSwerveModuleContext());
-        this.rearRightSwerveModule = new SwerveModule(this.context.getRearRightSwerveModuleContext());
+        this.frSwerve = new SwerveModule(this.context.getFrontRightSwerveModuleContext());
+        this.flSwerve = new SwerveModule(this.context.getFrontLeftSwerveModuleContext());
+        this.rlSwerve = new SwerveModule(this.context.getRearLeftSwerveModuleContext());
+        this.rrSwerve = new SwerveModule(this.context.getRearRightSwerveModuleContext());
 
-        this.frontRightSwerveModuleSim = new SwerveModuleSim(context.getFrontRightSwerveModuleContext());
-        this.frontLeftSwerveModuleSim = new SwerveModuleSim(context.getFrontLeftSwerveModuleContext());
-        this.rearLeftSwerveModuleSim = new SwerveModuleSim(context.getRearLeftSwerveModuleContext());
-        this.rearRightSwerveModuleSim = new SwerveModuleSim(context.getRearRightSwerveModuleContext());
+        this.frSwerveSim = new SwerveModuleSim(context.getFrontRightSwerveModuleContext());
+        this.flSwerveSim = new SwerveModuleSim(context.getFrontLeftSwerveModuleContext());
+        this.rlSwerveSim = new SwerveModuleSim(context.getRearLeftSwerveModuleContext());
+        this.rrSwerveSim = new SwerveModuleSim(context.getRearRightSwerveModuleContext());
 
         // initializes odometry
         this.swerveDriveOdometry = new SwerveDriveOdometry(
@@ -217,10 +224,10 @@ public class Drivetrain extends SubsystemBase {
                 this.context.getStateStdDevs(),
                 this.context.getVisionMeasurementStdDevs());
 
-        this.addChild(frontLeftSwerveModule.getName(), frontLeftSwerveModule);
-        this.addChild(frontRightSwerveModule.getName(), frontRightSwerveModule);
-        this.addChild(rearLeftSwerveModule.getName(), rearLeftSwerveModule);
-        this.addChild(rearRightSwerveModule.getName(), rearRightSwerveModule);
+        this.addChild(flSwerve.getName(), flSwerve);
+        this.addChild(frSwerve.getName(), frSwerve);
+        this.addChild(rlSwerve.getName(), rlSwerve);
+        this.addChild(rrSwerve.getName(), rrSwerve);
         this.addChild("navx", this.navXSensorModule);
     }
 
@@ -261,20 +268,20 @@ public class Drivetrain extends SubsystemBase {
      */
     private void setModuleStates(SwerveModuleState[] swerveModuleStates) {
         SwerveDriveKinematics.desaturateWheelSpeeds(swerveModuleStates, SwerveModule.DRIVE_MAX_SPEED);
-        this.frontLeftSwerveModule.setDesiredState(swerveModuleStates[0]);
-        this.frontRightSwerveModule.setDesiredState(swerveModuleStates[1]);
-        this.rearLeftSwerveModule.setDesiredState(swerveModuleStates[2]);
-        this.rearRightSwerveModule.setDesiredState(swerveModuleStates[3]);
+        this.flSwerve.setDesiredState(swerveModuleStates[0]);
+        this.frSwerve.setDesiredState(swerveModuleStates[1]);
+        this.rlSwerve.setDesiredState(swerveModuleStates[2]);
+        this.rrSwerve.setDesiredState(swerveModuleStates[3]);
     }
 
     /**
      * Tells our wheels to go to the Wheel Locking position (0 m/s, forming an X)
      */
     private void lockWheels() {
-        this.rearLeftSwerveModule.setDesiredState(this.context.getFullStopAt135Degrees());
-        this.frontLeftSwerveModule.setDesiredState(this.context.getFullStopAt45Degrees());
-        this.rearRightSwerveModule.setDesiredState(this.context.getFullStopAt45Degrees());
-        this.frontRightSwerveModule.setDesiredState(this.context.getFullStopAt135Degrees());
+        this.rlSwerve.setDesiredState(this.context.getFullStopAt135Degrees());
+        this.flSwerve.setDesiredState(this.context.getFullStopAt45Degrees());
+        this.rrSwerve.setDesiredState(this.context.getFullStopAt45Degrees());
+        this.frSwerve.setDesiredState(this.context.getFullStopAt135Degrees());
     }
 
     /**
@@ -285,10 +292,10 @@ public class Drivetrain extends SubsystemBase {
      */
     private SwerveModulePosition[] getSwerveModulePositions() {
         return new SwerveModulePosition[] {
-            this.frontLeftSwerveModule.getModulePosition(),
-            this.frontRightSwerveModule.getModulePosition(),
-            this.rearLeftSwerveModule.getModulePosition(),
-            this.rearRightSwerveModule.getModulePosition()
+            this.flSwerve.getModulePosition(),
+            this.frSwerve.getModulePosition(),
+            this.rlSwerve.getModulePosition(),
+            this.rrSwerve.getModulePosition()
         };
     }
 
@@ -406,10 +413,10 @@ public class Drivetrain extends SubsystemBase {
      */
     private SwerveModuleState[] getSwerveModuleStates() {
         return new SwerveModuleState[] {
-            this.frontLeftSwerveModule.getModuleState(),
-            this.frontRightSwerveModule.getModuleState(),
-            this.rearLeftSwerveModule.getModuleState(),
-            this.rearRightSwerveModule.getModuleState()
+            this.flSwerve.getModuleState(),
+            this.frSwerve.getModuleState(),
+            this.rlSwerve.getModuleState(),
+            this.rrSwerve.getModuleState()
         };
     }
 
@@ -423,10 +430,10 @@ public class Drivetrain extends SubsystemBase {
      * Stops all the motors on the SwerveModules
      */
     public void stopModules() {
-        this.frontLeftSwerveModule.stopMotors();
-        this.frontRightSwerveModule.stopMotors();
-        this.rearLeftSwerveModule.stopMotors();
-        this.rearRightSwerveModule.stopMotors();
+        this.flSwerve.stopMotors();
+        this.frSwerve.stopMotors();
+        this.rlSwerve.stopMotors();
+        this.rrSwerve.stopMotors();
     }
 
     /**
@@ -544,89 +551,80 @@ public class Drivetrain extends SubsystemBase {
     public void simulationPeriodic() {
         // 1. Compute elapsed time since last loop
         double currentTime = Timer.getFPGATimestamp();
-        double dt = currentTime - lastSimTime;
-        lastSimTime = currentTime;
+        double dt = currentTime - this.lastSimTime;
+        this.lastSimTime = currentTime;
 
         // 2. Skip if no desired states yet (e.g., before first drive command)
-        if (desiredStates == null) {
+        if (this.desiredStates == null) {
             return;
         }
 
-        // --- constants for sim behavior ---
-        final double kMaxSpeed = this.getMaxSpeed(); // m/s
-        final double kAzimuthP = 6.0; // V per radian (tune 4–10)
-        final double kDriveVPerMS = NOMINAL_BATT_VOLTS / kMaxSpeed; // volts per (m/s)
-
         // 3. Compute each module’s commanded (optimized) state
-        var flCmd = SwerveModuleState.optimize(desiredStates[0], frontLeftSwerveModuleSim.getTurnAngle());
-        var frCmd = SwerveModuleState.optimize(desiredStates[1], frontRightSwerveModuleSim.getTurnAngle());
-        var blCmd = SwerveModuleState.optimize(desiredStates[2], rearLeftSwerveModuleSim.getTurnAngle());
-        var brCmd = SwerveModuleState.optimize(desiredStates[3], rearRightSwerveModuleSim.getTurnAngle());
+        SwerveModuleState frontLeftOptimized = optimize(this.desiredStates[0], this.flSwerveSim.getTurnAngle());
+        SwerveModuleState frontRightOptimized = optimize(this.desiredStates[1], this.frSwerveSim.getTurnAngle());
+        SwerveModuleState rearLeftOptimized = optimize(this.desiredStates[2], this.rlSwerveSim.getTurnAngle());
+        SwerveModuleState rearRightOptimized = optimize(this.desiredStates[3], this.rrSwerveSim.getTurnAngle());
 
         // 4. Apply drive voltages (scale m/s → ±12 V)
-        frontLeftSwerveModuleSim.setDriveVoltage(Math.copySign(
-                Math.min(Math.abs(flCmd.speedMetersPerSecond) * kDriveVPerMS, NOMINAL_BATT_VOLTS),
-                flCmd.speedMetersPerSecond));
-        frontRightSwerveModuleSim.setDriveVoltage(Math.copySign(
-                Math.min(Math.abs(frCmd.speedMetersPerSecond) * kDriveVPerMS, NOMINAL_BATT_VOLTS),
-                frCmd.speedMetersPerSecond));
-        rearLeftSwerveModuleSim.setDriveVoltage(Math.copySign(
-                Math.min(Math.abs(blCmd.speedMetersPerSecond) * kDriveVPerMS, NOMINAL_BATT_VOLTS),
-                blCmd.speedMetersPerSecond));
-        rearRightSwerveModuleSim.setDriveVoltage(Math.copySign(
-                Math.min(Math.abs(brCmd.speedMetersPerSecond) * kDriveVPerMS, NOMINAL_BATT_VOLTS),
-                brCmd.speedMetersPerSecond));
+        this.flSwerveSim.setDriveVoltage(Math.copySign(
+                min(Math.abs(frontLeftOptimized.speedMetersPerSecond) * this.simVoltsMetPerSec, NOMINAL_BATT_VOLTS),
+                frontLeftOptimized.speedMetersPerSecond));
+        this.frSwerveSim.setDriveVoltage(Math.copySign(
+                min(Math.abs(frontRightOptimized.speedMetersPerSecond) * this.simVoltsMetPerSec, NOMINAL_BATT_VOLTS),
+                frontRightOptimized.speedMetersPerSecond));
+        this.rlSwerveSim.setDriveVoltage(Math.copySign(
+                min(Math.abs(rearLeftOptimized.speedMetersPerSecond) * this.simVoltsMetPerSec, NOMINAL_BATT_VOLTS),
+                rearLeftOptimized.speedMetersPerSecond));
+        this.rrSwerveSim.setDriveVoltage(Math.copySign(
+                min(Math.abs(rearRightOptimized.speedMetersPerSecond) * this.simVoltsMetPerSec, NOMINAL_BATT_VOLTS),
+                rearRightOptimized.speedMetersPerSecond));
 
         // 5. Apply turn voltages (simple proportional control on angle error)
-        double flErr =
-                flCmd.angle.minus(frontLeftSwerveModuleSim.getTurnAngle()).getRadians();
-        double frErr =
-                frCmd.angle.minus(frontRightSwerveModuleSim.getTurnAngle()).getRadians();
-        double blErr = blCmd.angle.minus(rearLeftSwerveModuleSim.getTurnAngle()).getRadians();
-        double brErr =
-                brCmd.angle.minus(rearRightSwerveModuleSim.getTurnAngle()).getRadians();
+        double frontLeftError =
+                frontLeftOptimized.angle.minus(flSwerveSim.getTurnAngle()).getRadians();
+        double frontRightError =
+                frontRightOptimized.angle.minus(frSwerveSim.getTurnAngle()).getRadians();
+        double rearLeftError =
+                rearLeftOptimized.angle.minus(rlSwerveSim.getTurnAngle()).getRadians();
+        double rearRightError =
+                rearRightOptimized.angle.minus(rrSwerveSim.getTurnAngle()).getRadians();
 
-        frontLeftSwerveModuleSim.setTurnVoltage(
-                MathUtil.clamp(kAzimuthP * flErr, -NOMINAL_BATT_VOLTS, NOMINAL_BATT_VOLTS));
-        frontRightSwerveModuleSim.setTurnVoltage(
-                MathUtil.clamp(kAzimuthP * frErr, -NOMINAL_BATT_VOLTS, NOMINAL_BATT_VOLTS));
-        rearLeftSwerveModuleSim.setTurnVoltage(
-                MathUtil.clamp(kAzimuthP * blErr, -NOMINAL_BATT_VOLTS, NOMINAL_BATT_VOLTS));
-        rearRightSwerveModuleSim.setTurnVoltage(
-                MathUtil.clamp(kAzimuthP * brErr, -NOMINAL_BATT_VOLTS, NOMINAL_BATT_VOLTS));
+        this.flSwerveSim.setTurnVoltage(
+                clamp(SIM_VOLTS_PER_RADIAN_TURN_VOLTAGE * frontLeftError, -NOMINAL_BATT_VOLTS, NOMINAL_BATT_VOLTS));
+        this.frSwerveSim.setTurnVoltage(
+                clamp(SIM_VOLTS_PER_RADIAN_TURN_VOLTAGE * frontRightError, -NOMINAL_BATT_VOLTS, NOMINAL_BATT_VOLTS));
+        this.rlSwerveSim.setTurnVoltage(
+                clamp(SIM_VOLTS_PER_RADIAN_TURN_VOLTAGE * rearLeftError, -NOMINAL_BATT_VOLTS, NOMINAL_BATT_VOLTS));
+        this.rrSwerveSim.setTurnVoltage(
+                clamp(SIM_VOLTS_PER_RADIAN_TURN_VOLTAGE * rearRightError, -NOMINAL_BATT_VOLTS, NOMINAL_BATT_VOLTS));
 
-        // 6. Update each simulated module
-        frontLeftSwerveModuleSim.update(dt);
-        frontRightSwerveModuleSim.update(dt);
-        rearLeftSwerveModuleSim.update(dt);
-        rearRightSwerveModuleSim.update(dt);
+        flSwerveSim.update(dt);
+        frSwerveSim.update(dt);
+        rlSwerveSim.update(dt);
+        rrSwerveSim.update(dt);
 
         // 7. Build module states for kinematics
         SwerveModuleState[] states = new SwerveModuleState[] {
-            new SwerveModuleState(
-                    frontLeftSwerveModuleSim.getWheelSpeedMetersPerSecond(), frontLeftSwerveModuleSim.getTurnAngle()),
-            new SwerveModuleState(
-                    frontRightSwerveModuleSim.getWheelSpeedMetersPerSecond(), frontRightSwerveModuleSim.getTurnAngle()),
-            new SwerveModuleState(
-                    rearLeftSwerveModuleSim.getWheelSpeedMetersPerSecond(), rearLeftSwerveModuleSim.getTurnAngle()),
-            new SwerveModuleState(
-                    rearRightSwerveModuleSim.getWheelSpeedMetersPerSecond(), rearRightSwerveModuleSim.getTurnAngle())
+            new SwerveModuleState(this.flSwerveSim.getWheelSpeedMetersPerSecond(), this.flSwerveSim.getTurnAngle()),
+            new SwerveModuleState(this.frSwerveSim.getWheelSpeedMetersPerSecond(), this.frSwerveSim.getTurnAngle()),
+            new SwerveModuleState(this.rlSwerveSim.getWheelSpeedMetersPerSecond(), this.rlSwerveSim.getTurnAngle()),
+            new SwerveModuleState(this.rrSwerveSim.getWheelSpeedMetersPerSecond(), this.rrSwerveSim.getTurnAngle())
         };
 
         // 8. Convert to chassis speeds and integrate heading
-        ChassisSpeeds chassisSpeeds = swerveDriveKinematics.toChassisSpeeds(states);
-        simYaw = simYaw.plus(Rotation2d.fromRadians(chassisSpeeds.omegaRadiansPerSecond * dt));
+        ChassisSpeeds chassisSpeeds = this.swerveDriveKinematics.toChassisSpeeds(states);
+        this.simYaw = this.simYaw.plus(Rotation2d.fromRadians(chassisSpeeds.omegaRadiansPerSecond * dt));
 
         // 9. Update pose estimator with sim yaw and module positions
-        swerveDrivePoseEstimator.update(simYaw, new SwerveModulePosition[] {
-            frontLeftSwerveModuleSim.getPosition(),
-            frontRightSwerveModuleSim.getPosition(),
-            rearLeftSwerveModuleSim.getPosition(),
-            rearRightSwerveModuleSim.getPosition()
+        this.swerveDrivePoseEstimator.update(this.simYaw, new SwerveModulePosition[] {
+            this.flSwerveSim.getPosition(),
+            this.frSwerveSim.getPosition(),
+            this.rlSwerveSim.getPosition(),
+            this.rrSwerveSim.getPosition()
         });
 
         // 10. Push pose to Field2d for visualization
-        field.setRobotPose(swerveDrivePoseEstimator.getEstimatedPosition());
+        this.field.setRobotPose(this.swerveDrivePoseEstimator.getEstimatedPosition());
     }
 
     @Override
@@ -663,10 +661,10 @@ public class Drivetrain extends SubsystemBase {
         builder.addDoubleProperty(
                 "GOALPOSE/ROT", () -> this.refreshGoalPose2d().getRotation().getRadians(), null);
 
-        SmartDashboard.putData("DriveTrain/" + this.frontLeftSwerveModule.getName(), this.frontLeftSwerveModule);
-        SmartDashboard.putData("DriveTrain/" + this.frontRightSwerveModule.getName(), this.frontRightSwerveModule);
-        SmartDashboard.putData("DriveTrain/" + this.rearLeftSwerveModule.getName(), this.rearLeftSwerveModule);
-        SmartDashboard.putData("DriveTrain/" + this.rearRightSwerveModule.getName(), this.rearRightSwerveModule);
+        SmartDashboard.putData("DriveTrain/" + this.flSwerve.getName(), this.flSwerve);
+        SmartDashboard.putData("DriveTrain/" + this.frSwerve.getName(), this.frSwerve);
+        SmartDashboard.putData("DriveTrain/" + this.rlSwerve.getName(), this.rlSwerve);
+        SmartDashboard.putData("DriveTrain/" + this.rrSwerve.getName(), this.rrSwerve);
         SmartDashboard.putData("field", this.field);
 
         builder.addDoubleProperty("GYRO ANGLE", this.navXSensorModule::getAngle, null);

@@ -25,6 +25,7 @@ public final class Constants {
     }
 
     public static class Drive {
+        // (x, y) position of each module relative to the robot center (center of rotation)
         public static final Translation2d SMFrontRightLocation = new Translation2d(0.285, -0.285);
         public static final Translation2d SMFrontLeftLocation = new Translation2d(0.285, 0.285);
         public static final Translation2d SMBackLeftLocation = new Translation2d(-0.285, 0.285);
