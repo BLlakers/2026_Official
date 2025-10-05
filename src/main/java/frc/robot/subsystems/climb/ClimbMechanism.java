@@ -1,10 +1,13 @@
 package frc.robot.subsystems.climb;
 
+import static edu.wpi.first.wpilibj.RobotBase.isSimulation;
 import static java.util.Objects.requireNonNull;
 
 import com.revrobotics.RelativeEncoder;
 import com.revrobotics.spark.SparkBase.PersistMode;
 import com.revrobotics.spark.SparkBase.ResetMode;
+import com.revrobotics.spark.config.AlternateEncoderConfig;
+import com.revrobotics.spark.config.ClosedLoopConfig;
 import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 import com.revrobotics.spark.config.SparkMaxConfig;
 import edu.wpi.first.util.sendable.Sendable;
@@ -13,6 +16,7 @@ import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Subsystem;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import frc.robot.support.PIDSettings;
 import frc.robot.support.sparkmax.TeamSparkMax;
 
 /**
@@ -36,8 +40,7 @@ public class ClimbMechanism extends SubsystemBase {
     /**
      * Instantiates a new ClimbMechanism subsystem with the specified settings
      *
-     * @param context
-     *            The ClimbMechanismSettings to apply to this instance
+     * @param context The ClimbMechanismSettings to apply to this instance
      */
     public ClimbMechanism(final ClimbMechanismContext context) {
         requireNonNull(context, "ClimbMechanismContext cannot be null");
@@ -59,10 +62,24 @@ public class ClimbMechanism extends SubsystemBase {
         config.encoder
                 .positionConversionFactor(this.context.getClimbPositionConversionFactor())
                 .velocityConversionFactor(this.context.getClimbVelocityConversionFactor());
-        // PIDSettings pidSettings = this.context.getClimbControllerPIDSettings();
-        // config
-        // .closedLoop.feedbackSensor(FeedbackSensor.kAlternateOrExternalEncoder)
-        // .pid(pidSettings.p(), pidSettings.i(), pidSettings.d());
+        PIDSettings pidSettings = this.context.getClimbControllerPIDSettings();
+
+        if (isSimulation()) {
+            //  Eliminate data-port dependency in sim
+            config.closedLoop
+                    .feedbackSensor(ClosedLoopConfig.FeedbackSensor.kPrimaryEncoder)
+                    .pid(pidSettings.p(), pidSettings.i(), pidSettings.d());
+        } else {
+            // Use the alternate encoder in real
+            AlternateEncoderConfig altConfig = new AlternateEncoderConfig()
+                    .setSparkMaxDataPortConfig()
+                    .countsPerRevolution(context.getClimbAltEncoderCPR());
+
+            config.apply(altConfig);
+            config.closedLoop
+                    .feedbackSensor(ClosedLoopConfig.FeedbackSensor.kAlternateOrExternalEncoder)
+                    .pid(pidSettings.p(), pidSettings.i(), pidSettings.d());
+        }
         return config;
     }
 
@@ -152,8 +169,7 @@ public class ClimbMechanism extends SubsystemBase {
     /**
      * {@link Sendable#initSendable(SendableBuilder)} implementation
      *
-     * @param builder
-     *            The sendable builder
+     * @param builder The sendable builder
      */
     @Override
     public void initSendable(SendableBuilder builder) {

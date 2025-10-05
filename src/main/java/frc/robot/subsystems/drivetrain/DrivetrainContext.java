@@ -34,39 +34,39 @@ public class DrivetrainContext {
     private PIDSettings rotationPIDSettings = new PIDSettings(3, 0, 0);
 
     @Builder.Default
-    private SwerveModuleContext frontLeftSwerveModuleContext = SwerveModuleContext.builder()
+    private SwerveModuleContext flSwerveContext = SwerveModuleContext.builder()
             .name("Swerve Module/Front Left")
-            .driveMotorId(Constants.Port.flDriveMtrC)
-            .turningMotorId(Constants.Port.flSteerMtrC)
-            .turnEncoderPWMChannel(Constants.Port.flTurnEncoderDIOC)
+            .driveMotorId(Constants.Port.FRONT_LEFT_DRIVE_CHANNEL)
+            .turningMotorId(Constants.Port.FRONT_LEFT_STEER_CHANNEL)
+            .turnEncoderPWMChannel(Constants.Port.FRONT_LEFT_TURN_ENCODER_DIO_CHANNEL)
             .turnOffset(Constants.RobotVersion2025.flTurnEncoderOffset)
             .build();
 
     @Builder.Default
-    private SwerveModuleContext frontRightSwerveModuleContext = SwerveModuleContext.builder()
+    private SwerveModuleContext frSwerveContext = SwerveModuleContext.builder()
             .name("Swerve Module/Front Right")
-            .driveMotorId(Constants.Port.frDriveMtrC)
-            .turningMotorId(Constants.Port.frSteerMtrC)
-            .turnEncoderPWMChannel(Constants.Port.frTurnEncoderDIOC)
+            .driveMotorId(Constants.Port.FRONT_RIGHT_DRIVE_CHANNEL)
+            .turningMotorId(Constants.Port.FRONT_RIGHT_STEER_CHANNEL)
+            .turnEncoderPWMChannel(Constants.Port.FRONT_RIGHT_TURN_ENCODER_DIO_CHANNEL)
             .turnOffset(Constants.RobotVersion2025.frTurnEncoderOffset)
             .build();
 
     @Builder.Default
-    private SwerveModuleContext rearLeftSwerveModuleContext = SwerveModuleContext.builder()
+    private SwerveModuleContext rlSwerveContext = SwerveModuleContext.builder()
             .name("Swerve Module/Back Left")
-            .driveMotorId(Constants.Port.blDriveMtrC)
-            .turningMotorId(Constants.Port.blSteerMtrC)
-            .turnEncoderPWMChannel(Constants.Port.blTurnEncoderDIOC)
-            .turnOffset(Constants.RobotVersion2025.blTurnEncoderOffset)
+            .driveMotorId(Constants.Port.REAR_LEFT_DRIVE_CHANNEL)
+            .turningMotorId(Constants.Port.REAR_LEFT_TURN_CHANNEL)
+            .turnEncoderPWMChannel(Constants.Port.REAR_LEFT_TURN_ENCODER_DIO_CHANNEL)
+            .turnOffset(Constants.RobotVersion2025.rlTurnEncoderOffset)
             .build();
 
     @Builder.Default
-    private SwerveModuleContext rearRightSwerveModuleContext = SwerveModuleContext.builder()
+    private SwerveModuleContext rrSwerveContext = SwerveModuleContext.builder()
             .name("Swerve Module/Back Right")
-            .driveMotorId(Constants.Port.brDriveMtrC)
-            .turningMotorId(Constants.Port.brSteerMtrC)
-            .turnEncoderPWMChannel(Constants.Port.brTurnEncoderDIOC)
-            .turnOffset(Constants.RobotVersion2025.brTurnEncoderOffset)
+            .driveMotorId(Constants.Port.REAR_RIGHT_DRIVE_CHANNEL)
+            .turningMotorId(Constants.Port.REAR_RIGHT_STEER_CHANNEL)
+            .turnEncoderPWMChannel(Constants.Port.REAR_RIGHT_TURN_ENCODER_DIO_CHANNEL)
+            .turnOffset(Constants.RobotVersion2025.rrTurnEncoderOffset)
             .build();
 
     @Builder.Default
@@ -76,10 +76,10 @@ public class DrivetrainContext {
     private double frTurnOffset = Constants.RobotVersion2025.frTurnEncoderOffset;
 
     @Builder.Default
-    private double blTurnOffset = Constants.RobotVersion2025.blTurnEncoderOffset;
+    private double rlTurnOffset = Constants.RobotVersion2025.rlTurnEncoderOffset;
 
     @Builder.Default
-    private double brTurnOffset = Constants.RobotVersion2025.brTurnEncoderOffset;
+    private double rrTurnOffset = Constants.RobotVersion2025.rrTurnEncoderOffset;
 
     @Builder.Default
     private Matrix<N3, N1> stateStdDevs = VecBuilder.fill(0.05, 0.05, Units.degreesToRadians(5));

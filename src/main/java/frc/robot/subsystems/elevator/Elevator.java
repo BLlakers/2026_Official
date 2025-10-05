@@ -83,7 +83,7 @@ public class Elevator extends SubsystemBase {
 
     private SparkMaxConfig assembleElevatorFollowerMotorConfig() {
         SparkMaxConfig config = new SparkMaxConfig();
-        config.follow(Constants.Port.elevatorMotorChannel, true);
+        config.follow(Constants.Port.ELEVATOR_DRIVE_CHANNEL, true);
         return config;
     }
 

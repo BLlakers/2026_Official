@@ -21,14 +21,14 @@ public class ElevatorContext {
         return ElevatorContext.builder()
                 .elevatorMotor(
                         (Robot.isReal()
-                                ? new TeamSparkMaxImpl(Constants.Port.elevatorMotorChannel, MotorType.kBrushless)
-                                : new TeamSparkMaxSimImpl(Constants.Port.elevatorMotorChannel, MotorType.kBrushless)))
+                                ? new TeamSparkMaxImpl(Constants.Port.ELEVATOR_DRIVE_CHANNEL, MotorType.kBrushless)
+                                : new TeamSparkMaxSimImpl(Constants.Port.ELEVATOR_DRIVE_CHANNEL, MotorType.kBrushless)))
                 .elevatorFollowerMotor(
                         (Robot.isReal()
                                 ? new TeamSparkMaxImpl(
-                                        Constants.Port.elevatorFollowerMotorChannel, MotorType.kBrushless)
+                                        Constants.Port.ELEVATOR_FOLLOWER_DRIVE_CHANNEL, MotorType.kBrushless)
                                 : new TeamSparkMaxSimImpl(
-                                        Constants.Port.elevatorFollowerMotorChannel, MotorType.kBrushless)))
+                                        Constants.Port.ELEVATOR_FOLLOWER_DRIVE_CHANNEL, MotorType.kBrushless)))
                 .build();
     }
 
@@ -42,10 +42,10 @@ public class ElevatorContext {
     private double elevatorControllerTolerance = .16;
 
     @Builder.Default
-    private int elevatorMotorChannel = Constants.Port.elevatorMotorChannel;
+    private int elevatorMotorChannel = Constants.Port.ELEVATOR_DRIVE_CHANNEL;
 
     @Builder.Default
-    private int elevatorFollowerMotorChannel = Constants.Port.elevatorFollowerMotorChannel;
+    private int elevatorFollowerMotorChannel = Constants.Port.ELEVATOR_FOLLOWER_DRIVE_CHANNEL;
 
     @Builder.Default
     private double downPosition = 0;

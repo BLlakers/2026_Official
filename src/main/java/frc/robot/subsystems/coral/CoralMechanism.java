@@ -43,8 +43,8 @@ public class CoralMechanism extends SubsystemBase {
     public CoralMechanism(final CoralMechanismContext context) {
         requireNonNull(context, "CoralMechanismContext cannot be null");
         this.context = context;
-        this.coralMotorRight = new TalonSRX(Constants.Port.coralMotorRightChannel);
-        this.coralMotorLeft = new TalonSRX(Constants.Port.coralMotorLeftChannel);
+        this.coralMotorRight = new TalonSRX(Constants.Port.RIGHT_CORAL_DRIVE_CHANNEL);
+        this.coralMotorLeft = new TalonSRX(Constants.Port.LEFT_CORAL_DRIVE_CHANNEL);
         this.rearSensor = new AnalogInput(this.context.getRearSensorChannel());
         this.frontSensor = new AnalogInput(this.context.getFrontSensorChannel());
     }
