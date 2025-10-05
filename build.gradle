@@ -2,6 +2,7 @@ plugins {
     id "java"
     id "edu.wpi.first.GradleRIO" version "2025.3.2"
     id 'com.diffplug.spotless' version '6.25.0'
+    id 'jacoco'
 }
 
 repositories {
@@ -76,6 +77,8 @@ dependencies {
     simulationRelease wpi.sim.enableRelease()
 
     testImplementation 'org.junit.jupiter:junit-jupiter:5.10.1'
+    testImplementation platform('org.mockito:mockito-bom:5.12.0')
+    testImplementation 'org.mockito:mockito-junit-jupiter'
     testImplementation "org.mockito:mockito-inline:3.+"
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
@@ -90,6 +93,34 @@ test {
     useJUnitPlatform()
     systemProperty 'junit.jupiter.extensions.autodetection.enabled', 'true'
 }
+
+jacoco {
+    toolVersion = "0.8.10"
+}
+
+jacocoTestReport {
+    dependsOn test
+    reports {
+        html.required = true
+        xml.required  = true
+        csv.required  = false
+    }
+}
+
+jacocoTestCoverageVerification {
+    dependsOn test
+    violationRules {
+        rule {
+            limit {
+                counter = 'LINE'
+                value   = 'COVEREDRATIO'
+                minimum = 0.03
+            }
+        }
+    }
+}
+
+check.dependsOn jacocoTestCoverageVerification, jacocoTestReport
 
 // Simulation configuration (e.g. environment variables).
 wpi.sim.addGui().defaultEnabled = true

@@ -9,10 +9,12 @@ import frc.robot.subsystems.drivetrain.Drivetrain;
 public class SwerveDriveCommand extends Command {
 
     // TODO: Consider a configuration location for this adjustment constant
-    private static final double MAX_DRIVE_SPEED_ADJUSTMENT = 0.95;
+    // Visible for testing
+    static final double MAX_DRIVE_SPEED_ADJUSTMENT = 0.95;
 
     // TODO: Consider a configuration location for this adjustment constant
-    private static final double TURN_MAX_SPEED_ADJUSTMENT = 0.50;
+    // Visible for testing
+    static final double MAX_TURN_SPEED_ADJUSTMENT = 0.50;
 
     private final ControllerDelegate controllerDelegate;
 
@@ -26,7 +28,7 @@ public class SwerveDriveCommand extends Command {
         this.controllerDelegate = controllerDelegate;
         this.drivetrain = drivetrain;
         this.driveMaxSpeed = MAX_DRIVE_SPEED_ADJUSTMENT * this.drivetrain.getMaxSpeed();
-        this.turnMaxSpeed = TURN_MAX_SPEED_ADJUSTMENT * this.drivetrain.getMaxTurnAngularSpeed();
+        this.turnMaxSpeed = MAX_TURN_SPEED_ADJUSTMENT * this.drivetrain.getMaxTurnAngularSpeed();
         addRequirements(this.drivetrain);
     }
 
