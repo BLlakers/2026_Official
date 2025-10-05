@@ -1,6 +1,5 @@
-# BLlakers 2025
+# BL Robotics 2025
 
-FRC Team #2534
 ![main workflow](https://github.com/BLlakers/2025_Official/actions/workflows/main.yml/badge.svg)
 
 This repository contains our Java/WPILib robot code with a simulation-first workflow, a swerve drivetrain, vendor motor
@@ -66,13 +65,6 @@ src/main/java/frc/robot/
   Constants.java       # Global constants (units in identifiers where possible)
 vendordeps/            # Vendor JSONs (REV, PathPlanner, etc.)
 ```
-
-**Design highlights**
-- **Single source of odometry in sim** (no double updates).
-- **Unified heading + module-position helpers** that switch between **real** (`navX`, real modules) and **sim** (`simYaw`, `SwerveModuleSim` positions).
-- **Controller suppliers** read **Driver Station axes** in sim (works with Sim GUI keyboard).
-- Vendor specifics (SPARK MAX, etc.) are wrapped by `TeamSparkMax` to keep subsystems clean.
-
 ---
 
 ## Running the Simulator
@@ -229,7 +221,7 @@ jobs:
 
 ## Formatting & Static Checks
 
-We use **Spotless** for formatting (Palantir or Google Java Style, depending on config).
+We use **Spotless** for formatting with a Palantir config.
 
 ```bash
 # Auto-format
