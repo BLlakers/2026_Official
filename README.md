@@ -12,6 +12,7 @@ robot, and contribute.
 - [Prerequisites](#prerequisites)
 - [Quick Start](#quick-start)
 - [Project Layout](#project-layout)
+- [Driver Station Controls](#driver-station-controls)
 - [Running the Simulator](#running-the-simulator)
 - [Deploying to the Robot](#deploying-to-the-robot)
 - [Testing & Code Coverage](#testing--code-coverage)
@@ -66,6 +67,48 @@ src/main/java/frc/robot/
 vendordeps/            # Vendor JSONs (REV, PathPlanner, etc.)
 ```
 ---
+
+## Driver Station Controls
+Driver Station (3 Controllers):
+```
+USB 0: DRIVER CONTROLLER
+├─ Swerve drive (sticks + triggers)
+├─ Limelight tracking (A/X/Y buttons)
+├─ Gyro reset (B button)
+└─ Wheel lock (right stick)
+
+USB 1: MANIPULATION/OPERATOR CONTROLLER
+├─ Elevator positions (A/B/X/Y buttons)
+├─ Algae mechanism (bumpers, back/start, POV, sticks)
+├─ Coral mechanism (triggers, POV up)
+└─ Climb (POV down)
+
+USB 2: DEBUG CONTROLLER
+├─ Manual elevator control (bumpers - limit switches)
+├─ Algae mechanism overrides (A/B/X/Y buttons)
+├─ Algae mechanism presets (POV, sticks)
+└─ Additional test commands
+```
+
+### 1. **Driver Controller** (Channel 0)
+- **Primary job:** Drive the robot
+- **Secondary:** Limelight-based auto-alignment
+
+### 2. **Manipulation Controller** (Channel 1)
+- **Primary job:** Score game pieces
+- Elevator preset positions (A/B/X/Y = different heights)
+- Algae intake/mechanism control
+- Coral manipulation
+- Climb mechanism
+
+### 3. **Debug Controller** (Channel 2)
+- **Primary job:** Overrides and testing
+- Manual elevator control (bypasses presets, uses limit switches)
+- Algae mechanism testing/overrides
+- Uses:
+    - Practice/testing
+    - When automated controls fail
+    - Tuning/debugging on the field
 
 ## Running the Simulator
 
