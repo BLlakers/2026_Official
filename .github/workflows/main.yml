@@ -3,8 +3,7 @@ on:
   push:
     branches:
       - main
-      - Dev
-      - Testing
+      - task/2025-refactor
   pull_request:
 jobs:
   build:
