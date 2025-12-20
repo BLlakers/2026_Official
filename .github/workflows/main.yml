@@ -29,6 +29,26 @@ jobs:
         name: jacoco-html
         path: build/reports/jacoco/test/html
 
+    - name: Send GroupMe notifications via Programming Bot on failure
+      if: failure()
+      run: |
+        curl -X POST https://api.groupme.com/v3/bots/post \
+          -H 'Content-Type: application/json' \
+          -d '{
+            "bot_id": "${{ secrets.GROUPME_PROGRAMMING_BOT }}",
+            "text": "💣 Build failed: ${{ github.repository }} - ${{ github.ref }}"
+          }'
+
+    - name: Send GroupMe notifications via Programming Bot on success
+      if: success()
+      run: |
+        curl -X POST https://api.groupme.com/v3/bots/post \
+          -H 'Content-Type: application/json' \
+          -d '{
+            "bot_id": "${{ secrets.GROUPME_PROGRAMMING_BOT }}",
+            "text": "🎉 Build succeeded: ${{ github.repository }} - ${{ github.ref }}"
+          }'
+
     - name: Upload JaCoCo XML (for tooling)
       uses: actions/upload-artifact@v4
       if: always()
