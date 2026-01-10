@@ -9,10 +9,12 @@ import static edu.wpi.first.math.kinematics.SwerveModuleState.optimize;
 import static java.lang.Math.min;
 import static java.util.Objects.requireNonNull;
 
-import com.pathplanner.lib.auto.AutoBuilder;
-import com.pathplanner.lib.config.PIDConstants;
-import com.pathplanner.lib.controllers.PPHolonomicDriveController;
-import com.studica.frc.AHRS;
+// TODO 2026: Migrated from PathPlanner to Choreo
+// import com.pathplanner.lib.auto.AutoBuilder;
+// import com.pathplanner.lib.config.PIDConstants;
+// import com.pathplanner.lib.controllers.PPHolonomicDriveController;
+// TODO 2026: Studica NavX not available for 2026 yet - gyro functionality commented out
+// import com.studica.frc.AHRS;
 import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.estimator.SwerveDrivePoseEstimator;
 import edu.wpi.first.math.geometry.Pose2d;
@@ -57,8 +59,20 @@ public class Drivetrain extends SubsystemBase {
 
     private final SwerveDriveKinematics swerveDriveKinematics;
 
+    // TODO 2026: Studica NavX not available for 2026 yet - using default Rotation2d for now
     // The gyro object. Gyro gives the robots rotation/ where the robot is pointed.
-    private final AHRS navXSensorModule;
+    // private final AHRS navXSensorModule;
+
+    /**
+     * TODO 2026: Temporary helper to provide gyro rotation until we select a 2026-compatible gyro.
+     * Returns zero rotation for now. Replace with actual gyro (Pigeon2, ADIS16470, etc.) when ready.
+     */
+    private Rotation2d getGyroRotation() {
+        return new Rotation2d(); // Returns 0 degrees
+        // Future: return navXSensorModule.getRotation2d();
+        // Or: return pigeon2.getRotation2d();
+        // Or: return adis16470.getRotation2d();
+    }
 
     public final SwerveModule flSwerve;
 
@@ -149,9 +163,11 @@ public class Drivetrain extends SubsystemBase {
         this.currentRotPublisher =
                 nti.getStructTopic("CurrentRot", Rotation2d.struct).publish();
 
-        this.navXSensorModule = new AHRS(AHRS.NavXComType.kMXP_SPI);
+        // TODO 2026: NavX gyro initialization commented out - need to select 2026-compatible gyro (Pigeon2, ADIS16470, etc.)
+        // this.navXSensorModule = new AHRS(AHRS.NavXComType.kMXP_SPI);
 
-        this.context
+        // TODO 2026: PathPlanner AutoBuilder commented out - migrating to Choreo for autonomous
+        /* this.context
                 .getRobotConfig()
                 .ifPresentOrElse(
                         robotConfig -> {
@@ -194,6 +210,7 @@ public class Drivetrain extends SubsystemBase {
                             throw new RuntimeException("Unable to obtain RobotConfig during Drivetrain creation."
                                     + "Path Planning will be fail!");
                         });
+        */
 
         this.swerveDriveKinematics = new SwerveDriveKinematics(
                 Constants.Drive.SMFrontLeftLocation,
@@ -213,11 +230,11 @@ public class Drivetrain extends SubsystemBase {
 
         // initializes odometry
         this.swerveDriveOdometry = new SwerveDriveOdometry(
-                this.swerveDriveKinematics, this.navXSensorModule.getRotation2d(), this.getSwerveModulePositions());
+                this.swerveDriveKinematics, this.getGyroRotation(), this.getSwerveModulePositions());
 
         this.swerveDrivePoseEstimator = new SwerveDrivePoseEstimator(
                 this.swerveDriveKinematics,
-                this.navXSensorModule.getRotation2d(),
+                this.getGyroRotation(),
                 this.getSwerveModulePositions(),
                 new Pose2d(),
                 this.context.getStateStdDevs(),
@@ -227,7 +244,8 @@ public class Drivetrain extends SubsystemBase {
         this.addChild(frSwerve.getName(), frSwerve);
         this.addChild(rlSwerve.getName(), rlSwerve);
         this.addChild(rrSwerve.getName(), rrSwerve);
-        this.addChild("navx", this.navXSensorModule);
+        // TODO 2026: NavX commented out
+        // this.addChild("navx", this.navXSensorModule);
     }
 
     public double getMaxSpeed() {
@@ -308,7 +326,7 @@ public class Drivetrain extends SubsystemBase {
      */
     private void updateOdometry() {
         if (RobotBase.isSimulation()) return;
-        this.swerveDriveOdometry.update(this.navXSensorModule.getRotation2d(), this.getSwerveModulePositions());
+        this.swerveDriveOdometry.update(this.getGyroRotation(), this.getSwerveModulePositions());
     }
 
     private void updatePoseEstimatorOdometry() {
@@ -341,19 +359,20 @@ public class Drivetrain extends SubsystemBase {
                             .getEstimatedPosition()
                             .getRotation()
                             .getDegrees(),
-                    this.navXSensorModule.getRate(),
-                    this.navXSensorModule.getPitch(),
+                    0, // TODO 2026: navXSensorModule.getRate(),
+                    0, // TODO 2026: navXSensorModule.getPitch(),
                     0,
-                    this.navXSensorModule.getRoll(),
+                    0, // TODO 2026: navXSensorModule.getRoll(),
                     0);
 
             LimelightHelpers.PoseEstimate mt2 =
                     LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2(Limelights.LIMELIGHT_FRONT_LEFT);
 
+            // TODO 2026: Angular velocity check disabled (no gyro)
             // if our angular velocity is greater than 720 degrees per second, ignore vision updates
-            if (Math.abs(navXSensorModule.getRate()) > this.context.getAngularVelocityThreshold()) {
-                doRejectUpdate = true;
-            }
+            // if (Math.abs(navXSensorModule.getRate()) > this.context.getAngularVelocityThreshold()) {
+            //     doRejectUpdate = true;
+            // }
 
             if (mt2 == null || mt2.tagCount == 0) {
                 doRejectUpdate = true;
@@ -373,7 +392,7 @@ public class Drivetrain extends SubsystemBase {
      */
     public void resetOdometry(final Pose2d pose2d) {
         this.swerveDriveOdometry.resetPosition(
-                this.navXSensorModule.getRotation2d(), this.getSwerveModulePositions(), pose2d);
+                this.getGyroRotation(), this.getSwerveModulePositions(), pose2d);
 
         if (RobotBase.isSimulation()) {
             // Keep simulated gyro aligned with newPose
@@ -390,7 +409,7 @@ public class Drivetrain extends SubsystemBase {
         if (RobotBase.isSimulation()) {
             return this.simYaw;
         } else {
-            return this.navXSensorModule.getRotation2d();
+            return this.getGyroRotation();
         }
     }
 
@@ -419,11 +438,12 @@ public class Drivetrain extends SubsystemBase {
         };
     }
 
-    private Pose2d refreshGoalPose2d() {
-        // TODO: Why is this hard-coded to PositionsRed?
-        this.goalPose = this.getPose2dEstimator().nearest(Constants.Poses.PositionsRed);
-        return this.goalPose;
-    }
+    // TODO 2026: Migrated from PathPlanner to Choreo - PositionsRed commented out due to FlippingUtil dependencies
+    // private Pose2d refreshGoalPose2d() {
+    //     // TODO: Why is this hard-coded to PositionsRed?
+    //     this.goalPose = this.getPose2dEstimator().nearest(Constants.Poses.PositionsRed);
+    //     return this.goalPose;
+    // }
 
     /**
      * Stops all the motors on the SwerveModules
@@ -497,7 +517,8 @@ public class Drivetrain extends SubsystemBase {
      * Used in drive Method.
      */
     public Command resetNavXSensorModule() {
-        return this.runOnce(this.navXSensorModule::reset);
+        return this.runOnce(() -> {}); // TODO 2026: No-op until gyro selected
+        // Future: return this.runOnce(this.navXSensorModule::reset);
     }
 
     /**
@@ -641,7 +662,7 @@ public class Drivetrain extends SubsystemBase {
                 null);
         builder.addDoubleProperty(
                 "Odometry/navx/Orientation",
-                () -> this.navXSensorModule.getRotation2d().getDegrees(),
+                () -> this.getGyroRotation().getDegrees(),
                 null);
         builder.addBooleanProperty(
                 "FieldRelativeEnabled",
@@ -655,10 +676,11 @@ public class Drivetrain extends SubsystemBase {
                 "EstimatedOdometry/Pose/Rot",
                 () -> this.getPose2dEstimator().getRotation().getDegrees(),
                 null);
-        builder.addDoubleProperty("GOALPOSE/X", () -> this.refreshGoalPose2d().getX(), null);
-        builder.addDoubleProperty("GOALPOSE/Y", () -> this.refreshGoalPose2d().getY(), null);
-        builder.addDoubleProperty(
-                "GOALPOSE/ROT", () -> this.refreshGoalPose2d().getRotation().getRadians(), null);
+        // TODO 2026: Migrated from PathPlanner to Choreo - refreshGoalPose2d commented out
+        // builder.addDoubleProperty("GOALPOSE/X", () -> this.refreshGoalPose2d().getX(), null);
+        // builder.addDoubleProperty("GOALPOSE/Y", () -> this.refreshGoalPose2d().getY(), null);
+        // builder.addDoubleProperty(
+        //         "GOALPOSE/ROT", () -> this.refreshGoalPose2d().getRotation().getRadians(), null);
 
         SmartDashboard.putData("DriveTrain/" + this.flSwerve.getName(), this.flSwerve);
         SmartDashboard.putData("DriveTrain/" + this.frSwerve.getName(), this.frSwerve);
@@ -666,10 +688,11 @@ public class Drivetrain extends SubsystemBase {
         SmartDashboard.putData("DriveTrain/" + this.rrSwerve.getName(), this.rrSwerve);
         SmartDashboard.putData("field", this.field);
 
-        builder.addDoubleProperty("GYRO ANGLE", this.navXSensorModule::getAngle, null);
-        SmartDashboard.putData("NAVX DATA", this.navXSensorModule);
+        // TODO 2026: NavX telemetry commented out
+        // builder.addDoubleProperty("GYRO ANGLE", this.navXSensorModule::getAngle, null);
+        // SmartDashboard.putData("NAVX DATA", this.navXSensorModule);
         builder.addDoubleProperty(
-                "NAVX ROTATION", () -> this.navXSensorModule.getRotation2d().getDegrees(), null);
-        builder.addDoubleProperty("NAVX AngleAdjustment", this.navXSensorModule::getAngleAdjustment, null);
+                "GYRO ROTATION", () -> this.getGyroRotation().getDegrees(), null);
+        // builder.addDoubleProperty("NAVX AngleAdjustment", this.navXSensorModule::getAngleAdjustment, null);
     }
 }

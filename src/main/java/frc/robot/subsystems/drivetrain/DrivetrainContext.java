@@ -1,6 +1,7 @@
 package frc.robot.subsystems.drivetrain;
 
-import com.pathplanner.lib.config.RobotConfig;
+// TODO 2026: Migrated from PathPlanner to Choreo
+// import com.pathplanner.lib.config.RobotConfig;
 import edu.wpi.first.math.Matrix;
 import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.geometry.Rotation2d;
@@ -10,11 +11,13 @@ import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.math.util.Units;
 import frc.robot.Constants;
 import frc.robot.support.PIDSettings;
-import java.io.IOException;
-import java.util.Optional;
+// TODO 2026: Migrated from PathPlanner to Choreo
+// import java.io.IOException;
+// import java.util.Optional;
 import lombok.Builder;
 import lombok.Data;
-import org.json.simple.parser.ParseException;
+// TODO 2026: Migrated from PathPlanner to Choreo
+// import org.json.simple.parser.ParseException;
 
 @Data
 @Builder
@@ -109,13 +112,14 @@ public class DrivetrainContext {
         return this.maxSpeed / Constants.Drive.SMBackLeftLocation.getNorm(); // 1/2
     }
 
-    public Optional<RobotConfig> getRobotConfig() {
-        try {
-            return Optional.of(RobotConfig.fromGUISettings());
-        } catch (IOException | ParseException e) {
-            // TODO: Correct logging
-            System.err.println("Unable to obtain RobotConfig from GUI Settings!");
-            return Optional.empty();
-        }
-    }
+    // TODO 2026: Migrated from PathPlanner to Choreo - RobotConfig no longer needed
+    // public Optional<RobotConfig> getRobotConfig() {
+    //     try {
+    //         return Optional.of(RobotConfig.fromGUISettings());
+    //     } catch (IOException | ParseException e) {
+    //         // TODO: Correct logging
+    //         System.err.println("Unable to obtain RobotConfig from GUI Settings!");
+    //         return Optional.empty();
+    //     }
+    // }
 }

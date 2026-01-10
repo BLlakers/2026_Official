@@ -4,6 +4,7 @@ import static edu.wpi.first.wpilibj.RobotBase.isSimulation;
 import static java.util.Objects.requireNonNull;
 
 import com.revrobotics.RelativeEncoder;
+import com.revrobotics.spark.FeedbackSensor;
 import com.revrobotics.spark.SparkBase.PersistMode;
 import com.revrobotics.spark.SparkBase.ResetMode;
 import com.revrobotics.spark.config.AlternateEncoderConfig;
@@ -67,7 +68,7 @@ public class ClimbMechanism extends SubsystemBase {
         if (isSimulation()) {
             //  Eliminate data-port dependency in sim
             config.closedLoop
-                    .feedbackSensor(ClosedLoopConfig.FeedbackSensor.kPrimaryEncoder)
+                    .feedbackSensor(FeedbackSensor.kPrimaryEncoder)
                     .pid(pidSettings.p(), pidSettings.i(), pidSettings.d());
         } else {
             // Use the alternate encoder in real
@@ -77,7 +78,7 @@ public class ClimbMechanism extends SubsystemBase {
 
             config.apply(altConfig);
             config.closedLoop
-                    .feedbackSensor(ClosedLoopConfig.FeedbackSensor.kAlternateOrExternalEncoder)
+                    .feedbackSensor(FeedbackSensor.kAlternateOrExternalEncoder)
                     .pid(pidSettings.p(), pidSettings.i(), pidSettings.d());
         }
         return config;
