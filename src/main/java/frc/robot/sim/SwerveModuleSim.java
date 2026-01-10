@@ -1,6 +1,6 @@
 package frc.robot.sim;
 
-import static edu.wpi.first.math.system.plant.LinearSystemId.*;
+import static edu.wpi.first.math.system.plant.LinearSystemId.createDCMotorSystem;
 
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
