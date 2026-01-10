@@ -1,6 +1,6 @@
-# BL Robotics 2025
+# BL Robotics 2026
 
-![main workflow](https://github.com/BLlakers/2025_Official/actions/workflows/main.yml/badge.svg)
+![main workflow](https://github.com/BLlakers/2026_Official/actions/workflows/main.yml/badge.svg)
 
 This repository contains our Java/WPILib robot code with a simulation-first workflow, a swerve drivetrain, vendor motor
 abstractions, and CI with test coverage. This guide explains how to set up your environment, run the sim, deploy to the 

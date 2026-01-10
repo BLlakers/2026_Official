@@ -9,7 +9,7 @@
       "name": "Main",
       "request": "launch",
       "mainClass": "frc.robot.Main",
-      "projectName": "2025_Official"
+      "projectName": "2026_Official"
     },
     {
       "type": "wpilib",
