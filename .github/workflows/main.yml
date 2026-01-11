@@ -35,7 +35,7 @@ jobs:
           -H 'Content-Type: application/json' \
           -d '{
             "bot_id": "${{ secrets.GROUPME_PROGRAMMING_BOT }}",
-            "text": "💣 Build failed: ${{ github.repository }} - ${{ github.ref }}"
+            "text": "💣 Build failed: ${{ github.repository }} - ${{ github.ref }} - ${{ github.event.head_commit.message }}"
           }'
 
     - name: Send GroupMe notifications via Programming Bot on success
@@ -45,7 +45,7 @@ jobs:
           -H 'Content-Type: application/json' \
           -d '{
             "bot_id": "${{ secrets.GROUPME_PROGRAMMING_BOT }}",
-            "text": "🎉 Build succeeded: ${{ github.repository }} - ${{ github.ref }}"
+            "text": "🎉 Build succeeded: ${{ github.repository }} - ${{ github.ref }} - ${{ github.event.head_commit.message }}"
           }'
 
     - name: Upload JaCoCo XML (for tooling)
