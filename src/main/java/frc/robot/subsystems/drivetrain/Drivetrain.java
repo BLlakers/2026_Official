@@ -9,12 +9,6 @@ import static edu.wpi.first.math.kinematics.SwerveModuleState.optimize;
 import static java.lang.Math.min;
 import static java.util.Objects.requireNonNull;
 
-// TODO 2026: Migrated from PathPlanner to Choreo
-// import com.pathplanner.lib.auto.AutoBuilder;
-// import com.pathplanner.lib.config.PIDConstants;
-// import com.pathplanner.lib.controllers.PPHolonomicDriveController;
-// TODO 2026: Studica NavX not available for 2026 yet - gyro functionality commented out
-// import com.studica.frc.AHRS;
 import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.estimator.SwerveDrivePoseEstimator;
 import edu.wpi.first.math.geometry.Pose2d;
@@ -25,8 +19,6 @@ import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.networktables.StructArrayPublisher;
 import edu.wpi.first.networktables.StructPublisher;
 import edu.wpi.first.util.sendable.SendableBuilder;
-import edu.wpi.first.wpilibj.DriverStation;
-import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
@@ -37,7 +29,6 @@ import frc.robot.Constants;
 import frc.robot.Constants.Limelights;
 import frc.robot.sim.SwerveModuleSim;
 import frc.robot.support.limelight.LimelightHelpers;
-import java.util.Optional;
 
 /**
  * Represents a swerve drive style drivetrain. In here, we initialize our swerve modules (example ->
@@ -163,7 +154,8 @@ public class Drivetrain extends SubsystemBase {
         this.currentRotPublisher =
                 nti.getStructTopic("CurrentRot", Rotation2d.struct).publish();
 
-        // TODO 2026: NavX gyro initialization commented out - need to select 2026-compatible gyro (Pigeon2, ADIS16470, etc.)
+        // TODO 2026: NavX gyro initialization commented out - need to select 2026-compatible gyro (Pigeon2, ADIS16470,
+        // etc.)
         // this.navXSensorModule = new AHRS(AHRS.NavXComType.kMXP_SPI);
 
         // TODO 2026: PathPlanner AutoBuilder commented out - migrating to Choreo for autonomous
@@ -391,8 +383,7 @@ public class Drivetrain extends SubsystemBase {
      * @param pose2d
      */
     public void resetOdometry(final Pose2d pose2d) {
-        this.swerveDriveOdometry.resetPosition(
-                this.getGyroRotation(), this.getSwerveModulePositions(), pose2d);
+        this.swerveDriveOdometry.resetPosition(this.getGyroRotation(), this.getSwerveModulePositions(), pose2d);
 
         if (RobotBase.isSimulation()) {
             // Keep simulated gyro aligned with newPose
@@ -661,9 +652,7 @@ public class Drivetrain extends SubsystemBase {
                 () -> Units.radiansToDegrees(this.getChassisSpeeds().omegaRadiansPerSecond),
                 null);
         builder.addDoubleProperty(
-                "Odometry/navx/Orientation",
-                () -> this.getGyroRotation().getDegrees(),
-                null);
+                "Odometry/navx/Orientation", () -> this.getGyroRotation().getDegrees(), null);
         builder.addBooleanProperty(
                 "FieldRelativeEnabled",
                 () -> this.fieldRelativeEnable,
@@ -691,8 +680,7 @@ public class Drivetrain extends SubsystemBase {
         // TODO 2026: NavX telemetry commented out
         // builder.addDoubleProperty("GYRO ANGLE", this.navXSensorModule::getAngle, null);
         // SmartDashboard.putData("NAVX DATA", this.navXSensorModule);
-        builder.addDoubleProperty(
-                "GYRO ROTATION", () -> this.getGyroRotation().getDegrees(), null);
+        builder.addDoubleProperty("GYRO ROTATION", () -> this.getGyroRotation().getDegrees(), null);
         // builder.addDoubleProperty("NAVX AngleAdjustment", this.navXSensorModule::getAngleAdjustment, null);
     }
 }

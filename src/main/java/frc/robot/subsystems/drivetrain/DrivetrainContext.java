@@ -2,6 +2,7 @@ package frc.robot.subsystems.drivetrain;
 
 // TODO 2026: Migrated from PathPlanner to Choreo
 // import com.pathplanner.lib.config.RobotConfig;
+
 import edu.wpi.first.math.Matrix;
 import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.geometry.Rotation2d;
@@ -11,9 +12,6 @@ import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.math.util.Units;
 import frc.robot.Constants;
 import frc.robot.support.PIDSettings;
-// TODO 2026: Migrated from PathPlanner to Choreo
-// import java.io.IOException;
-// import java.util.Optional;
 import lombok.Builder;
 import lombok.Data;
 // TODO 2026: Migrated from PathPlanner to Choreo

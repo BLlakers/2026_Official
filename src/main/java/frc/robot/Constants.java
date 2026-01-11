@@ -3,14 +3,9 @@ package frc.robot;
 import static edu.wpi.first.units.Units.Inches;
 import static edu.wpi.first.units.Units.Meters;
 
-// TODO 2026: Migrated from PathPlanner to Choreo
-// import com.pathplanner.lib.path.PathConstraints;
-// import com.pathplanner.lib.util.FlippingUtil;
 import edu.wpi.first.math.geometry.*;
 import frc.robot.support.DIOChannel;
 import frc.robot.support.RobotVersion;
-import java.util.Arrays;
-import java.util.List;
 
 public final class Constants {
 
@@ -109,10 +104,8 @@ public final class Constants {
         public static final int FRONT_RIGHT_TURN_ENCODER_DIO_CHANNEL = DIOChannel.TWO.getChannel();
         public static final int REAR_RIGHT_TURN_ENCODER_DIO_CHANNEL = DIOChannel.THREE.getChannel();
         public static final int climbMagSwitchDIOC = DIOChannel.FOUR.getChannel();
-        ;
         public static final int hangerLeftMagSwitchDIOC = DIOChannel.SEVEN.getChannel();
         public static final int hangerRightMagSwitchDIOC = DIOChannel.EIGHT.getChannel();
-        ;
         public static final int PHChannel = 30; // REV Pneumatic Hub
         public static final int PDHChannel = 20; // REV Power Distribution Hub
     }
@@ -201,5 +194,5 @@ public final class Constants {
         //         TwentyTwoRightChanged);
     }
 
-    public static final RobotVersion defaultRobotVersion = RobotVersion.v2025;
+    public static final RobotVersion defaultRobotVersion = RobotVersion.v2026;
 }

@@ -7,7 +7,6 @@ import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
-// import frc.robot.subsystems.algae.AlgaeMechanism; // TODO 2026: Removed subsystem
 import frc.robot.support.Telemetry;
 import frc.robot.support.limelight.LimelightUtil;
 // some imports no longer needed but leaving them here untill final version

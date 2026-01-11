@@ -24,7 +24,7 @@ public class TemplateMechanismContext {
      * CAN ID of the TalonFX motor controller
      */
     @Builder.Default
-    private final int motorId = 0;  // TODO: Set actual CAN ID in Constants
+    private final int motorId = 0; // TODO: Set actual CAN ID in Constants
 
     /**
      * CAN bus name (use "rio" for roboRIO CAN bus, or specific CANivore name)

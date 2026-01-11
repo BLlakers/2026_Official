@@ -3,34 +3,24 @@ package frc.robot;
 // import com.pathplanner.lib.auto.AutoBuilder; // TODO 2026: PathplannerLib not available for 2026 yet
 // import com.pathplanner.lib.auto.NamedCommands; // TODO 2026: PathplannerLib not available for 2026 yet
 // import com.pathplanner.lib.path.PathConstraints; // TODO 2026: PathplannerLib not available for 2026 yet
+
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Transform2d;
-import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
-import edu.wpi.first.wpilibj2.command.WaitUntilCommand;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.Constants.Limelights;
-// import frc.robot.commands.AlgaePIDCommand; // TODO 2026: Removed subsystem
 import frc.robot.commands.AprilAlignCommand;
 import frc.robot.commands.ElevatorPIDCommand;
 import frc.robot.commands.swervedrive.ControllerDelegate;
 import frc.robot.commands.swervedrive.SwerveDriveCommand;
 import frc.robot.subsystems.LedStrand;
-// import frc.robot.subsystems.algae.AlgaeIntake; // TODO 2026: Removed subsystem
-// import frc.robot.subsystems.algae.AlgaeIntakeContext; // TODO 2026: Removed subsystem
-// import frc.robot.subsystems.algae.AlgaeMechanism; // TODO 2026: Removed subsystem
-// import frc.robot.subsystems.algae.AlgaeMechanismContext; // TODO 2026: Removed subsystem
 import frc.robot.subsystems.climb.ClimbMechanism;
 import frc.robot.subsystems.climb.ClimbMechanismContext;
-// import frc.robot.subsystems.coral.CoralMechanism; // TODO 2026: Removed subsystem
-// import frc.robot.subsystems.coral.CoralMechanismContext; // TODO 2026: Removed subsystem
-// import frc.robot.subsystems.coral.Servo; // TODO 2026: Removed subsystem
-// import frc.robot.subsystems.coral.ServoContext; // TODO 2026: Removed subsystem
 import frc.robot.subsystems.drivetrain.Drivetrain;
 import frc.robot.subsystems.drivetrain.DrivetrainContext;
 import frc.robot.subsystems.elevator.Elevator;
@@ -221,11 +211,16 @@ public class RobotContainer {
     // TODO 2026: Migrated from PathPlanner to Choreo - NamedCommands and AutoBuilder no longer available
     // private void registerCommands() {
     //     NamedCommands.registerCommand("Limelight", this.limelightCodeFrontLeft);
-    //     NamedCommands.registerCommand("LimelightSetFirstLeftPriority", this.limelightFrl.getPriorityIDCommand(22, 9));
-    //     NamedCommands.registerCommand("LimelightSetSecondLeftPriority", this.limelightFrl.getPriorityIDCommand(17, 8));
-    //     NamedCommands.registerCommand("LimelightSetSecondLeftPriority2", this.limelightFrl.getPriorityIDCommand(18, 8));
-    //     NamedCommands.registerCommand("LimelightSetFirstRightPriority", this.limelightFrl.getPriorityIDCommand(20, 11));
-    //     NamedCommands.registerCommand("LimelightSetSecondRightPriority", this.limelightFrl.getPriorityIDCommand(19, 6));
+    //     NamedCommands.registerCommand("LimelightSetFirstLeftPriority", this.limelightFrl.getPriorityIDCommand(22,
+    // 9));
+    //     NamedCommands.registerCommand("LimelightSetSecondLeftPriority", this.limelightFrl.getPriorityIDCommand(17,
+    // 8));
+    //     NamedCommands.registerCommand("LimelightSetSecondLeftPriority2", this.limelightFrl.getPriorityIDCommand(18,
+    // 8));
+    //     NamedCommands.registerCommand("LimelightSetFirstRightPriority", this.limelightFrl.getPriorityIDCommand(20,
+    // 11));
+    //     NamedCommands.registerCommand("LimelightSetSecondRightPriority", this.limelightFrl.getPriorityIDCommand(19,
+    // 6));
     //     NamedCommands.registerCommand("LimelightBack", this.limelightCodeBack);
     //     NamedCommands.registerCommand("RobotOrientedLimelight", this.limelightFrl.setLimelightUsageField());
     //     NamedCommands.registerCommand("SETPOSEfrl", this.resetPoseAuto);
