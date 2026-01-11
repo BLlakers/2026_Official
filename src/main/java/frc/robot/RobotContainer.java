@@ -1,16 +1,17 @@
 package frc.robot;
 
-// import com.pathplanner.lib.auto.AutoBuilder; // TODO 2026: PathplannerLib not available for 2026 yet
-// import com.pathplanner.lib.auto.NamedCommands; // TODO 2026: PathplannerLib not available for 2026 yet
-// import com.pathplanner.lib.path.PathConstraints; // TODO 2026: PathplannerLib not available for 2026 yet
-
+import com.pathplanner.lib.auto.AutoBuilder;
+import com.pathplanner.lib.auto.NamedCommands;
+import com.pathplanner.lib.path.PathConstraints;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Transform2d;
+import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
+import edu.wpi.first.wpilibj2.command.WaitUntilCommand;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.Constants.Limelights;
@@ -43,15 +44,7 @@ public class RobotContainer {
 
     private final Drivetrain driveTrain = new Drivetrain(drivetrainContext);
 
-    // TODO 2026: Removed subsystem
-    // private final CoralMechanism coralMechanism = new CoralMechanism(CoralMechanismContext.defaults());
-
     private final ClimbMechanism climbMechanism = new ClimbMechanism(ClimbMechanismContext.defaults());
-
-    // TODO 2026: Removed subsystem
-    // private final AlgaeMechanismContext algaeMechanismContext = AlgaeMechanismContext.defaults();
-    // private final AlgaeMechanism algaeMechanism = new AlgaeMechanism(algaeMechanismContext);
-    // private final AlgaeIntake algaeIntake = new AlgaeIntake(AlgaeIntakeContext.defaults());
 
     private final ElevatorContext elevatorSettings = ElevatorContext.defaults();
 
@@ -67,9 +60,6 @@ public class RobotContainer {
             new ElevatorPIDCommand(this.elevator, elevatorSettings.getLevel4Position());
     private final ElevatorPIDCommand elevatorPIDCommandAlgae3 =
             new ElevatorPIDCommand(this.elevator, elevatorSettings.getAlgaeLevel3Position());
-
-    // TODO 2026: Removed subsystem
-    // private final Servo servo = new Servo(ServoContext.defaults());
 
     private final AprilAlignCommand limelightCodeFrontLeft = new AprilAlignCommand(
             this.limelightFrl::getCurrentAprilTag,
@@ -95,41 +85,9 @@ public class RobotContainer {
             true,
             false,
             this.ledStrand);
-    // TODO 2026: Removed subsystem commands
-    // private final Command runCoralForward = this.coralMechanism
-    //         .getAdvanceCoralCommand()
-    //         .onlyWhile(() -> !this.coralMechanism.isCoralLoaded())
-    //         .withName("RunCoral");
-    // private final Command algaeDownAndRunA3 = Commands.race(
-    //         new AlgaePIDCommand(algaeMechanism, algaeMechanismContext.getAlgaeUpPosition()),
-    //         algaeIntake.getAdvanceIntakeOnceCommand(),
-    //         new ElevatorPIDCommand(this.elevator, elevatorSettings.getAlgaeLevel3Position()));
-    // private final Command algaeDownAndRunA4 = Commands.race(
-    //         new AlgaePIDCommand(algaeMechanism, algaeMechanismContext.getAlgaeUpPosition()),
-    //         algaeIntake.getAdvanceIntakeOnceCommand(),
-    //         new ElevatorPIDCommand(this.elevator, elevatorSettings.getAlgaeLevel4Position()));
-    // private final Command algaeUpAndStop = Commands.race(
-    //         new AlgaePIDCommand(algaeMechanism, algaeMechanismContext.getAlgaeDownPosition()),
-    //         algaeIntake.getStopIntakeCommand());
-    // private final Command algaeMiddleAndStop = Commands.race(
-    //         new AlgaePIDCommand(algaeMechanism, algaeMechanismContext.getAlgaeMiddlePosition()),
-    //         algaeIntake.getStopIntakeCommand());
-    // private final Command algaeGroundCommand = Commands.race(
-    //         new AlgaePIDCommand(algaeMechanism, algaeMechanismContext.getAlgaeGroundPosition()),
-    //         algaeIntake.getReverseIntakeOnceCommand(),
-    //         new ElevatorPIDCommand(this.elevator, elevatorSettings.getLevel2Position()));
+
     private final Command resetPoseAuto =
             Commands.runOnce(() -> this.driveTrain.resetOdometry(this.currentPath.get(0)), this.driveTrain);
-
-    // TODO 2026: Removed subsystem commands
-    // private final AlgaePIDCommand algaePIDCommandDown =
-    //         new AlgaePIDCommand(algaeMechanism, algaeMechanismContext.getAlgaeUpPosition());
-    // private final AlgaePIDCommand algaePIDCommandMiddle =
-    //         new AlgaePIDCommand(algaeMechanism, algaeMechanismContext.getAlgaeMiddlePosition());
-    // private final AlgaePIDCommand algaePIDCommandUp =
-    //         new AlgaePIDCommand(algaeMechanism, algaeMechanismContext.getAlgaeDownPosition());
-    // private final AlgaePIDCommand algaePIDCommandGround =
-    //         new AlgaePIDCommand(algaeMechanism, algaeMechanismContext.getAlgaeDownPosition());
 
     /**
      * Creates buttons and controller for: - the driver controller (port 0) - the manipulator controller (port 1) - the
@@ -145,43 +103,34 @@ public class RobotContainer {
             new CommandXboxController(Constants.Controller.DEBUG_CONTROLLER_CHANNEL);
 
     // A chooser for autonomous commands
-    // TODO 2026: Migrated from PathPlanner to Choreo - AutoBuilder auto chooser no longer available
-    // private final SendableChooser<Command> autoChooser;
+    private final SendableChooser<Command> autoChooser;
 
     // Creating 2d field in Sim/ShuffleBoard
     // Trying to get feedback from auto
     private final List<Pose2d> currentPath = new ArrayList<Pose2d>();
 
-    // TODO 2026: PathplannerLib not available for 2026 yet
-    // public static final PathConstraints SPEED_CONSTRAINTS = new PathConstraints(2, 1.5, 1.5 * Math.PI, 1 * Math.PI);
+    // The constraints for this path.
+    public static final PathConstraints SPEED_CONSTRAINTS = new PathConstraints(2, 1.5, 1.5 * Math.PI, 1 * Math.PI);
 
     public RobotContainer() {
         this.elevator.setName("ElevatorMechanism");
         this.driveTrain.setName("DriveTrain");
-        // TODO 2026: Removed subsystem
-        // this.coralMechanism.setName("CoralMechanism");
-        // this.algaeIntake.setName("AlgaeIntake");
-        // this.algaeMechanism.setName("AlgaeMechanism");
 
         this.configureShuffleboard();
         this.configureBindings();
-        // TODO 2026: Migrated from PathPlanner to Choreo - NamedCommands no longer available
-        // this.registerCommands();
+        this.registerCommands();
 
         // Build an auto chooser. This will use Commands.none() as the default option.
 
-        // TODO 2026: Migrated from PathPlanner to Choreo - AutoBuilder no longer available
-        // autoChooser = AutoBuilder.buildAutoChooser();
+        autoChooser = AutoBuilder.buildAutoChooser();
 
         // Another option that allows you to specify the default auto by its name:
         // autoChooser = AutoBuilder.buildAutoChooser("My Default Auto");
 
-        // TODO 2026: Migrated from PathPlanner to Choreo - AutoBuilder no longer available
-        // SmartDashboard.putData("Auto Chooser", autoChooser);
+        SmartDashboard.putData("Auto Chooser", autoChooser);
 
         // Creates a field to be put to the shuffleboard
-        // TODO 2026: Migrated from PathPlanner to Choreo - AutoBuilder no longer available
-        // SmartDashboard.putData("AUTOPOSITION", (s) -> AutoBuilder.getCurrentPose());
+        SmartDashboard.putData("AUTOPOSITION", (s) -> AutoBuilder.getCurrentPose());
     }
 
     public Drivetrain getDriveTrain() {
@@ -208,50 +157,37 @@ public class RobotContainer {
         // us trying to set pose for field2d
     }
 
-    // TODO 2026: Migrated from PathPlanner to Choreo - NamedCommands and AutoBuilder no longer available
-    // private void registerCommands() {
-    //     NamedCommands.registerCommand("Limelight", this.limelightCodeFrontLeft);
-    //     NamedCommands.registerCommand("LimelightSetFirstLeftPriority", this.limelightFrl.getPriorityIDCommand(22,
-    // 9));
-    //     NamedCommands.registerCommand("LimelightSetSecondLeftPriority", this.limelightFrl.getPriorityIDCommand(17,
-    // 8));
-    //     NamedCommands.registerCommand("LimelightSetSecondLeftPriority2", this.limelightFrl.getPriorityIDCommand(18,
-    // 8));
-    //     NamedCommands.registerCommand("LimelightSetFirstRightPriority", this.limelightFrl.getPriorityIDCommand(20,
-    // 11));
-    //     NamedCommands.registerCommand("LimelightSetSecondRightPriority", this.limelightFrl.getPriorityIDCommand(19,
-    // 6));
-    //     NamedCommands.registerCommand("LimelightBack", this.limelightCodeBack);
-    //     NamedCommands.registerCommand("RobotOrientedLimelight", this.limelightFrl.setLimelightUsageField());
-    //     NamedCommands.registerCommand("SETPOSEfrl", this.resetPoseAuto);
-    //     NamedCommands.registerCommand(
-    //             "PathRESETODMLeft", AutoBuilder.resetOdom(new Pose2d(5.002, 2.806, new Rotation2d(90))));
-    //     NamedCommands.registerCommand(
-    //             "PathRESETODMRight", AutoBuilder.resetOdom(new Pose2d(5.021, 5.253, new Rotation2d(180))));
-    //     NamedCommands.registerCommand(
-    //             "PathRESETODMMiddle", AutoBuilder.resetOdom(new Pose2d(5.802, 3.959, new Rotation2d(180))));
-    //     NamedCommands.registerCommand(
-    //             "ElevatorL2", new ElevatorPIDCommand(this.elevator, elevatorSettings.getLevel2Position()));
-    //     // TODO 2026: Removed subsystem
-    //     // NamedCommands.registerCommand("ElevatorA3", this.algaeDownAndRunA3);
-    //     // NamedCommands.registerCommand("ElevatorA4", this.algaeDownAndRunA4);
-    //     // NamedCommands.registerCommand("IntakeCoral", this.coralMechanism.getCoralIntakeAutoCommand());
-    //     NamedCommands.registerCommand("ResetOdom", this.driveTrain.getResetOdometryCommand());
-    //     NamedCommands.registerCommand(
-    //             "ElevatorL4",
-    //             new ElevatorPIDCommand(this.elevator, elevatorSettings.getLevel4Position())
-    //                     .onlyWhile(() -> !this.elevator.isElevatorAtPosition()));
-    //     NamedCommands.registerCommand(
-    //             "ElevatorBottom", new ElevatorPIDCommand(this.elevator, elevatorSettings.getDownPosition()));
-    //     NamedCommands.registerCommand("ElevatorUp", this.elevator.getElevatorUpCommand());
-    //     // TODO 2026: Removed subsystem
-    //     // NamedCommands.registerCommand(
-    //     //         "ShootCoral", this.coralMechanism.getAdvanceCoralCommand().withTimeout(.5));
-    //     NamedCommands.registerCommand("ToggleFieldRelative", this.driveTrain.getToggleFieldRelativeCommand());
-    //     NamedCommands.registerCommand(
-    //             "WaitUntilElevatorTop", new WaitUntilCommand(this.elevator::isElevatorAtPosition));
-    //     NamedCommands.registerCommand("StopDrive", this.driveTrain.getStopModulesCommand());
-    // }
+    private void registerCommands() {
+        NamedCommands.registerCommand("Limelight", this.limelightCodeFrontLeft);
+        NamedCommands.registerCommand("LimelightSetFirstLeftPriority", this.limelightFrl.getPriorityIDCommand(22, 9));
+        NamedCommands.registerCommand("LimelightSetSecondLeftPriority", this.limelightFrl.getPriorityIDCommand(17, 8));
+        NamedCommands.registerCommand("LimelightSetSecondLeftPriority2", this.limelightFrl.getPriorityIDCommand(18, 8));
+        NamedCommands.registerCommand("LimelightSetFirstRightPriority", this.limelightFrl.getPriorityIDCommand(20, 11));
+        NamedCommands.registerCommand("LimelightSetSecondRightPriority", this.limelightFrl.getPriorityIDCommand(19, 6));
+        NamedCommands.registerCommand("LimelightBack", this.limelightCodeBack);
+        NamedCommands.registerCommand("RobotOrientedLimelight", this.limelightFrl.setLimelightUsageField());
+        NamedCommands.registerCommand("SETPOSEfrl", this.resetPoseAuto);
+        NamedCommands.registerCommand(
+                "PathRESETODMLeft", AutoBuilder.resetOdom(new Pose2d(5.002, 2.806, new Rotation2d(90))));
+        NamedCommands.registerCommand(
+                "PathRESETODMRight", AutoBuilder.resetOdom(new Pose2d(5.021, 5.253, new Rotation2d(180))));
+        NamedCommands.registerCommand(
+                "PathRESETODMMiddle", AutoBuilder.resetOdom(new Pose2d(5.802, 3.959, new Rotation2d(180))));
+        NamedCommands.registerCommand(
+                "ElevatorL2", new ElevatorPIDCommand(this.elevator, elevatorSettings.getLevel2Position()));
+        NamedCommands.registerCommand("ResetOdom", this.driveTrain.getResetOdometryCommand());
+        NamedCommands.registerCommand(
+                "ElevatorL4",
+                new ElevatorPIDCommand(this.elevator, elevatorSettings.getLevel4Position())
+                        .onlyWhile(() -> !this.elevator.isElevatorAtPosition()));
+        NamedCommands.registerCommand(
+                "ElevatorBottom", new ElevatorPIDCommand(this.elevator, elevatorSettings.getDownPosition()));
+        NamedCommands.registerCommand("ElevatorUp", this.elevator.getElevatorUpCommand());
+        NamedCommands.registerCommand("ToggleFieldRelative", this.driveTrain.getToggleFieldRelativeCommand());
+        NamedCommands.registerCommand(
+                "WaitUntilElevatorTop", new WaitUntilCommand(this.elevator::isElevatorAtPosition));
+        NamedCommands.registerCommand("StopDrive", this.driveTrain.getStopModulesCommand());
+    }
 
     /**
      * Creates Command Bindings. Read description down below:
@@ -298,33 +234,11 @@ public class RobotContainer {
         this.manipController.y().onTrue(this.elevatorPIDL3Command);
         this.manipController.x().onTrue(this.elevatorPIDL4Command);
         this.manipController.rightStick().onTrue(this.elevator.getResetPositionCommand());
-        // TODO 2026: Removed subsystem commands
-        // this.manipController.leftBumper().onTrue(this.algaeDownAndRunA3);
-        // this.manipController.rightBumper().onTrue(this.algaeDownAndRunA4);
-        // this.manipController.back().onTrue(this.algaeUpAndStop);
-        // this.manipController.start().whileTrue(this.algaeIntake.getReverseIntakeCommand());
-        // this.manipController.povLeft().onTrue(this.algaeGroundCommand);
-        // this.manipController.povRight().whileTrue(this.algaeIntake.getAdvanceIntakeCommand());
-        // this.manipController.leftStick().onTrue(this.algaeMiddleAndStop());
-        // this.manipController.leftTrigger(.5).whileTrue(this.runCoralForward);
-        // this.manipController.rightTrigger(.5).whileTrue(this.coralMechanism.getAdvanceCoralCommand());
-        // this.manipController.povUp().whileTrue(this.coralMechanism.getCoralTroughCommand());
+
         this.manipController.povDown().whileTrue(this.climbMechanism.getFullyReverseClimbCommand());
-        // this.servo.setDefaultCommand(this.servo.getForwardPositionCommand());
 
         this.debugController.rightBumper().whileTrue(this.elevator.getElevatorDownLimitCommand());
         this.debugController.leftBumper().whileTrue(this.elevator.getElevatorUpLimitCommand());
-        // TODO 2026: Removed subsystem commands
-        // this.debugController.povUp().onTrue(this.algaeMechanism.getResetAlgaeCommand());
-        // this.debugController.a().onTrue(this.algaePIDCommandUp);
-        // this.debugController.b().onTrue(this.algaePIDCommandMiddle);
-        // this.debugController.x().onTrue(this.algaePIDCommandDown);
-        // this.debugController.y().onTrue(this.algaePIDCommandGround);
-        // this.debugController.rightStick().onTrue(this.algaeDownAndRunA4);
-        this.debugController.povDown().onTrue(this.elevatorPIDCommandAlgae3);
-        // this.debugController.leftStick().whileTrue(this.algaeIntake.getReverseIntakeCommand());
-        // this.debugController.start().onTrue(this.algaeMiddleAndStop);
-        // this.debugController.leftTrigger(.5).onTrue(this.algaeGroundCommand);
     }
 
     private void configureShuffleboard() {
@@ -334,16 +248,10 @@ public class RobotContainer {
         // Add subsystems
         SmartDashboard.putData(this.driveTrain);
         SmartDashboard.putData(this.driveTrain.getName() + "/Reset Pose 2D", this.driveTrain.getResetOdometryCommand());
-        // TODO 2026: Removed subsystem
-        // SmartDashboard.putData(this.coralMechanism);
-        // SmartDashboard.putData(this.algaeMechanism);
-        // SmartDashboard.putData(this.algaeIntake);
     }
 
     // loads New Auto auto file
     public Command getAutonomousCommand() {
-        // TODO 2026: Migrated from PathPlanner to Choreo - AutoBuilder auto chooser no longer available
-        // return this.autoChooser.getSelected();
-        return null; // Return null for now - will be replaced with Choreo autonomous
+        return this.autoChooser.getSelected();
     }
 }
