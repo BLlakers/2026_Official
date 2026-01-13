@@ -32,9 +32,7 @@ public class Robot extends TimedRobot {
     // commit
     @Override
     public void robotInit() {
-        m_robotContainer.getLimelightBack().SetTagIDToTrack(-1);
-        m_robotContainer.getLimelightFrl().SetTagIDToTrack(-1);
-        m_robotContainer.getLimelightFrr().SetTagIDToTrack(-1);
+        // TODO 2026: Limelight subsystems removed during migration
         m_robotContainer.getLedStrand().changeLed(128, 0, 0);
         try {
             try (UsbCamera cam = CameraServer.startAutomaticCapture()) {
@@ -78,9 +76,7 @@ public class Robot extends TimedRobot {
         // m_robotContainer.m_DriveTrain.ZeroGyro().schedule();
         // AlgaeMechanism.AUTO_RUNNING = false; // TODO 2026: Removed subsystem
         m_robotContainer.getDriveTrain().setFieldRelativeEnable(true);
-        m_robotContainer.getLimelightBack().SetTagIDToTrack(-1);
-        m_robotContainer.getLimelightFrl().SetTagIDToTrack(-1);
-        m_robotContainer.getLimelightFrr().SetTagIDToTrack(-1);
+        // TODO 2026: Limelight subsystems removed during migration
         if (m_autonomousCommand != null) {
             m_autonomousCommand.cancel();
         }

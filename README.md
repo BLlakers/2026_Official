@@ -3,8 +3,36 @@
 ![main workflow](https://github.com/BLlakers/2026_Official/actions/workflows/main.yml/badge.svg)
 
 This repository contains our Java/WPILib robot code with a simulation-first workflow, a swerve drivetrain, vendor motor
-abstractions, and CI with test coverage. This guide explains how to set up your environment, run the sim, deploy to the 
+abstractions, and CI with test coverage. This guide explains how to set up your environment, run the sim, deploy to the
 robot, and contribute.
+
+## Current State: 2026 Season Migration (In Progress)
+
+This codebase is currently in a **transitional state** as we migrate from the 2025 season to the 2026 season:
+
+### What's Complete:
+- ✓ **WPILib 2026 Migration** - Upgraded to 2026.1.1-beta-2 toolchain
+- ✓ **PathPlanner → Choreo Migration** - Transitioning autonomous path planning frameworks
+- ✓ **FuelSubsystem Implementation** - Adapted from 2026 KitBot reference implementation with team Context pattern
+- ✓ **TemplateMechanism Example** - Phoenix6 TalonFX reference subsystem for new mechanism development
+- ✓ **Legacy Subsystem Removal** - Removed 2025-specific mechanisms (climb, elevator, vision/Limelight)
+
+### Architecture Pattern:
+This codebase uses a **Context-based configuration pattern** inspired by the 2026 KitBot reference implementation:
+- **Context Classes**: Lombok `@Builder` pattern for testable, flexible configuration (e.g., `FuelSubsystemContext`, `DrivetrainContext`)
+- **Subsystems**: Accept Context objects via constructor dependency injection
+- **Command Factories**: Subsystems expose command factory methods (`getIntakeCommand()`, `getLaunchCommand()`)
+- **KitBot Best Practices**: SparkMaxConfig with proper reset/persist modes, voltage-based control for simple mechanisms, SmartDashboard tuning
+
+### What's Next:
+- MK5i Swerve Module integration (planned hardware upgrade)
+- Additional 2026 game-specific mechanisms
+- Choreo autonomous routine development
+- Further refinement of subsystem implementations
+
+For new subsystem development, refer to:
+- `FuelSubsystem` - SparkMax-based roller mechanism (adapted from KitBot)
+- `TemplateMechanism` - TalonFX-based mechanism baseline
 
 ---
 
@@ -60,11 +88,11 @@ cd <repo-dir>
 ```
 src/main/java/frc/robot/
   commands/            # Command-based routines (e.g., swervedrive/)
-  subsystems/          # Subsystems (e.g., drivetrain/, elevator/, climb/)
+  subsystems/          # Subsystems (drivetrain/, fuel/, template/)
   sim/                 # Simulation helpers (SwerveModuleSim, physics)
   support/             # Vendor abstractions (sparkmax/, sensors, utils)
   Constants.java       # Global constants (units in identifiers where possible)
-vendordeps/            # Vendor JSONs (REV, PathPlanner, etc.)
+vendordeps/            # Vendor JSONs (REV, CTRE Phoenix6, Choreo, etc.)
 ```
 ---
 
@@ -72,43 +100,40 @@ vendordeps/            # Vendor JSONs (REV, PathPlanner, etc.)
 Driver Station (3 Controllers):
 ```
 USB 0: DRIVER CONTROLLER
-├─ Swerve drive (sticks + triggers)
-├─ Limelight tracking (A/X/Y buttons)
+├─ Swerve drive (left stick: translation, right stick: rotation)
+├─ Right trigger: acceleration/gas
+├─ Left trigger: half-speed mode (≥0.5 threshold)
 ├─ Gyro reset (B button)
-└─ Wheel lock (right stick)
+└─ Wheel lock (right stick button)
 
 USB 1: MANIPULATION/OPERATOR CONTROLLER
-├─ Elevator positions (A/B/X/Y buttons)
-├─ Algae mechanism (bumpers, back/start, POV, sticks)
-├─ Coral mechanism (triggers, POV up)
-└─ Climb (POV down)
+├─ Fuel intake (left bumper - hold)
+├─ Fuel launch (right bumper - spin up → launch sequence)
+└─ Fuel eject (X button - hold)
 
 USB 2: DEBUG CONTROLLER
-├─ Manual elevator control (bumpers - limit switches)
-├─ Algae mechanism overrides (A/B/X/Y buttons)
-├─ Algae mechanism presets (POV, sticks)
-└─ Additional test commands
+└─ (Reserved for testing and overrides)
 ```
 
 ### 1. **Driver Controller** (Channel 0)
-- **Primary job:** Drive the robot
-- **Secondary:** Limelight-based auto-alignment
+- **Primary job:** Drive the robot using swerve drivetrain
+- Left stick: Translation (forward/back, strafe left/right)
+- Right stick: Rotation
+- Right trigger: Acceleration multiplier
+- Left trigger: Half-speed mode for precision
+- B button: Reset gyro/NavX heading
+- Right stick button: Toggle wheel lock (X-pattern for defense)
 
 ### 2. **Manipulation Controller** (Channel 1)
-- **Primary job:** Score game pieces
-- Elevator preset positions (A/B/X/Y = different heights)
-- Algae intake/mechanism control
-- Coral manipulation
-- Climb mechanism
+- **Primary job:** Operate fuel subsystem
+- Left bumper (hold): Intake fuel into mechanism
+- Right bumper (hold): Launch sequence (1 second spin-up, then launch)
+- X button (hold): Eject/reverse fuel out of intake
 
 ### 3. **Debug Controller** (Channel 2)
-- **Primary job:** Overrides and testing
-- Manual elevator control (bypasses presets, uses limit switches)
-- Algae mechanism testing/overrides
-- Uses:
-    - Practice/testing
-    - When automated controls fail
-    - Tuning/debugging on the field
+- **Primary job:** Testing and overrides
+- Currently reserved for development/testing purposes
+- Used during practice for mechanism testing and troubleshooting
 
 ## Running the Simulator
 
@@ -286,14 +311,22 @@ We use **Spotless** for formatting with a Palantir config.
 
 ## Resources
 
+### WPILib & FRC
 - **WPILib Docs:** https://docs.wpilib.org/
 - **WPILib Java API:** https://first.wpi.edu/wpilib/allwpilib/docs/release/java/
 - **Kinematics & Odometry (Swerve):** https://docs.wpilib.org/en/stable/docs/software/kinematics-and-odometry/index.html
 - **Robot Simulation (WPILib):** https://docs.wpilib.org/en/stable/docs/software/wpilib-tools/robot-simulation/index.html
+- **2026 KitBot Reference:** https://github.com/wpilibsuite/allwpilib/tree/main/wpilibjExamples/src/main/java/edu/wpi/first/wpilibj/examples
+
+### Vendor Libraries
 - **REV SPARK MAX Docs:** https://docs.revrobotics.com/sparkmax/
-- **PathPlanner:** https://pathplanner.dev/
+- **CTRE Phoenix 6 (TalonFX):** https://v6.docs.ctr-electronics.com/
+- **Choreo (Path Planning):** https://sleipnirgroup.github.io/Choreo/
 - **navX-MXP:** https://pdocs.kauailabs.com/navx-mxp/
-- **Limelight:** https://docs.limelightvision.io/
+
+### Legacy (2025 Season)
+- **PathPlanner:** https://pathplanner.dev/ (migrating to Choreo)
+- **Limelight:** https://docs.limelightvision.io/ (removed for 2026)
 
 ---
 

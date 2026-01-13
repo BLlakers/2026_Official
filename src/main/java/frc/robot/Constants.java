@@ -115,6 +115,23 @@ public final class Constants {
         public static final int m_AlgaeMtrC = 10;
     }
 
+    public static class FuelConstants {
+        // Motor CAN IDs
+        public static final int FEEDER_MOTOR_ID = 13;
+        public static final int INTAKE_LAUNCHER_MOTOR_ID = 14;
+
+        // Voltage values for different operations
+        public static final double INTAKING_FEEDER_VOLTAGE = 6.0;
+        public static final double INTAKING_INTAKE_VOLTAGE = 6.0;
+        public static final double LAUNCHING_FEEDER_VOLTAGE = 12.0;
+        public static final double LAUNCHING_LAUNCHER_VOLTAGE = 12.0;
+        public static final double SPIN_UP_FEEDER_VOLTAGE = -3.0;
+
+        // Current limits (amps)
+        public static final int FEEDER_MOTOR_CURRENT_LIMIT = 30;
+        public static final int LAUNCHER_MOTOR_CURRENT_LIMIT = 40;
+    }
+
     public abstract class RobotVersionConstants {
         public static final double flTurnEncoderOffset = 0;
         public static final double frTurnEncoderOffset = 0;

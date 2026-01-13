@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir /s \"C:\\\\Users\\\\Sean\\\\.claude-worktrees\\\\2026_Official\\\\zen-lamarr\\\\src\\\\main\\\\java\\\\frc\\\\robot\\\\subsystems\" /b /ad)",
+      "Bash(rm:*)",
+      "Bash(mkdir:*)",
+      "Bash(./gradlew build:*)",
+      "Bash(./gradlew spotlessApply:*)",
+      "Bash(git checkout:*)",
+      "Bash(git add:*)"
+    ]
+  }
+}
