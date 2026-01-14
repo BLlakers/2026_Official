@@ -3,9 +3,12 @@ package frc.robot;
 import static edu.wpi.first.units.Units.Inches;
 import static edu.wpi.first.units.Units.Meters;
 
+import com.pathplanner.lib.util.FlippingUtil;
 import edu.wpi.first.math.geometry.*;
 import frc.robot.support.DIOChannel;
 import frc.robot.support.RobotVersion;
+import java.util.Arrays;
+import java.util.List;
 
 public final class Constants {
 
@@ -80,9 +83,6 @@ public final class Constants {
 
         public static final Pose2d BlueSpeakerCenterPose = new Pose2d(); // TODO
         public static final Pose2d RedSpeakerCenterPose = new Pose2d(); // TODO
-
-        // TODO 2026: Migrated from PathPlanner to Choreo - PathConstraints no longer needed
-        // public static final PathConstraints pathConstraints = new PathConstraints(2, 3, 360, 540);
     }
 
     public static class Port {
@@ -167,48 +167,45 @@ public final class Constants {
         public static final Pose2d TwentyTwoLeft =
                 new Pose2d(5.13 /* adding 9 here */, 2.9, new Rotation2d(Math.toRadians(120)));
         public static final Pose2d TwentyTwoRight = new Pose2d(5.34, 3.13, new Rotation2d(Math.toRadians(120)));
-        // TODO 2026: Migrated from PathPlanner to Choreo - FlippingUtil no longer available
-        // public static final Pose2d SixLeft = FlippingUtil.flipFieldPose(TwentyTwoLeft);
+        public static final Pose2d SixLeft = FlippingUtil.flipFieldPose(TwentyTwoLeft);
         public static final Pose2d SixRightChanged = new Pose2d(13.94, 3.08, new Rotation2d(120));
-        // TODO 2026: Migrated from PathPlanner to Choreo - FlippingUtil no longer available
-        // public static final Pose2d TwentyTwoRightChanged = FlippingUtil.flipFieldPose(SixRightChanged);
-        // public static final Pose2d SixRight = FlippingUtil.flipFieldPose(TwentyTwoRight);
-        // public static final Pose2d SevenLeft = FlippingUtil.flipFieldPose(TwentyOneLeft);
-        // public static final Pose2d SevenRight = FlippingUtil.flipFieldPose(TwentyOneRight);
-        // public static final Pose2d EightLeft = FlippingUtil.flipFieldPose(TwentyLeft);
-        // public static final Pose2d EightRight = FlippingUtil.flipFieldPose(TwentyRight);
-        // public static final Pose2d NineLeft = FlippingUtil.flipFieldPose(NineteenLeft);
-        // public static final Pose2d NineRight = FlippingUtil.flipFieldPose(NineteenRight);
-        // public static final Pose2d TenLeft = FlippingUtil.flipFieldPose(EighteenLeft);
-        // public static final Pose2d TenRight = FlippingUtil.flipFieldPose(EighteenRight);
-        // public static final Pose2d ElevenLeft = FlippingUtil.flipFieldPose(SeventeenLeft);
-        // public static final Pose2d ElevenRight = FlippingUtil.flipFieldPose(SeventeenRight);
-        // TODO 2026: Migrated from PathPlanner to Choreo - PositionsRed commented out due to FlippingUtil dependencies
-        // public static List<Pose2d> PositionsRed = Arrays.asList(
-        //         SixLeft,
-        //         SixRightChanged,
-        //         SevenLeft,
-        //         SevenRight,
-        //         EightLeft,
-        //         EightRight,
-        //         NineLeft,
-        //         NineRight,
-        //         TenLeft,
-        //         TenRight,
-        //         ElevenLeft,
-        //         ElevenRight,
-        //         SeventeenLeft,
-        //         SeventeenRight,
-        //         EighteenLeft,
-        //         EighteenRight,
-        //         NineteenLeft,
-        //         NineteenRight,
-        //         TwentyLeft,
-        //         TwentyRight,
-        //         TwentyOneLeft,
-        //         TwentyOneRight,
-        //         TwentyTwoLeft,
-        //         TwentyTwoRightChanged);
+        public static final Pose2d TwentyTwoRightChanged = FlippingUtil.flipFieldPose(SixRightChanged);
+        public static final Pose2d SixRight = FlippingUtil.flipFieldPose(TwentyTwoRight);
+        public static final Pose2d SevenLeft = FlippingUtil.flipFieldPose(TwentyOneLeft);
+        public static final Pose2d SevenRight = FlippingUtil.flipFieldPose(TwentyOneRight);
+        public static final Pose2d EightLeft = FlippingUtil.flipFieldPose(TwentyLeft);
+        public static final Pose2d EightRight = FlippingUtil.flipFieldPose(TwentyRight);
+        public static final Pose2d NineLeft = FlippingUtil.flipFieldPose(NineteenLeft);
+        public static final Pose2d NineRight = FlippingUtil.flipFieldPose(NineteenRight);
+        public static final Pose2d TenLeft = FlippingUtil.flipFieldPose(EighteenLeft);
+        public static final Pose2d TenRight = FlippingUtil.flipFieldPose(EighteenRight);
+        public static final Pose2d ElevenLeft = FlippingUtil.flipFieldPose(SeventeenLeft);
+        public static final Pose2d ElevenRight = FlippingUtil.flipFieldPose(SeventeenRight);
+        public static List<Pose2d> PositionsRed = Arrays.asList(
+                SixLeft,
+                SixRightChanged,
+                SevenLeft,
+                SevenRight,
+                EightLeft,
+                EightRight,
+                NineLeft,
+                NineRight,
+                TenLeft,
+                TenRight,
+                ElevenLeft,
+                ElevenRight,
+                SeventeenLeft,
+                SeventeenRight,
+                EighteenLeft,
+                EighteenRight,
+                NineteenLeft,
+                NineteenRight,
+                TwentyLeft,
+                TwentyRight,
+                TwentyOneLeft,
+                TwentyOneRight,
+                TwentyTwoLeft,
+                TwentyTwoRightChanged);
     }
 
     public static final RobotVersion defaultRobotVersion = RobotVersion.v2026;

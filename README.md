@@ -12,7 +12,7 @@ This codebase is currently in a **transitional state** as we migrate from the 20
 
 ### What's Complete:
 - ✓ **WPILib 2026 Migration** - Upgraded to 2026.1.1-beta-2 toolchain
-- ✓ **PathPlanner → Choreo Migration** - Transitioning autonomous path planning frameworks
+- ✓ **PathPlanner Integration** - Using 2026-compatible PathPlanner for autonomous path planning
 - ✓ **FuelSubsystem Implementation** - Adapted from 2026 KitBot reference implementation with team Context pattern
 - ✓ **TemplateMechanism Example** - Phoenix6 TalonFX reference subsystem for new mechanism development
 - ✓ **Legacy Subsystem Removal** - Removed 2025-specific mechanisms (climb, elevator, vision/Limelight)
@@ -27,7 +27,7 @@ This codebase uses a **Context-based configuration pattern** inspired by the 202
 ### What's Next:
 - MK5i Swerve Module integration (planned hardware upgrade)
 - Additional 2026 game-specific mechanisms
-- Choreo autonomous routine development
+- PathPlanner autonomous routine development
 - Further refinement of subsystem implementations
 
 For new subsystem development, refer to:
@@ -92,7 +92,7 @@ src/main/java/frc/robot/
   sim/                 # Simulation helpers (SwerveModuleSim, physics)
   support/             # Vendor abstractions (sparkmax/, sensors, utils)
   Constants.java       # Global constants (units in identifiers where possible)
-vendordeps/            # Vendor JSONs (REV, CTRE Phoenix6, Choreo, etc.)
+vendordeps/            # Vendor JSONs (REV, CTRE Phoenix6, PathPlanner, etc.)
 ```
 ---
 
@@ -321,11 +321,10 @@ We use **Spotless** for formatting with a Palantir config.
 ### Vendor Libraries
 - **REV SPARK MAX Docs:** https://docs.revrobotics.com/sparkmax/
 - **CTRE Phoenix 6 (TalonFX):** https://v6.docs.ctr-electronics.com/
-- **Choreo (Path Planning):** https://sleipnirgroup.github.io/Choreo/
+- **PathPlanner:** https://pathplanner.dev/
 - **navX-MXP:** https://pdocs.kauailabs.com/navx-mxp/
 
 ### Legacy (2025 Season)
-- **PathPlanner:** https://pathplanner.dev/ (migrating to Choreo)
 - **Limelight:** https://docs.limelightvision.io/ (removed for 2026)
 
 ---

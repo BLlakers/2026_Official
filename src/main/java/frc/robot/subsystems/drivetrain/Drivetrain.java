@@ -9,6 +9,9 @@ import static edu.wpi.first.math.kinematics.SwerveModuleState.optimize;
 import static java.lang.Math.min;
 import static java.util.Objects.requireNonNull;
 
+import com.pathplanner.lib.auto.AutoBuilder;
+import com.pathplanner.lib.config.PIDConstants;
+import com.pathplanner.lib.controllers.PPHolonomicDriveController;
 import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.estimator.SwerveDrivePoseEstimator;
 import edu.wpi.first.math.geometry.Pose2d;
@@ -19,6 +22,8 @@ import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.networktables.StructArrayPublisher;
 import edu.wpi.first.networktables.StructPublisher;
 import edu.wpi.first.util.sendable.SendableBuilder;
+import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
@@ -29,6 +34,7 @@ import frc.robot.Constants;
 import frc.robot.Constants.Limelights;
 import frc.robot.sim.SwerveModuleSim;
 import frc.robot.support.limelight.LimelightHelpers;
+import java.util.Optional;
 
 /**
  * Represents a swerve drive style drivetrain. In here, we initialize our swerve modules (example ->
@@ -158,17 +164,14 @@ public class Drivetrain extends SubsystemBase {
         // etc.)
         // this.navXSensorModule = new AHRS(AHRS.NavXComType.kMXP_SPI);
 
-        // TODO 2026: PathPlanner AutoBuilder commented out - migrating to Choreo for autonomous
-        /* this.context
+        this.context
                 .getRobotConfig()
                 .ifPresentOrElse(
                         robotConfig -> {
                             AutoBuilder.configure(
-                                    this::getPose2d, // Robot pose supplier NEEDS TO BE POSE2D IF WE ARE USING OLD
-                                    // LIMELIGHT WAY TODO
+                                    this::getPose2d, // Robot pose supplier
                                     this::resetOdometry, // Method to reset odometry (will be called if your auto
                                     // has a starting pose)
-                                    // NEEDS TO BE RESETPOSE2D IF WE ARE USING OLD LIMELIGHT
                                     this::getChassisSpeeds,
                                     this::driveRobotRelative, // ChassisSpeeds supplier. MUST BE ROBOT RELATIVE
                                     // Method that will drive the robot given ROBOT RELATIVE ChassisSpeeds. Also,
@@ -181,9 +184,6 @@ public class Drivetrain extends SubsystemBase {
                                             new PIDConstants(this.context
                                                     .getRotationPIDSettings()
                                                     .p())),
-                                    // new PPHolonomicDriveController(Translation,Rotation),
-                                    // //PPHolonomicDriveController(Translation,
-                                    // Rotation, .2),
                                     robotConfig, // The robot configuration
                                     () -> {
                                         // Boolean supplier that controls when the path will be mirrored for the red
@@ -200,9 +200,8 @@ public class Drivetrain extends SubsystemBase {
                         () -> {
                             // NOTE: This should probably be fatal
                             throw new RuntimeException("Unable to obtain RobotConfig during Drivetrain creation."
-                                    + "Path Planning will be fail!");
+                                    + "Path Planning will fail!");
                         });
-        */
 
         this.swerveDriveKinematics = new SwerveDriveKinematics(
                 Constants.Drive.SMFrontLeftLocation,
@@ -429,12 +428,11 @@ public class Drivetrain extends SubsystemBase {
         };
     }
 
-    // TODO 2026: Migrated from PathPlanner to Choreo - PositionsRed commented out due to FlippingUtil dependencies
-    // private Pose2d refreshGoalPose2d() {
-    //     // TODO: Why is this hard-coded to PositionsRed?
-    //     this.goalPose = this.getPose2dEstimator().nearest(Constants.Poses.PositionsRed);
-    //     return this.goalPose;
-    // }
+    private Pose2d refreshGoalPose2d() {
+        // TODO: Why is this hard-coded to PositionsRed?
+        this.goalPose = this.getPose2dEstimator().nearest(Constants.Poses.PositionsRed);
+        return this.goalPose;
+    }
 
     /**
      * Stops all the motors on the SwerveModules
@@ -665,11 +663,10 @@ public class Drivetrain extends SubsystemBase {
                 "EstimatedOdometry/Pose/Rot",
                 () -> this.getPose2dEstimator().getRotation().getDegrees(),
                 null);
-        // TODO 2026: Migrated from PathPlanner to Choreo - refreshGoalPose2d commented out
-        // builder.addDoubleProperty("GOALPOSE/X", () -> this.refreshGoalPose2d().getX(), null);
-        // builder.addDoubleProperty("GOALPOSE/Y", () -> this.refreshGoalPose2d().getY(), null);
-        // builder.addDoubleProperty(
-        //         "GOALPOSE/ROT", () -> this.refreshGoalPose2d().getRotation().getRadians(), null);
+        builder.addDoubleProperty("GOALPOSE/X", () -> this.refreshGoalPose2d().getX(), null);
+        builder.addDoubleProperty("GOALPOSE/Y", () -> this.refreshGoalPose2d().getY(), null);
+        builder.addDoubleProperty(
+                "GOALPOSE/ROT", () -> this.refreshGoalPose2d().getRotation().getRadians(), null);
 
         SmartDashboard.putData("DriveTrain/" + this.flSwerve.getName(), this.flSwerve);
         SmartDashboard.putData("DriveTrain/" + this.frSwerve.getName(), this.frSwerve);
