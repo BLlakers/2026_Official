@@ -3,7 +3,6 @@ package frc.robot;
 import static edu.wpi.first.units.Units.Inches;
 import static edu.wpi.first.units.Units.Meters;
 
-import com.pathplanner.lib.path.PathConstraints;
 import com.pathplanner.lib.util.FlippingUtil;
 import edu.wpi.first.math.geometry.*;
 import frc.robot.support.DIOChannel;
@@ -84,8 +83,6 @@ public final class Constants {
 
         public static final Pose2d BlueSpeakerCenterPose = new Pose2d(); // TODO
         public static final Pose2d RedSpeakerCenterPose = new Pose2d(); // TODO
-
-        public static final PathConstraints pathConstraints = new PathConstraints(2, 3, 360, 540);
     }
 
     public static class Port {
@@ -107,10 +104,8 @@ public final class Constants {
         public static final int FRONT_RIGHT_TURN_ENCODER_DIO_CHANNEL = DIOChannel.TWO.getChannel();
         public static final int REAR_RIGHT_TURN_ENCODER_DIO_CHANNEL = DIOChannel.THREE.getChannel();
         public static final int climbMagSwitchDIOC = DIOChannel.FOUR.getChannel();
-        ;
         public static final int hangerLeftMagSwitchDIOC = DIOChannel.SEVEN.getChannel();
         public static final int hangerRightMagSwitchDIOC = DIOChannel.EIGHT.getChannel();
-        ;
         public static final int PHChannel = 30; // REV Pneumatic Hub
         public static final int PDHChannel = 20; // REV Power Distribution Hub
     }
@@ -118,6 +113,23 @@ public final class Constants {
     public static class Algae {
         public static final int intakeMotorChannel = 9;
         public static final int m_AlgaeMtrC = 10;
+    }
+
+    public static class FuelConstants {
+        // Motor CAN IDs
+        public static final int FEEDER_MOTOR_ID = 13;
+        public static final int INTAKE_LAUNCHER_MOTOR_ID = 14;
+
+        // Voltage values for different operations
+        public static final double INTAKING_FEEDER_VOLTAGE = 6.0;
+        public static final double INTAKING_INTAKE_VOLTAGE = 6.0;
+        public static final double LAUNCHING_FEEDER_VOLTAGE = 12.0;
+        public static final double LAUNCHING_LAUNCHER_VOLTAGE = 12.0;
+        public static final double SPIN_UP_FEEDER_VOLTAGE = -3.0;
+
+        // Current limits (amps)
+        public static final int FEEDER_MOTOR_CURRENT_LIMIT = 30;
+        public static final int LAUNCHER_MOTOR_CURRENT_LIMIT = 40;
     }
 
     public abstract class RobotVersionConstants {
@@ -196,5 +208,5 @@ public final class Constants {
                 TwentyTwoRightChanged);
     }
 
-    public static final RobotVersion defaultRobotVersion = RobotVersion.v2025;
+    public static final RobotVersion defaultRobotVersion = RobotVersion.v2026;
 }

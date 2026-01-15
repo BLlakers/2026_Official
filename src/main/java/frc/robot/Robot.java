@@ -7,7 +7,6 @@ import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
-import frc.robot.subsystems.algae.AlgaeMechanism;
 import frc.robot.support.Telemetry;
 import frc.robot.support.limelight.LimelightUtil;
 // some imports no longer needed but leaving them here untill final version
@@ -33,9 +32,7 @@ public class Robot extends TimedRobot {
     // commit
     @Override
     public void robotInit() {
-        m_robotContainer.getLimelightBack().SetTagIDToTrack(-1);
-        m_robotContainer.getLimelightFrl().SetTagIDToTrack(-1);
-        m_robotContainer.getLimelightFrr().SetTagIDToTrack(-1);
+        // TODO 2026: Limelight subsystems removed during migration
         m_robotContainer.getLedStrand().changeLed(128, 0, 0);
         try {
             try (UsbCamera cam = CameraServer.startAutomaticCapture()) {
@@ -59,7 +56,7 @@ public class Robot extends TimedRobot {
 
     @Override
     public void disabledPeriodic() {
-        AlgaeMechanism.AUTO_RUNNING = true;
+        // AlgaeMechanism.AUTO_RUNNING = true; // TODO 2026: Removed subsystem
     }
 
     @Override
@@ -68,7 +65,7 @@ public class Robot extends TimedRobot {
         System.out.println(m_robotContainer.getDriveTrain().isFieldRelativeEnable());
         m_autonomousCommand = m_robotContainer.getAutonomousCommand();
 
-        AlgaeMechanism.AUTO_RUNNING = true;
+        // AlgaeMechanism.AUTO_RUNNING = true; // TODO 2026: Removed subsystem
         if (m_autonomousCommand != null) {
             m_autonomousCommand.schedule();
         }
@@ -77,11 +74,9 @@ public class Robot extends TimedRobot {
     @Override
     public void teleopInit() {
         // m_robotContainer.m_DriveTrain.ZeroGyro().schedule();
-        AlgaeMechanism.AUTO_RUNNING = false;
+        // AlgaeMechanism.AUTO_RUNNING = false; // TODO 2026: Removed subsystem
         m_robotContainer.getDriveTrain().setFieldRelativeEnable(true);
-        m_robotContainer.getLimelightBack().SetTagIDToTrack(-1);
-        m_robotContainer.getLimelightFrl().SetTagIDToTrack(-1);
-        m_robotContainer.getLimelightFrr().SetTagIDToTrack(-1);
+        // TODO 2026: Limelight subsystems removed during migration
         if (m_autonomousCommand != null) {
             m_autonomousCommand.cancel();
         }
