@@ -18,6 +18,8 @@ import frc.robot.subsystems.drivetrain.Drivetrain;
 import frc.robot.subsystems.drivetrain.DrivetrainContext;
 import frc.robot.subsystems.fuel.FuelSubsystem;
 import frc.robot.subsystems.fuel.FuelSubsystemContext;
+import frc.robot.subsystems.vision.VisionSubsystem;
+import frc.robot.subsystems.vision.VisionSubsystemContext;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -30,6 +32,8 @@ public class RobotContainer {
     private final Drivetrain driveTrain = new Drivetrain(drivetrainContext);
 
     private final FuelSubsystem fuelSubsystem = new FuelSubsystem(FuelSubsystemContext.defaults());
+
+    private final VisionSubsystem visionSubsystem = new VisionSubsystem(VisionSubsystemContext.defaults());
 
     private final Command resetPoseAuto =
             Commands.runOnce(() -> this.driveTrain.resetOdometry(this.currentPath.get(0)), this.driveTrain);
@@ -60,6 +64,7 @@ public class RobotContainer {
     public RobotContainer() {
         this.driveTrain.setName("DriveTrain");
         this.fuelSubsystem.setName("FuelSubsystem");
+        this.visionSubsystem.setName("VisionSubsystem");
 
         this.configureShuffleboard();
         this.configureBindings();
@@ -88,6 +93,10 @@ public class RobotContainer {
 
     public LedStrand getLedStrand() {
         return ledStrand;
+    }
+
+    public VisionSubsystem getVisionSubsystem() {
+        return visionSubsystem;
     }
 
     public void periodic() {
@@ -163,6 +172,7 @@ public class RobotContainer {
         SmartDashboard.putData(this.driveTrain);
         SmartDashboard.putData(this.driveTrain.getName() + "/Reset Pose 2D", this.driveTrain.getResetOdometryCommand());
         SmartDashboard.putData(this.fuelSubsystem);
+        SmartDashboard.putData(this.visionSubsystem);
     }
 
     // loads New Auto auto file
