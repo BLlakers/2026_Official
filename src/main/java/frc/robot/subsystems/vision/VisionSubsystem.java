@@ -2,8 +2,12 @@ package frc.robot.subsystems.vision;
 
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import frc.robot.subsystems.drivetrain.Drivetrain;
+
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
+
 import org.photonvision.PhotonCamera;
 import org.photonvision.targeting.PhotonPipelineResult;
 import org.photonvision.targeting.PhotonTrackedTarget;
@@ -18,6 +22,7 @@ import org.photonvision.targeting.PhotonTrackedTarget;
 public class VisionSubsystem extends SubsystemBase {
 
     private final VisionSubsystemContext context;
+    private final Drivetrain drivetrain;
     private final PhotonCamera frontCamera;
     private final PhotonCamera rearCamera;
 
@@ -26,9 +31,9 @@ public class VisionSubsystem extends SubsystemBase {
      *
      * @param context Configuration for the vision subsystem
      */
-    public VisionSubsystem(VisionSubsystemContext context) {
-        this.context = context;
-
+    public VisionSubsystem(final VisionSubsystemContext context, final Drivetrain drivetrain) {
+        this.context = Objects.requireNonNull(context, "Context cannot be null");
+        this.drivetrain = Objects.requireNonNull(drivetrain, "Drivetrain cannot be null");
         // Initialize PhotonVision cameras
         this.frontCamera = new PhotonCamera(context.getFrontCameraName());
         this.rearCamera = new PhotonCamera(context.getRearCameraName());
@@ -70,6 +75,11 @@ public class VisionSubsystem extends SubsystemBase {
 
         // Update overall system status
         updateSystemStatus(frontConnected, rearConnected, frontResult, rearResult);
+    }
+
+    @Override
+    public void simulationPeriodic() {
+        super.simulationPeriodic();
     }
 
     /**

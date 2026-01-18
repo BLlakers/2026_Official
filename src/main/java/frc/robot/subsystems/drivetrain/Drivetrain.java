@@ -350,6 +350,10 @@ public class Drivetrain extends SubsystemBase {
                     navXSensorModule.getRoll(),
                     0);
 
+            // NOTE: This is where we had issues in 2025 because mt2 required that we had correct robot orientation
+            // relative to the field. We couldn't figure out how to adjust our Gyro at the beginning of the match
+            // based on vision. So what we tried to do, was manually place the robot on the field at the beginning
+            // of the match. And if that of 2-3 degrees/rads. then that would blow auto up.
             LimelightHelpers.PoseEstimate mt2 =
                     LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2(Limelights.LIMELIGHT_FRONT_LEFT);
 
@@ -422,7 +426,8 @@ public class Drivetrain extends SubsystemBase {
     }
 
     private Pose2d refreshGoalPose2d() {
-        // TODO: Why is this hard-coded to PositionsRed?
+        // NOTE: This is hard-coded to red, because the field is 0'd to the blue wall. So our goal
+        // is naturally opposite blue.
         this.goalPose = this.getPose2dEstimator().nearest(Constants.Poses.PositionsRed);
         return this.goalPose;
     }

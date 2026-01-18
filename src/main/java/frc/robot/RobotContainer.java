@@ -33,7 +33,7 @@ public class RobotContainer {
 
     private final FuelSubsystem fuelSubsystem = new FuelSubsystem(FuelSubsystemContext.defaults());
 
-    private final VisionSubsystem visionSubsystem = new VisionSubsystem(VisionSubsystemContext.defaults());
+    private final VisionSubsystem visionSubsystem = new VisionSubsystem(VisionSubsystemContext.defaults(), driveTrain);
 
     private final Command resetPoseAuto =
             Commands.runOnce(() -> this.driveTrain.resetOdometry(this.currentPath.get(0)), this.driveTrain);

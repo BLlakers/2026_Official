@@ -32,7 +32,6 @@ public class Robot extends TimedRobot {
     // commit
     @Override
     public void robotInit() {
-        // TODO 2026: Limelight subsystems removed during migration
         m_robotContainer.getLedStrand().changeLed(128, 0, 0);
         try {
             try (UsbCamera cam = CameraServer.startAutomaticCapture()) {
@@ -55,17 +54,10 @@ public class Robot extends TimedRobot {
     }
 
     @Override
-    public void disabledPeriodic() {
-        // AlgaeMechanism.AUTO_RUNNING = true; // TODO 2026: Removed subsystem
-    }
-
-    @Override
     public void autonomousInit() {
         m_robotContainer.getDriveTrain().setFieldRelativeEnable(false);
         System.out.println(m_robotContainer.getDriveTrain().isFieldRelativeEnable());
         m_autonomousCommand = m_robotContainer.getAutonomousCommand();
-
-        // AlgaeMechanism.AUTO_RUNNING = true; // TODO 2026: Removed subsystem
         if (m_autonomousCommand != null) {
             m_autonomousCommand.schedule();
         }
@@ -73,10 +65,7 @@ public class Robot extends TimedRobot {
 
     @Override
     public void teleopInit() {
-        // m_robotContainer.m_DriveTrain.ZeroGyro().schedule();
-        // AlgaeMechanism.AUTO_RUNNING = false; // TODO 2026: Removed subsystem
         m_robotContainer.getDriveTrain().setFieldRelativeEnable(true);
-        // TODO 2026: Limelight subsystems removed during migration
         if (m_autonomousCommand != null) {
             m_autonomousCommand.cancel();
         }
