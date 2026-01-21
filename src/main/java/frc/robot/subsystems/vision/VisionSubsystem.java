@@ -84,6 +84,7 @@ public class VisionSubsystem extends SubsystemBase {
         this.rearCamera = new PhotonCamera(context.getRearCameraName());
 
         // Load AprilTag field layout from WPILib
+        // TODO: Update to k2026Reefscape when available in WPILib
         this.fieldLayout = AprilTagFieldLayout.loadField(AprilTagFields.kDefaultField);
 
         // Create PhotonPoseEstimators for each camera
