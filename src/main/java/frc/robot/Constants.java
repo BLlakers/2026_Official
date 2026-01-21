@@ -18,36 +18,7 @@ public final class Constants {
         public static final String LIMELIGHT_BACK = "limelight-back";
     }
 
-    public static final class Vision {
-        // PhotonVision camera names (must match names configured in PhotonVision UI)
-        public static final String PHOTON_CAMERA_FRONT = "photonvision-front";
-        public static final String PHOTON_CAMERA_REAR = "photonvision-rear";
-
-        // Camera-to-robot transforms for pose estimation (to be calibrated)
-        // Transform from camera optical center to robot center
-        // Format: Transform3d(x, y, z, Rotation3d(roll, pitch, yaw))
-        // TODO: Calibrate these values based on physical camera mounting
-        public static final Transform3d FRONT_CAMERA_TO_ROBOT = new Transform3d(
-                new Translation3d(0.0, 0.0, 0.0), // x, y, z in meters
-                new Rotation3d(0, 0, 0) // roll, pitch, yaw in radians
-                );
-
-        public static final Transform3d REAR_CAMERA_TO_ROBOT = new Transform3d(
-                new Translation3d(0.0, 0.0, 0.0), // x, y, z in meters
-                new Rotation3d(0, 0, Math.PI) // roll, pitch, yaw in radians (180° yaw for rear)
-                );
-
-        // Vision processing configuration
-        public static final boolean ENABLE_VERBOSE_LOGGING = true;
-        public static final boolean ENABLE_CAMERA_TELEMETRY = true;
-
-        // Ambiguity filtering threshold for pose estimation (lower = more strict)
-        // Targets with ambiguity > threshold will be rejected
-        public static final double POSE_AMBIGUITY_THRESHOLD = 0.2;
-
-        // Maximum distance in meters to trust vision measurements for pose estimation
-        public static final double MAX_POSE_ESTIMATION_DISTANCE = 4.0;
-    }
+    // Vision constants have been moved to VisionSubsystemContext as builder defaults
 
     public static final class DriverLabels {
         public static final String ASA = "Asa";

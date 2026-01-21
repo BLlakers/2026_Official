@@ -1,42 +1,102 @@
 package frc.robot.subsystems.vision;
 
+import edu.wpi.first.apriltag.AprilTagFieldLayout;
+import edu.wpi.first.apriltag.AprilTagFields;
+import edu.wpi.first.math.Matrix;
+import edu.wpi.first.math.VecBuilder;
+import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.numbers.N1;
+import edu.wpi.first.math.numbers.N3;
+import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.subsystems.drivetrain.Drivetrain;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-
+import java.util.Optional;
+import org.photonvision.EstimatedRobotPose;
 import org.photonvision.PhotonCamera;
+import org.photonvision.PhotonPoseEstimator;
+import org.photonvision.simulation.PhotonCameraSim;
+import org.photonvision.simulation.SimCameraProperties;
+import org.photonvision.simulation.VisionSystemSim;
 import org.photonvision.targeting.PhotonPipelineResult;
 import org.photonvision.targeting.PhotonTrackedTarget;
 
 /**
  * Vision subsystem for AprilTag detection using PhotonVision.
- * Manages multiple cameras and provides proof-of-life telemetry.
+ * Manages multiple cameras, provides pose estimation, and supports simulation.
  *
- * This subsystem will be extended for pose estimation and localization
- * in future development iterations.
+ * Features:
+ * - Dual camera support (front/rear)
+ * - PhotonPoseEstimator integration for robot localization
+ * - Dynamic standard deviation calculation
+ * - Full simulation support with VisionSystemSim
+ * - Rejection logic for poor vision estimates
  */
 public class VisionSubsystem extends SubsystemBase {
 
+    /**
+     * Functional interface for vision measurement callback.
+     * Used to send vision-based pose estimates to the drivetrain.
+     */
+    @FunctionalInterface
+    public interface VisionMeasurementConsumer {
+        void accept(Pose2d pose, double timestampSeconds, Matrix<N3, N1> stdDevs);
+    }
+
     private final VisionSubsystemContext context;
     private final Drivetrain drivetrain;
+    private final VisionMeasurementConsumer visionMeasurementConsumer;
     private final PhotonCamera frontCamera;
     private final PhotonCamera rearCamera;
+
+    // Pose estimation
+    private final AprilTagFieldLayout fieldLayout;
+    private final PhotonPoseEstimator frontPoseEstimator;
+    private final PhotonPoseEstimator rearPoseEstimator;
+
+    // Simulation (only created in simulation mode)
+    private VisionSystemSim visionSim;
+    private PhotonCameraSim frontCameraSim;
+    private PhotonCameraSim rearCameraSim;
 
     /**
      * Creates a new VisionSubsystem with the provided configuration.
      *
      * @param context Configuration for the vision subsystem
+     * @param drivetrain Drivetrain subsystem reference for pose queries
+     * @param visionMeasurementConsumer Callback to send vision measurements to pose estimator
      */
-    public VisionSubsystem(final VisionSubsystemContext context, final Drivetrain drivetrain) {
+    public VisionSubsystem(
+            final VisionSubsystemContext context,
+            final Drivetrain drivetrain,
+            final VisionMeasurementConsumer visionMeasurementConsumer) {
         this.context = Objects.requireNonNull(context, "Context cannot be null");
         this.drivetrain = Objects.requireNonNull(drivetrain, "Drivetrain cannot be null");
+        this.visionMeasurementConsumer =
+                Objects.requireNonNull(visionMeasurementConsumer, "VisionMeasurementConsumer cannot be null");
+
         // Initialize PhotonVision cameras
         this.frontCamera = new PhotonCamera(context.getFrontCameraName());
         this.rearCamera = new PhotonCamera(context.getRearCameraName());
+
+        // Load AprilTag field layout from WPILib
+        this.fieldLayout = AprilTagFieldLayout.loadField(AprilTagFields.kDefaultField);
+
+        // Create PhotonPoseEstimators for each camera
+        this.frontPoseEstimator = new PhotonPoseEstimator(
+                fieldLayout, context.getPoseEstimationStrategy(), context.getFrontCameraToRobot());
+
+        this.rearPoseEstimator = new PhotonPoseEstimator(
+                fieldLayout, context.getPoseEstimationStrategy(), context.getRearCameraToRobot());
+
+        // Initialize simulation if enabled
+        if (RobotBase.isSimulation() && context.isEnableSimulation()) {
+            initializeSimulation();
+        }
 
         // Set up SmartDashboard entries
         SmartDashboard.putString("Vision/Status", "Initialized");
@@ -44,18 +104,178 @@ public class VisionSubsystem extends SubsystemBase {
         SmartDashboard.putBoolean("Vision/RearCamera/Connected", false);
     }
 
+    /**
+     * Initializes simulation components for vision system.
+     * Creates VisionSystemSim and PhotonCameraSim instances with realistic properties.
+     */
+    private void initializeSimulation() {
+        visionSim = new VisionSystemSim("main");
+        visionSim.addAprilTags(fieldLayout);
+
+        // Configure front camera simulation
+        SimCameraProperties frontProps = new SimCameraProperties();
+        frontProps.setCalibration(
+                context.getCameraResolutionWidth(),
+                context.getCameraResolutionHeight(),
+                Rotation2d.fromDegrees(context.getCameraFovDegrees()));
+        frontProps.setCalibError(context.getCameraCalibError(), context.getCameraCalibErrorStddev());
+        frontProps.setFPS(context.getCameraFps());
+        frontProps.setAvgLatencyMs(context.getCameraAvgLatencyMs());
+        frontProps.setLatencyStdDevMs(context.getCameraLatencyStddevMs());
+
+        frontCameraSim = new PhotonCameraSim(frontCamera, frontProps);
+        visionSim.addCamera(frontCameraSim, context.getFrontCameraToRobot());
+        frontCameraSim.enableDrawWireframe(true);
+        // Disable video streaming to avoid CameraServer handle issues
+        frontCameraSim.enableRawStream(false);
+        frontCameraSim.enableProcessedStream(false);
+
+        // Configure rear camera simulation
+        SimCameraProperties rearProps = new SimCameraProperties();
+        rearProps.setCalibration(
+                context.getCameraResolutionWidth(),
+                context.getCameraResolutionHeight(),
+                Rotation2d.fromDegrees(context.getCameraFovDegrees()));
+        rearProps.setCalibError(context.getCameraCalibError(), context.getCameraCalibErrorStddev());
+        rearProps.setFPS(context.getCameraFps());
+        rearProps.setAvgLatencyMs(context.getCameraAvgLatencyMs());
+        rearProps.setLatencyStdDevMs(context.getCameraLatencyStddevMs());
+
+        rearCameraSim = new PhotonCameraSim(rearCamera, rearProps);
+        visionSim.addCamera(rearCameraSim, context.getRearCameraToRobot());
+        rearCameraSim.enableDrawWireframe(true);
+        // Disable video streaming to avoid CameraServer handle issues
+        rearCameraSim.enableRawStream(false);
+        rearCameraSim.enableProcessedStream(false);
+
+        SmartDashboard.putString("Vision/Simulation", "Active");
+    }
+
+    /**
+     * Updates pose estimation from both cameras and sends measurements to drivetrain.
+     */
+    private void updatePoseEstimation() {
+        Pose2d currentPose = drivetrain.getPose2dEstimator();
+        frontPoseEstimator.setReferencePose(currentPose);
+        rearPoseEstimator.setReferencePose(currentPose);
+
+        processCamera(frontCamera, frontPoseEstimator, "Front");
+        processCamera(rearCamera, rearPoseEstimator, "Rear");
+    }
+
+    /**
+     * Processes a single camera for pose estimation.
+     *
+     * @param camera PhotonCamera instance
+     * @param poseEstimator PhotonPoseEstimator for this camera
+     * @param cameraName Name for telemetry
+     */
+    private void processCamera(PhotonCamera camera, PhotonPoseEstimator poseEstimator, String cameraName) {
+        // Skip isConnected() check - it's expensive and already checked in periodic()
+        PhotonPipelineResult result = camera.getLatestResult();
+        if (!result.hasTargets()) {
+            return;
+        }
+
+        Optional<EstimatedRobotPose> visionEst = poseEstimator.update(result);
+
+        if (visionEst.isEmpty()) {
+            SmartDashboard.putString("Vision/" + cameraName + "Camera/EstimateStatus", "No valid estimate");
+            return;
+        }
+
+        EstimatedRobotPose estimatedPose = visionEst.get();
+
+        if (shouldRejectEstimate(estimatedPose, result)) {
+            SmartDashboard.putString("Vision/" + cameraName + "Camera/EstimateStatus", "Rejected");
+            return;
+        }
+
+        Matrix<N3, N1> stdDevs = calculateVisionStdDevs(estimatedPose, result);
+
+        visionMeasurementConsumer.accept(
+                estimatedPose.estimatedPose.toPose2d(), estimatedPose.timestampSeconds, stdDevs);
+
+        SmartDashboard.putString("Vision/" + cameraName + "Camera/EstimateStatus", "Accepted");
+        SmartDashboard.putNumber("Vision/" + cameraName + "Camera/EstimateX", estimatedPose.estimatedPose.getX());
+        SmartDashboard.putNumber("Vision/" + cameraName + "Camera/EstimateY", estimatedPose.estimatedPose.getY());
+    }
+
+    /**
+     * Calculates dynamic standard deviations based on vision conditions.
+     * More tags and closer distance = lower std dev (higher trust).
+     *
+     * @param estimate Estimated robot pose
+     * @param result Pipeline result
+     * @return Standard deviations for x, y, and theta
+     */
+    private Matrix<N3, N1> calculateVisionStdDevs(EstimatedRobotPose estimate, PhotonPipelineResult result) {
+
+        int tagCount = estimate.targetsUsed.size();
+
+        double avgDistance = estimate.targetsUsed.stream()
+                .mapToDouble(target ->
+                        target.getBestCameraToTarget().getTranslation().getNorm())
+                .average()
+                .orElse(4.0);
+
+        double baseStdDev;
+        if (tagCount >= 2) {
+            baseStdDev = context.getMultiTagStdDevFactor();
+        } else {
+            baseStdDev = context.getSingleTagStdDevFactor();
+        }
+
+        double distanceScaling = 1.0 + (avgDistance * context.getDistanceScalingFactor());
+        double xyStdDev = baseStdDev * distanceScaling;
+        double thetaStdDev = 9999999;
+
+        SmartDashboard.putNumber("Vision/StdDev/XY", xyStdDev);
+        SmartDashboard.putNumber("Vision/TagCount", tagCount);
+        SmartDashboard.putNumber("Vision/AvgDistance", avgDistance);
+
+        return VecBuilder.fill(xyStdDev, xyStdDev, thetaStdDev);
+    }
+
+    /**
+     * Determines if a vision estimate should be rejected based on quality metrics.
+     *
+     * @param estimate Estimated robot pose
+     * @param result Pipeline result
+     * @return true if estimate should be rejected
+     */
+    private boolean shouldRejectEstimate(EstimatedRobotPose estimate, PhotonPipelineResult result) {
+        for (var target : estimate.targetsUsed) {
+            double distance = target.getBestCameraToTarget().getTranslation().getNorm();
+            if (distance > context.getMaxPoseEstimationDistance()) {
+                return true;
+            }
+
+            if (estimate.targetsUsed.size() == 1) {
+                double ambiguity = target.getPoseAmbiguity();
+                if (ambiguity > context.getPoseAmbiguityThreshold()) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     @Override
     public void periodic() {
-        // Get latest results from both cameras
-        PhotonPipelineResult frontResult = frontCamera.getLatestResult();
-        PhotonPipelineResult rearResult = rearCamera.getLatestResult();
+        // In simulation, skip the expensive isConnected() calls - cameras are always available
+        boolean isSimulation = RobotBase.isSimulation() && visionSim != null;
 
-        // Update connection status
-        boolean frontConnected = frontCamera.isConnected();
-        boolean rearConnected = rearCamera.isConnected();
+        // Update connection status (skip in simulation to avoid performance issues)
+        boolean frontConnected = isSimulation || frontCamera.isConnected();
+        boolean rearConnected = isSimulation || rearCamera.isConnected();
 
         SmartDashboard.putBoolean("Vision/FrontCamera/Connected", frontConnected);
         SmartDashboard.putBoolean("Vision/RearCamera/Connected", rearConnected);
+
+        // Get latest results from both cameras
+        PhotonPipelineResult frontResult = frontCamera.getLatestResult();
+        PhotonPipelineResult rearResult = rearCamera.getLatestResult();
 
         // Process and log AprilTag detections from front camera
         if (frontConnected && frontResult.hasTargets()) {
@@ -75,11 +295,17 @@ public class VisionSubsystem extends SubsystemBase {
 
         // Update overall system status
         updateSystemStatus(frontConnected, rearConnected, frontResult, rearResult);
+
+        // Perform pose estimation and send to drivetrain
+        updatePoseEstimation();
     }
 
     @Override
     public void simulationPeriodic() {
-        super.simulationPeriodic();
+        if (visionSim != null) {
+            Pose2d robotPose = drivetrain.getPose2dEstimator();
+            visionSim.update(robotPose);
+        }
     }
 
     /**

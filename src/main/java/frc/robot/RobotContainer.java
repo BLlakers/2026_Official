@@ -33,7 +33,8 @@ public class RobotContainer {
 
     private final FuelSubsystem fuelSubsystem = new FuelSubsystem(FuelSubsystemContext.defaults());
 
-    private final VisionSubsystem visionSubsystem = new VisionSubsystem(VisionSubsystemContext.defaults(), driveTrain);
+    private final VisionSubsystem visionSubsystem =
+            new VisionSubsystem(VisionSubsystemContext.defaults(), driveTrain, driveTrain::addVisionMeasurement);
 
     private final Command resetPoseAuto =
             Commands.runOnce(() -> this.driveTrain.resetOdometry(this.currentPath.get(0)), this.driveTrain);
@@ -71,16 +72,27 @@ public class RobotContainer {
         this.registerCommands();
 
         // Build an auto chooser. This will use Commands.none() as the default option.
+        // If AutoBuilder is not configured (no RobotConfig), create a basic chooser
+        this.autoChooser = buildAutoChooserSafe();
+    }
 
-        autoChooser = AutoBuilder.buildAutoChooser();
-
-        // Another option that allows you to specify the default auto by its name:
-        // autoChooser = AutoBuilder.buildAutoChooser("My Default Auto");
-
-        SmartDashboard.putData("Auto Chooser", autoChooser);
-
-        // Creates a field to be put to the shuffleboard
-        SmartDashboard.putData("AUTOPOSITION", (s) -> AutoBuilder.getCurrentPose());
+    /**
+     * Safely builds an auto chooser, falling back to a basic chooser if AutoBuilder is not configured.
+     */
+    private SendableChooser<Command> buildAutoChooserSafe() {
+        try {
+            SendableChooser<Command> chooser = AutoBuilder.buildAutoChooser();
+            SmartDashboard.putData("Auto Chooser", chooser);
+            // Creates a field to be put to the shuffleboard
+            SmartDashboard.putData("AUTOPOSITION", (s) -> AutoBuilder.getCurrentPose());
+            return chooser;
+        } catch (RuntimeException e) {
+            System.out.println("WARNING: AutoBuilder not configured. Creating basic auto chooser with none() command.");
+            SendableChooser<Command> chooser = new SendableChooser<>();
+            chooser.setDefaultOption("None", Commands.none());
+            SmartDashboard.putData("Auto Chooser", chooser);
+            return chooser;
+        }
     }
 
     public Drivetrain getDriveTrain() {

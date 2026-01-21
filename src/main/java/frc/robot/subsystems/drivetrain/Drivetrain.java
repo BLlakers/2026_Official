@@ -13,11 +13,14 @@ import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.config.PIDConstants;
 import com.pathplanner.lib.controllers.PPHolonomicDriveController;
 import com.studica.frc.AHRS;
+import edu.wpi.first.math.Matrix;
 import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.estimator.SwerveDrivePoseEstimator;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.*;
+import edu.wpi.first.math.numbers.N1;
+import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.networktables.StructArrayPublisher;
@@ -193,9 +196,9 @@ public class Drivetrain extends SubsystemBase {
                                     this); // Reference to this subsystem to set requirements
                         },
                         () -> {
-                            // NOTE: This should probably be fatal
-                            throw new RuntimeException("Unable to obtain RobotConfig during Drivetrain creation."
-                                    + "Path Planning will fail!");
+                            // NOTE: PathPlanner AutoBuilder not configured - auto routines will not be available
+                            System.out.println("WARNING: Unable to obtain RobotConfig during Drivetrain creation. "
+                                    + "PathPlanner AutoBuilder not configured. Auto routines will not be available.");
                         });
 
         this.swerveDriveKinematics = new SwerveDriveKinematics(
@@ -261,8 +264,25 @@ public class Drivetrain extends SubsystemBase {
         return this.swerveDriveOdometry.getPoseMeters();
     }
 
-    private Pose2d getPose2dEstimator() {
+    public Pose2d getPose2dEstimator() {
         return this.swerveDrivePoseEstimator.getEstimatedPosition();
+    }
+
+    /**
+     * Adds a vision measurement to the pose estimator.
+     * Called by VisionSubsystem when new vision estimates are available.
+     *
+     * @param visionPose The pose estimate from vision
+     * @param timestampSeconds The timestamp of the vision measurement
+     * @param stdDevs The standard deviations (x, y, theta) for this measurement
+     */
+    public void addVisionMeasurement(Pose2d visionPose, double timestampSeconds, Matrix<N3, N1> stdDevs) {
+
+        this.swerveDrivePoseEstimator.addVisionMeasurement(visionPose, timestampSeconds, stdDevs);
+
+        SmartDashboard.putNumber("Vision/AcceptedPose/X", visionPose.getX());
+        SmartDashboard.putNumber("Vision/AcceptedPose/Y", visionPose.getY());
+        SmartDashboard.putNumber("Vision/AcceptedPose/Timestamp", timestampSeconds);
     }
 
     /**
