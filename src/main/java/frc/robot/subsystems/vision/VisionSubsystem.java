@@ -21,7 +21,7 @@ public class VisionSubsystem extends SubsystemBase {
     private final PhotonCamera frontCamera;
     private final PhotonCamera rearCamera;
 
-    /**
+    /** 
      * Creates a new VisionSubsystem with the provided configuration.
      *
      * @param context Configuration for the vision subsystem
