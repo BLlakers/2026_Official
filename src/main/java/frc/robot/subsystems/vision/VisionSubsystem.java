@@ -84,7 +84,6 @@ public class VisionSubsystem extends SubsystemBase {
         this.rearCamera = new PhotonCamera(context.getRearCameraName());
 
         // Load AprilTag field layout from WPILib
-        // TODO: Update to k2026Reefscape when available in WPILib
         this.fieldLayout = AprilTagFieldLayout.loadField(AprilTagFields.kDefaultField);
 
         // Create PhotonPoseEstimators for each camera
@@ -127,9 +126,9 @@ public class VisionSubsystem extends SubsystemBase {
         frontCameraSim = new PhotonCameraSim(frontCamera, frontProps);
         visionSim.addCamera(frontCameraSim, context.getFrontCameraToRobot());
         frontCameraSim.enableDrawWireframe(true);
-        // Disable video streaming to avoid CameraServer handle issues
-        frontCameraSim.enableRawStream(false);
-        frontCameraSim.enableProcessedStream(false);
+
+        frontCameraSim.enableRawStream(context.isEnablePhotonCameraSimStreams());
+        frontCameraSim.enableProcessedStream(context.isEnablePhotonCameraSimStreams());
 
         // Configure rear camera simulation
         SimCameraProperties rearProps = new SimCameraProperties();

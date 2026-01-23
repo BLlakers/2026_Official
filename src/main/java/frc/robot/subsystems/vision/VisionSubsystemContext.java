@@ -149,6 +149,9 @@ public class VisionSubsystemContext {
     @Builder.Default
     private final double distanceScalingFactor = 0.1;
 
+    @Builder.Default
+    private final boolean enablePhotonCameraSimStreams = false;
+
     /**
      * Creates a default configuration for the Vision subsystem.
      * All parameters use builder defaults unless overridden.
