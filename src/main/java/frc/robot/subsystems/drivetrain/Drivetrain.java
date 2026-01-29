@@ -37,6 +37,8 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants;
 import frc.robot.Constants.Limelights;
 import frc.robot.sim.SwerveModuleSim;
+import frc.robot.support.Telemetry;
+import frc.robot.support.TelemetryLevel;
 import frc.robot.support.limelight.LimelightHelpers;
 import java.util.Optional;
 
@@ -234,6 +236,42 @@ public class Drivetrain extends SubsystemBase {
         this.addChild(rlSwerve.getName(), rlSwerve);
         this.addChild(rrSwerve.getName(), rrSwerve);
         this.addChild("navx", this.navXSensorModule);
+
+        // Register for automatic telemetry capture
+        Telemetry.registerSubsystem("Drivetrain", this::captureTelemetry);
+    }
+
+    /**
+     * Captures telemetry data for this subsystem. Called automatically by Telemetry.periodic().
+     * Data is organized by telemetry level for efficient capture at different verbosity settings.
+     *
+     * @param prefix The telemetry key prefix (typically "Drivetrain")
+     */
+    private void captureTelemetry(String prefix) {
+        // MATCH level - essential data for competition analysis
+        Telemetry.record(prefix + "/Pose", this.getPose2dEstimator(), TelemetryLevel.MATCH);
+        Telemetry.record(prefix + "/Speeds", this.getChassisSpeeds(), TelemetryLevel.MATCH);
+        Telemetry.record(prefix + "/Heading", this.getHeading(), TelemetryLevel.MATCH);
+        Telemetry.record(prefix + "/FieldRelative", this.fieldRelativeEnable, TelemetryLevel.MATCH);
+        Telemetry.record(prefix + "/WheelLock", this.wheelLock, TelemetryLevel.MATCH);
+
+        // LAB level - detailed data for practice and tuning
+        Telemetry.record(prefix + "/ModuleStates/Current", this.getSwerveModuleStates(), TelemetryLevel.LAB);
+        Telemetry.record(prefix + "/ModuleStates/Desired", this.desiredStates, TelemetryLevel.LAB);
+        Telemetry.record(prefix + "/OdometryPose", this.getPose2d(), TelemetryLevel.LAB);
+        Telemetry.record(prefix + "/GyroAngle", this.navXSensorModule.getAngle(), TelemetryLevel.LAB);
+        Telemetry.record(prefix + "/GyroPitch", this.navXSensorModule.getPitch(), TelemetryLevel.LAB);
+        Telemetry.record(prefix + "/GyroRoll", this.navXSensorModule.getRoll(), TelemetryLevel.LAB);
+        Telemetry.record(prefix + "/GyroRate", this.navXSensorModule.getRate(), TelemetryLevel.LAB);
+
+        if (this.goalPose != null) {
+            Telemetry.record(prefix + "/GoalPose", this.goalPose, TelemetryLevel.LAB);
+        }
+
+        // VERBOSE level - maximum detail for deep debugging
+        Telemetry.record(prefix + "/NavX/Connected", this.navXSensorModule.isConnected(), TelemetryLevel.VERBOSE);
+        Telemetry.record(prefix + "/NavX/Calibrating", this.navXSensorModule.isCalibrating(), TelemetryLevel.VERBOSE);
+        Telemetry.record(prefix + "/NavX/AngleAdjustment", this.navXSensorModule.getAngleAdjustment(), TelemetryLevel.VERBOSE);
     }
 
     public double getMaxSpeed() {

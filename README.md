@@ -17,6 +17,7 @@ This codebase is currently in a **transitional state** as we migrate from the 20
 - ✓ **TemplateMechanism Example** - Phoenix6 TalonFX reference subsystem for new mechanism development
 - ✓ **Legacy Subsystem Removal** - Removed 2025-specific mechanisms (climb, elevator, vision/Limelight)
 - ✓ **PhotonVision Integration** - Vision subsystem with dual-camera AprilTag detection and SmartDashboard telemetry
+- ✓ **Enhanced Telemetry System** - Level-aware data capture (NONE/MATCH/LAB/VERBOSE), USB auto-detection, structured type support, AdvantageScope-compatible logging for match replay
 
 ### Architecture Pattern:
 This codebase uses a **Context-based configuration pattern** inspired by the 2026 KitBot reference implementation:
@@ -34,6 +35,7 @@ This codebase uses a **Context-based configuration pattern** inspired by the 202
 For new subsystem development, refer to:
 - `FuelSubsystem` - SparkMax-based roller mechanism (adapted from KitBot)
 - `TemplateMechanism` - TalonFX-based mechanism baseline
+- `Drivetrain.captureTelemetry()` - Example of telemetry integration pattern
 
 ---
 
@@ -45,6 +47,7 @@ For new subsystem development, refer to:
 - [Running the Simulator](#running-the-simulator)
 - [Deploying to the Robot](#deploying-to-the-robot)
 - [PhotonVision Development Loop](#photonvision-development-loop)
+- [Telemetry System](#telemetry-system)
 - [Testing & Code Coverage](#testing--code-coverage)
 - [Formatting & Static Checks](#formatting--static-checks)
 - [Configuration & Constants](#configuration--constants)
@@ -90,10 +93,17 @@ cd <repo-dir>
 ```
 src/main/java/frc/robot/
   commands/            # Command-based routines (e.g., swervedrive/)
-  subsystems/          # Subsystems (drivetrain/, fuel/, template/)
+  subsystems/          # Subsystems (drivetrain/, fuel/, vision/, template/)
   sim/                 # Simulation helpers (SwerveModuleSim, physics)
-  support/             # Vendor abstractions (sparkmax/, sensors, utils)
+  support/             # Utilities and abstractions
+    ├── Telemetry.java       # Enhanced telemetry API
+    ├── TelemetryLevel.java  # Verbosity levels (NONE/MATCH/LAB/VERBOSE)
+    ├── TelemetryConfig.java # Configuration with USB detection
+    ├── sparkmax/            # REV SPARK MAX abstractions
+    └── limelight/           # Limelight utilities (legacy)
   Constants.java       # Global constants (units in identifiers where possible)
+src/main/deploy/
+  telemetry.properties # Telemetry configuration (level, USB settings)
 vendordeps/            # Vendor JSONs (REV, CTRE Phoenix6, PathPlanner, etc.)
 ```
 ---
@@ -440,6 +450,453 @@ The current VisionSubsystem provides proof-of-life functionality. Future enhance
 - **PhotonLib Java API:** https://docs.photonvision.org/en/latest/docs/programming/photonlib/index.html
 - **2026 AprilTag Layout:** https://firstfrc.blob.core.windows.net/frc2026/FieldAssets/AprilTags.pdf
 - **WPILib Pose Estimation:** https://docs.wpilib.org/en/stable/docs/software/advanced-controls/state-space/state-space-pose-estimators.html
+
+---
+
+## Telemetry System
+
+The **Telemetry** system provides high-fidelity data capture for post-match analysis, debugging, and performance tuning. Data is automatically logged to USB storage (when available) in WPILib's `.wpilog` format, which can be replayed in **AdvantageScope** for full match visualization.
+
+### Architecture Overview
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                         Robot Code                                       │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐    │
+│  │ Drivetrain  │  │   Vision    │  │    Fuel     │  │  Commands   │    │
+│  └──────┬──────┘  └──────┬──────┘  └──────┬──────┘  └──────┬──────┘    │
+│         │                │                │                │            │
+│         └────────────────┴────────────────┴────────────────┘            │
+│                                   │                                      │
+│                          ┌────────▼────────┐                            │
+│                          │    Telemetry    │  ← Single instrumentation  │
+│                          │  (Level-aware)  │    point for all data      │
+│                          └────────┬────────┘                            │
+└───────────────────────────────────┼──────────────────────────────────────┘
+                                    │
+              ┌─────────────────────┴─────────────────────┐
+              │                                           │
+       ┌──────▼──────┐                            ┌───────▼───────┐
+       │  DataLog    │                            │ NetworkTables │
+       │ (.wpilog)   │                            │  (real-time)  │
+       └──────┬──────┘                            └───────────────┘
+              │
+       ┌──────▼──────┐
+       │ USB Stick   │  ← Auto-detected at /media/sda1/FRC_LOGS/
+       │ (portable)  │
+       └──────┬──────┘
+              │
+       ┌──────▼──────┐
+       │ AdvantageScope │  ← Replay, visualize, analyze
+       └─────────────────┘
+```
+
+### File Structure
+
+```
+src/main/java/frc/robot/support/
+├── Telemetry.java          # Main telemetry API (record, event, error)
+├── TelemetryLevel.java     # Verbosity levels (NONE, MATCH, LAB, VERBOSE)
+└── TelemetryConfig.java    # Configuration with USB detection
+
+src/main/deploy/
+└── telemetry.properties    # Deploy-time configuration
+```
+
+### Telemetry Levels
+
+| Level | Use Case | Data Rate | What Gets Logged |
+|-------|----------|-----------|------------------|
+| `NONE` | Emergency/Competition backup | 0 Hz | Nothing (silent mode) |
+| `MATCH` | Competition matches | ~20 Hz | Essential: pose, commands, errors |
+| `LAB` | Practice/testing | ~50 Hz | MATCH + motor currents, sensor raw values |
+| `VERBOSE` | Deep debugging | ~100+ Hz | LAB + PID internals, all signals |
+
+### Quick Start
+
+#### 1. Automatic Initialization (Already Configured)
+
+Telemetry is automatically initialized in `Robot.java`:
+
+```java
+@Override
+public void robotInit() {
+    // Loads config from telemetry.properties or uses defaults
+    Telemetry.initialize(TelemetryConfig.fromDeployDirectory());
+    // ...
+}
+
+@Override
+public void robotPeriodic() {
+    // Captures all registered subsystems
+    Telemetry.periodic();
+    // ...
+}
+```
+
+#### 2. Instrument Your Subsystems
+
+Register subsystems for automatic capture:
+
+```java
+// In subsystem constructor
+public MySubsystem(MySubsystemContext context) {
+    // ... initialization ...
+
+    // Register for automatic telemetry capture
+    Telemetry.registerSubsystem("MySubsystem", this::captureTelemetry);
+}
+
+// Capture method - called automatically by Telemetry.periodic()
+private void captureTelemetry(String prefix) {
+    // MATCH level - essential data (always captured at MATCH+)
+    Telemetry.record(prefix + "/Position", getPosition(), TelemetryLevel.MATCH);
+    Telemetry.record(prefix + "/Velocity", getVelocity(), TelemetryLevel.MATCH);
+
+    // LAB level - detailed data (captured at LAB+)
+    Telemetry.record(prefix + "/MotorCurrent", motor.getOutputCurrent(), TelemetryLevel.LAB);
+    Telemetry.record(prefix + "/MotorTemp", motor.getMotorTemperature(), TelemetryLevel.LAB);
+
+    // VERBOSE level - debug data (only at VERBOSE)
+    Telemetry.record(prefix + "/PID/Error", pidController.getPositionError(), TelemetryLevel.VERBOSE);
+    Telemetry.record(prefix + "/PID/Setpoint", pidController.getSetpoint(), TelemetryLevel.VERBOSE);
+}
+```
+
+#### 3. Log Events and Errors
+
+```java
+// Significant events (always captured regardless of level)
+Telemetry.event("Intake/Acquired", "Coral detected at " + Timer.getFPGATimestamp());
+Telemetry.event("Auto/PathStarted", "Running path: " + pathName);
+
+// Errors (always captured + shown in DriverStation)
+Telemetry.error("Launcher", "Overcurrent detected", motorCurrent);
+Telemetry.error("Vision", "Camera disconnected", exception);
+```
+
+#### 4. Structured Types (AdvantageScope-Ready)
+
+Native WPILib struct support for visualization:
+
+```java
+// Pose2d - appears as field visualization in AdvantageScope
+Telemetry.record("Drivetrain/Pose", getPose2d(), TelemetryLevel.MATCH);
+
+// ChassisSpeeds - velocity vectors
+Telemetry.record("Drivetrain/Speeds", getChassisSpeeds(), TelemetryLevel.MATCH);
+
+// SwerveModuleState[] - swerve visualizer
+Telemetry.record("Drivetrain/ModuleStates", getSwerveModuleStates(), TelemetryLevel.LAB);
+
+// Pose2d[] - trajectory visualization
+Telemetry.recordPoses("Auto/PlannedPath", trajectoryPoses, TelemetryLevel.LAB);
+```
+
+### Configuration
+
+#### Deploy-Time Configuration (telemetry.properties)
+
+Located at `src/main/deploy/telemetry.properties`:
+
+```properties
+# Telemetry verbosity level (NONE, MATCH, LAB, VERBOSE)
+telemetry.level=LAB
+
+# Enable USB stick detection for log storage
+telemetry.usb.enabled=true
+
+# Log NetworkTables data for full replay in AdvantageScope
+telemetry.networktables.enabled=true
+
+# Custom log path (optional, overrides USB detection)
+# telemetry.path=/home/lvuser/custom_logs
+```
+
+#### Runtime Level Changes
+
+Change level during operation via NetworkTables:
+
+1. Open SmartDashboard/Shuffleboard
+2. Navigate to `Telemetry/Level`
+3. Change value to: `NONE`, `MATCH`, `LAB`, or `VERBOSE`
+
+Or programmatically:
+```java
+Telemetry.setLevel(TelemetryLevel.VERBOSE);  // For debugging
+Telemetry.setLevel(TelemetryLevel.MATCH);    // For competition
+```
+
+### USB Stick Setup
+
+#### Preparing the USB Stick
+
+1. **Format:** FAT32 or ext4 (FAT32 recommended for cross-platform)
+2. **Capacity:** 8GB+ recommended (typical match log: 10-20MB)
+3. **Speed:** USB 2.0 minimum, USB 3.0 preferred
+
+#### On the roboRIO
+
+1. Insert USB stick into roboRIO USB port
+2. System auto-creates `FRC_LOGS/` directory
+3. Logs are written with timestamped filenames: `FRC_YYYYMMDD_HHMMSS.wpilog`
+
+#### Auto-Detection Paths (checked in order)
+
+| Path | Description |
+|------|-------------|
+| `/media/sda1/FRC_LOGS` | Primary USB mount on roboRIO 2 |
+| `/U/FRC_LOGS` | Alternate USB mount point |
+| `/home/lvuser/logs` | Fallback (internal storage) |
+
+### Match Analysis Workflow
+
+#### Scenario: Subsystem Failure During Competition
+
+> "During qualification match 47, our launcher failed at 1:45 into the match. The driver pressed the launch button, but nothing happened."
+
+#### Step 1: Retrieve Log (2 minutes)
+
+```
+PIT AREA
+├── Remove USB stick from roboRIO
+├── Insert into pit laptop
+└── Navigate to: FRC_LOGS/FRC_20240315_142500.wpilog
+```
+
+#### Step 2: Open in AdvantageScope (1 minute)
+
+```
+AdvantageScope
+├── File → Open Log → Select .wpilog file
+├── Data tree shows all logged signals:
+│   ├── Drivetrain/
+│   │   ├── Pose (Pose2d) → Field visualization
+│   │   ├── Speeds (ChassisSpeeds)
+│   │   └── ModuleStates (SwerveModuleState[])
+│   ├── Launcher/
+│   │   ├── Voltage
+│   │   ├── Current
+│   │   ├── RPM
+│   │   └── Error (event log)
+│   └── Match/
+│       ├── Mode (Auto/Teleop/Disabled)
+│       └── Time
+```
+
+#### Step 3: Navigate to Failure Point (3 minutes)
+
+1. Use timeline to navigate to **1:45** (failure time)
+2. Add signals to graph:
+   - `Launcher/Voltage` - Was voltage commanded?
+   - `Launcher/Current` - Motor current draw
+   - `Launcher/RPM` - Actual motor speed
+3. Look for the **event marker**: `Launcher/Error`
+
+#### Step 4: Identify Root Cause
+
+```
+Timeline: 1:44:800 ──────────────────────── 1:46:200
+
+Launcher/Voltage
+12V ┤                    ┌────────────────────
+    │                    │ ← Voltage commanded correctly
+ 0V ┤────────────────────┘
+
+Launcher/Current
+40A ┤                    ┌──┐ ← Current spike (STALL!)
+20A ┤                    │  │
+ 0A ┤────────────────────┘  └──────
+
+Launcher/RPM
+3000 ┤
+   0 ┤────────────────────────────── ← RPM stays at 0!
+
+Launcher/Error
+─────────────────────────X─────────────────────
+                         └── "Overcurrent: 42.3A"
+```
+
+**Diagnosis:** Motor stalled (12V applied, 42A current, 0 RPM = mechanical jam)
+
+#### Step 5: Replay in Simulation (Optional)
+
+AdvantageScope supports synchronized playback:
+- **Field2d view:** See robot position at failure
+- **Swerve visualizer:** Check drivetrain state
+- **Slow motion:** Step through critical moments
+
+### Telemetry API Reference
+
+#### Recording Data
+
+```java
+// Primitives (with level)
+Telemetry.record(String key, double value, TelemetryLevel level);
+Telemetry.record(String key, int value, TelemetryLevel level);
+Telemetry.record(String key, boolean value, TelemetryLevel level);
+Telemetry.record(String key, String value, TelemetryLevel level);
+Telemetry.record(String key, double[] values, TelemetryLevel level);
+
+// Structured types (AdvantageScope visualization)
+Telemetry.record(String key, Pose2d pose, TelemetryLevel level);
+Telemetry.record(String key, Pose3d pose, TelemetryLevel level);
+Telemetry.record(String key, Rotation2d rotation, TelemetryLevel level);
+Telemetry.record(String key, ChassisSpeeds speeds, TelemetryLevel level);
+Telemetry.record(String key, SwerveModuleState[] states, TelemetryLevel level);
+Telemetry.recordPoses(String key, Pose2d[] poses, TelemetryLevel level);
+
+// Legacy API (defaults to MATCH level)
+Telemetry.record(String key, double value);
+Telemetry.record(String key, String value);
+```
+
+#### Events and Errors
+
+```java
+// Events (always captured)
+Telemetry.event(String key, String description);
+Telemetry.event(String key);  // Auto-timestamps
+
+// Errors (always captured + DriverStation notification)
+Telemetry.error(String subsystem, String message);
+Telemetry.error(String subsystem, String message, double value);
+Telemetry.error(String subsystem, String message, Throwable cause);
+```
+
+#### Subsystem Registration
+
+```java
+// Register for automatic capture
+Telemetry.registerSubsystem(String name, Consumer<String> captureFunction);
+
+// Unregister (if needed)
+Telemetry.unregisterSubsystem(String name);
+```
+
+#### Utility Methods
+
+```java
+// Level management
+TelemetryLevel Telemetry.getCurrentLevel();
+void Telemetry.setLevel(TelemetryLevel level);
+
+// Status
+boolean Telemetry.isInitialized();
+
+// Lifecycle
+void Telemetry.initialize(TelemetryConfig config);
+void Telemetry.periodic();  // Call in robotPeriodic()
+void Telemetry.shutdown();  // Called automatically in Robot.close()
+```
+
+### SmartDashboard/NetworkTables Reference
+
+When telemetry is active, the following entries are published:
+
+#### System Status
+- `Telemetry/Level` - Current verbosity level (editable)
+- `Telemetry/Initialized` - Initialization status
+- `Telemetry/LogPath` - Where logs are being written
+
+#### Match Context
+- `Match/Mode` - Current mode (Disabled/Auto/Teleop/Test)
+- `Match/Time` - Match time remaining
+- `Match/Alliance` - Red/Blue/Unknown
+
+#### Per-Subsystem (example: Drivetrain)
+- `Drivetrain/Pose` - Current robot pose
+- `Drivetrain/Speeds` - Chassis velocities
+- `Drivetrain/Heading` - Robot heading
+- `Drivetrain/ModuleStates/Current` - Actual swerve states
+- `Drivetrain/ModuleStates/Desired` - Commanded swerve states
+- `Drivetrain/Error` - Error messages (if any)
+
+### Best Practices
+
+#### 1. Choose Appropriate Levels
+
+```java
+// MATCH: Data you NEED for competition analysis
+Telemetry.record("Arm/Position", getPosition(), TelemetryLevel.MATCH);
+
+// LAB: Data useful for tuning and practice
+Telemetry.record("Arm/MotorCurrent", getCurrent(), TelemetryLevel.LAB);
+
+// VERBOSE: Data only needed for deep debugging
+Telemetry.record("Arm/PID/Derivative", pidD, TelemetryLevel.VERBOSE);
+```
+
+#### 2. Use Consistent Key Naming
+
+```java
+// Good: Hierarchical, descriptive
+"Drivetrain/FL/DriveMotor/Current"
+"Intake/State"
+"Auto/PathFollowing/Error"
+
+// Avoid: Flat, ambiguous
+"flCurrent"
+"state"
+"error"
+```
+
+#### 3. Log Events at State Transitions
+
+```java
+public void startIntake() {
+    Telemetry.event("Intake/Started");
+    // ...
+}
+
+public void stopIntake() {
+    Telemetry.event("Intake/Stopped", "reason=" + stopReason);
+    // ...
+}
+```
+
+#### 4. Include Context in Errors
+
+```java
+// Good: Includes relevant values
+Telemetry.error("Launcher", "Overcurrent detected", motorCurrent);
+Telemetry.error("Vision", "Tag ambiguity too high", ambiguity);
+
+// Avoid: Vague messages
+Telemetry.error("Launcher", "Error occurred");
+```
+
+### Troubleshooting
+
+#### Logs Not Appearing on USB
+
+1. **Check USB detection:**
+   - Look at `Telemetry/LogPath` in SmartDashboard
+   - Should show `/media/sda1/FRC_LOGS` if USB detected
+2. **Verify USB is mounted:**
+   - SSH to roboRIO: `ssh admin@roborio-XXXX-frc.local`
+   - Run: `ls /media/sda1`
+3. **Check USB format:** Must be FAT32 or ext4
+4. **Check permissions:** `FRC_LOGS` directory should be writable
+
+#### Log Files Too Large
+
+1. Reduce telemetry level: `LAB` → `MATCH`
+2. Remove high-frequency VERBOSE-level records
+3. Use USB with more capacity
+4. Clean old logs periodically
+
+#### AdvantageScope Can't Open Log
+
+1. Ensure `.wpilog` extension (not `.log`)
+2. Download latest AdvantageScope version
+3. Check log file isn't corrupted (partial write during power loss)
+
+### Additional Resources
+
+- **AdvantageScope:** https://github.com/Mechanical-Advantage/AdvantageScope
+- **WPILib Data Logging:** https://docs.wpilib.org/en/stable/docs/software/telemetry/datalog.html
+- **NetworkTables:** https://docs.wpilib.org/en/stable/docs/software/networktables/index.html
 
 ---
 

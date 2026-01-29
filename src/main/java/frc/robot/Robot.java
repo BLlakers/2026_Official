@@ -8,6 +8,7 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import frc.robot.support.Telemetry;
+import frc.robot.support.TelemetryConfig;
 import frc.robot.support.limelight.LimelightUtil;
 // some imports no longer needed but leaving them here untill final version
 
@@ -32,6 +33,10 @@ public class Robot extends TimedRobot {
     // commit
     @Override
     public void robotInit() {
+        // Initialize telemetry first - attempts USB detection, falls back to default location
+        // Configuration can be overridden via telemetry.properties in deploy directory
+        Telemetry.initialize(TelemetryConfig.fromDeployDirectory());
+
         m_robotContainer.getLedStrand().changeLed(128, 0, 0);
         try {
             try (UsbCamera cam = CameraServer.startAutomaticCapture()) {
@@ -49,6 +54,9 @@ public class Robot extends TimedRobot {
 
     @Override
     public void robotPeriodic() {
+        // Capture telemetry from all registered subsystems
+        Telemetry.periodic();
+
         SmartDashboard.putData(PDH);
         CommandScheduler.getInstance().run();
     }
