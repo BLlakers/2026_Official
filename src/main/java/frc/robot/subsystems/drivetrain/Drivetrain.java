@@ -13,11 +13,14 @@ import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.config.PIDConstants;
 import com.pathplanner.lib.controllers.PPHolonomicDriveController;
 import com.studica.frc.AHRS;
+import edu.wpi.first.math.Matrix;
 import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.estimator.SwerveDrivePoseEstimator;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.*;
+import edu.wpi.first.math.numbers.N1;
+import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.networktables.StructArrayPublisher;
@@ -164,7 +167,7 @@ public class Drivetrain extends SubsystemBase {
                 .ifPresentOrElse(
                         robotConfig -> {
                             AutoBuilder.configure(
-                                    this::getPose2d, // Robot pose supplier
+                                    this::getPose2dEstimator, // Robot pose supplier (uses vision-fused pose)
                                     this::resetOdometry, // Method to reset odometry (will be called if your auto
                                     // has a starting pose)
                                     this::getChassisSpeeds,
@@ -193,9 +196,9 @@ public class Drivetrain extends SubsystemBase {
                                     this); // Reference to this subsystem to set requirements
                         },
                         () -> {
-                            // NOTE: This should probably be fatal
-                            throw new RuntimeException("Unable to obtain RobotConfig during Drivetrain creation."
-                                    + "Path Planning will fail!");
+                            // NOTE: PathPlanner AutoBuilder not configured - auto routines will not be available
+                            System.out.println("WARNING: Unable to obtain RobotConfig during Drivetrain creation. "
+                                    + "PathPlanner AutoBuilder not configured. Auto routines will not be available.");
                         });
 
         this.swerveDriveKinematics = new SwerveDriveKinematics(
@@ -261,8 +264,25 @@ public class Drivetrain extends SubsystemBase {
         return this.swerveDriveOdometry.getPoseMeters();
     }
 
-    private Pose2d getPose2dEstimator() {
+    public Pose2d getPose2dEstimator() {
         return this.swerveDrivePoseEstimator.getEstimatedPosition();
+    }
+
+    /**
+     * Adds a vision measurement to the pose estimator.
+     * Called by VisionSubsystem when new vision estimates are available.
+     *
+     * @param visionPose The pose estimate from vision
+     * @param timestampSeconds The timestamp of the vision measurement
+     * @param stdDevs The standard deviations (x, y, theta) for this measurement
+     */
+    public void addVisionMeasurement(Pose2d visionPose, double timestampSeconds, Matrix<N3, N1> stdDevs) {
+
+        this.swerveDrivePoseEstimator.addVisionMeasurement(visionPose, timestampSeconds, stdDevs);
+
+        SmartDashboard.putNumber("Vision/AcceptedPose/X", visionPose.getX());
+        SmartDashboard.putNumber("Vision/AcceptedPose/Y", visionPose.getY());
+        SmartDashboard.putNumber("Vision/AcceptedPose/Timestamp", timestampSeconds);
     }
 
     /**
@@ -303,7 +323,8 @@ public class Drivetrain extends SubsystemBase {
 
     private void driveRobotRelative(final ChassisSpeeds robotRelativeSpeeds) {
         ChassisSpeeds targetSpeeds = ChassisSpeeds.discretize(robotRelativeSpeeds, 0.02);
-        this.setModuleStates(this.swerveDriveKinematics.toSwerveModuleStates(targetSpeeds));
+        this.desiredStates = this.swerveDriveKinematics.toSwerveModuleStates(targetSpeeds);
+        this.setModuleStates(this.desiredStates);
     }
 
     /**
@@ -312,6 +333,14 @@ public class Drivetrain extends SubsystemBase {
     private void updateOdometry() {
         if (RobotBase.isSimulation()) return;
         this.swerveDriveOdometry.update(this.getGyroRotation(), this.getSwerveModulePositions());
+    }
+
+    /**
+     * Updates odometry using simulated module positions.
+     * Called from simulationPeriodic() after physics update.
+     */
+    private void updateOdometrySim(Rotation2d heading, SwerveModulePosition[] positions) {
+        this.swerveDriveOdometry.update(heading, positions);
     }
 
     private void updatePoseEstimatorOdometry() {
@@ -350,6 +379,10 @@ public class Drivetrain extends SubsystemBase {
                     navXSensorModule.getRoll(),
                     0);
 
+            // NOTE: This is where we had issues in 2025 because mt2 required that we had correct robot orientation
+            // relative to the field. We couldn't figure out how to adjust our Gyro at the beginning of the match
+            // based on vision. So what we tried to do, was manually place the robot on the field at the beginning
+            // of the match. And if that of 2-3 degrees/rads. then that would blow auto up.
             LimelightHelpers.PoseEstimate mt2 =
                     LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2(Limelights.LIMELIGHT_FRONT_LEFT);
 
@@ -378,8 +411,27 @@ public class Drivetrain extends SubsystemBase {
         this.swerveDriveOdometry.resetPosition(this.getGyroRotation(), this.getSwerveModulePositions(), pose2d);
 
         if (RobotBase.isSimulation()) {
+            // Reset simulated module positions to keep odometry consistent
+            this.flSwerveSim.resetPosition();
+            this.frSwerveSim.resetPosition();
+            this.rlSwerveSim.resetPosition();
+            this.rrSwerveSim.resetPosition();
+
             // Keep simulated gyro aligned with newPose
             this.simYaw = pose2d.getRotation();
+
+            // Reset odometry with the simulated positions (now zeroed)
+            SwerveModulePosition[] simPositions = new SwerveModulePosition[] {
+                this.flSwerveSim.getPosition(),
+                this.frSwerveSim.getPosition(),
+                this.rlSwerveSim.getPosition(),
+                this.rrSwerveSim.getPosition()
+            };
+
+            this.swerveDriveOdometry.resetPosition(this.simYaw, simPositions, pose2d);
+            this.swerveDrivePoseEstimator.resetPosition(this.simYaw, simPositions, pose2d);
+        } else {
+            this.swerveDriveOdometry.resetPosition(this.getGyroRotation(), this.getSwerveModulePositions(), pose2d);
         }
     }
 
@@ -422,7 +474,8 @@ public class Drivetrain extends SubsystemBase {
     }
 
     private Pose2d refreshGoalPose2d() {
-        // TODO: Why is this hard-coded to PositionsRed?
+        // NOTE: This is hard-coded to red, because the field is 0'd to the blue wall. So our goal
+        // is naturally opposite blue.
         this.goalPose = this.getPose2dEstimator().nearest(Constants.Poses.PositionsRed);
         return this.goalPose;
     }
@@ -546,6 +599,10 @@ public class Drivetrain extends SubsystemBase {
         this.currentRotPublisher.set(this.getPose2d().getRotation());
         this.currentPoseEstimatorPublisher.set(this.getPose2dEstimator());
         this.goalPosePublisher.set(this.goalPose);
+
+        // Log alliance for debugging path flipping
+        Optional<Alliance> alliance = DriverStation.getAlliance();
+        SmartDashboard.putString("Auto/Alliance", alliance.map(Enum::name).orElse("NOT SET"));
     }
 
     @Override
@@ -616,13 +673,16 @@ public class Drivetrain extends SubsystemBase {
         ChassisSpeeds chassisSpeeds = this.swerveDriveKinematics.toChassisSpeeds(states);
         this.simYaw = this.simYaw.plus(Rotation2d.fromRadians(chassisSpeeds.omegaRadiansPerSecond * dt));
 
-        // 9. Update pose estimator with sim yaw and module positions
-        this.swerveDrivePoseEstimator.update(this.simYaw, new SwerveModulePosition[] {
+        // 9. Update pose estimator and odometry with sim yaw and module positions
+        SwerveModulePosition[] simPositions = new SwerveModulePosition[] {
             this.flSwerveSim.getPosition(),
             this.frSwerveSim.getPosition(),
             this.rlSwerveSim.getPosition(),
             this.rrSwerveSim.getPosition()
-        });
+        };
+
+        this.swerveDrivePoseEstimator.update(this.simYaw, simPositions);
+        this.updateOdometrySim(this.simYaw, simPositions);
 
         // 10. Push pose to Field2d for visualization
         this.field.setRobotPose(this.swerveDrivePoseEstimator.getEstimatedPosition());

@@ -65,4 +65,12 @@ public class SwerveModuleSim {
     public SwerveModulePosition getPosition() {
         return new SwerveModulePosition(this.driveDistanceMeters, this.turnAngle);
     }
+
+    /**
+     * Resets the simulated drive distance to zero.
+     * Called when odometry is reset to keep simulation in sync.
+     */
+    public void resetPosition() {
+        this.driveDistanceMeters = 0.0;
+    }
 }
