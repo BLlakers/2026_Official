@@ -335,7 +335,6 @@ public class Drivetrain extends SubsystemBase {
         this.swerveDriveOdometry.update(this.getGyroRotation(), this.getSwerveModulePositions());
     }
 
-
     /**
      * Updates odometry using simulated module positions.
      * Called from simulationPeriodic() after physics update.
@@ -474,7 +473,7 @@ public class Drivetrain extends SubsystemBase {
         };
     }
 
-    private Pose2d refreshGoalPose2d() {    
+    private Pose2d refreshGoalPose2d() {
         // NOTE: This is hard-coded to red, because the field is 0'd to the blue wall. So our goal
         // is naturally opposite blue.
         this.goalPose = this.getPose2dEstimator().nearest(Constants.Poses.PositionsRed);
