@@ -205,7 +205,8 @@ public final class Telemetry {
             mode = "Unknown";
         }
 
-        String matchInfo = String.format("%s|%.1f|%s",
+        String matchInfo = String.format(
+                "%s|%.1f|%s",
                 mode,
                 DriverStation.getMatchTime(),
                 DriverStation.getAlliance().map(Enum::name).orElse("Unknown"));
@@ -214,7 +215,9 @@ public final class Telemetry {
         if (!matchInfo.equals(lastMatchInfo)) {
             record("Match/Mode", mode, TelemetryLevel.MATCH);
             record("Match/Time", DriverStation.getMatchTime(), TelemetryLevel.MATCH);
-            record("Match/Alliance", DriverStation.getAlliance().map(Enum::name).orElse("Unknown"),
+            record(
+                    "Match/Alliance",
+                    DriverStation.getAlliance().map(Enum::name).orElse("Unknown"),
                     TelemetryLevel.MATCH);
             lastMatchInfo = matchInfo;
         }
@@ -272,8 +275,7 @@ public final class Telemetry {
     public static void record(String key, double value, TelemetryLevel level) {
         if (!shouldLog(level)) return;
         requireNonNull(key, "key cannot be null");
-        DoubleLogEntry entry = doubleLogs.computeIfAbsent(key,
-                k -> new DoubleLogEntry(DataLogManager.getLog(), k));
+        DoubleLogEntry entry = doubleLogs.computeIfAbsent(key, k -> new DoubleLogEntry(DataLogManager.getLog(), k));
         entry.append(value);
     }
 
@@ -283,8 +285,7 @@ public final class Telemetry {
     public static void record(String key, int value, TelemetryLevel level) {
         if (!shouldLog(level)) return;
         requireNonNull(key, "key cannot be null");
-        IntegerLogEntry entry = intLogs.computeIfAbsent(key,
-                k -> new IntegerLogEntry(DataLogManager.getLog(), k));
+        IntegerLogEntry entry = intLogs.computeIfAbsent(key, k -> new IntegerLogEntry(DataLogManager.getLog(), k));
         entry.append(value);
     }
 
@@ -294,8 +295,7 @@ public final class Telemetry {
     public static void record(String key, float value, TelemetryLevel level) {
         if (!shouldLog(level)) return;
         requireNonNull(key, "key cannot be null");
-        FloatLogEntry entry = floatLogs.computeIfAbsent(key,
-                k -> new FloatLogEntry(DataLogManager.getLog(), k));
+        FloatLogEntry entry = floatLogs.computeIfAbsent(key, k -> new FloatLogEntry(DataLogManager.getLog(), k));
         entry.append(value);
     }
 
@@ -305,8 +305,7 @@ public final class Telemetry {
     public static void record(String key, boolean value, TelemetryLevel level) {
         if (!shouldLog(level)) return;
         requireNonNull(key, "key cannot be null");
-        BooleanLogEntry entry = booleanLogs.computeIfAbsent(key,
-                k -> new BooleanLogEntry(DataLogManager.getLog(), k));
+        BooleanLogEntry entry = booleanLogs.computeIfAbsent(key, k -> new BooleanLogEntry(DataLogManager.getLog(), k));
         entry.append(value);
     }
 
@@ -317,8 +316,7 @@ public final class Telemetry {
         if (!shouldLog(level)) return;
         requireNonNull(key, "key cannot be null");
         requireNonNull(value, "value cannot be null");
-        StringLogEntry entry = stringLogs.computeIfAbsent(key,
-                k -> new StringLogEntry(DataLogManager.getLog(), k));
+        StringLogEntry entry = stringLogs.computeIfAbsent(key, k -> new StringLogEntry(DataLogManager.getLog(), k));
         entry.append(value);
     }
 
@@ -329,8 +327,8 @@ public final class Telemetry {
         if (!shouldLog(level)) return;
         requireNonNull(key, "key cannot be null");
         requireNonNull(values, "values cannot be null");
-        DoubleArrayLogEntry entry = doubleArrayLogs.computeIfAbsent(key,
-                k -> new DoubleArrayLogEntry(DataLogManager.getLog(), k));
+        DoubleArrayLogEntry entry =
+                doubleArrayLogs.computeIfAbsent(key, k -> new DoubleArrayLogEntry(DataLogManager.getLog(), k));
         entry.append(values);
     }
 
@@ -403,15 +401,15 @@ public final class Telemetry {
 
     @SuppressWarnings("unchecked")
     private static <T> void recordStruct(String key, Struct<T> struct, T value) {
-        StructLogEntry<T> entry = (StructLogEntry<T>) structLogs.computeIfAbsent(key,
-                k -> new StructLogEntry<>(DataLogManager.getLog(), k, struct));
+        StructLogEntry<T> entry = (StructLogEntry<T>)
+                structLogs.computeIfAbsent(key, k -> StructLogEntry.create(DataLogManager.getLog(), k, struct));
         entry.append(value);
     }
 
     @SuppressWarnings("unchecked")
     private static <T> void recordStructArray(String key, Struct<T> struct, T[] values) {
-        StructArrayLogEntry<T> entry = (StructArrayLogEntry<T>) structArrayLogs.computeIfAbsent(key,
-                k -> new StructArrayLogEntry<>(DataLogManager.getLog(), k, struct));
+        StructArrayLogEntry<T> entry = (StructArrayLogEntry<T>) structArrayLogs.computeIfAbsent(
+                key, k -> StructArrayLogEntry.create(DataLogManager.getLog(), k, struct));
         entry.append(values);
     }
 
@@ -431,8 +429,7 @@ public final class Telemetry {
         requireNonNull(key, "key cannot be null");
         String msg = description != null ? description : "";
 
-        StringLogEntry entry = stringLogs.computeIfAbsent(key,
-                k -> new StringLogEntry(DataLogManager.getLog(), k));
+        StringLogEntry entry = stringLogs.computeIfAbsent(key, k -> new StringLogEntry(DataLogManager.getLog(), k));
         entry.append(msg);
 
         // Also log to console for visibility during testing
@@ -458,8 +455,7 @@ public final class Telemetry {
         String key = subsystem + "/Error";
         String fullMessage = String.format("[%.3f] %s", Timer.getFPGATimestamp(), message);
 
-        StringLogEntry entry = stringLogs.computeIfAbsent(key,
-                k -> new StringLogEntry(DataLogManager.getLog(), k));
+        StringLogEntry entry = stringLogs.computeIfAbsent(key, k -> new StringLogEntry(DataLogManager.getLog(), k));
         entry.append(fullMessage);
 
         // Log to console and DriverStation

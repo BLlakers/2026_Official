@@ -271,7 +271,8 @@ public class Drivetrain extends SubsystemBase {
         // VERBOSE level - maximum detail for deep debugging
         Telemetry.record(prefix + "/NavX/Connected", this.navXSensorModule.isConnected(), TelemetryLevel.VERBOSE);
         Telemetry.record(prefix + "/NavX/Calibrating", this.navXSensorModule.isCalibrating(), TelemetryLevel.VERBOSE);
-        Telemetry.record(prefix + "/NavX/AngleAdjustment", this.navXSensorModule.getAngleAdjustment(), TelemetryLevel.VERBOSE);
+        Telemetry.record(
+                prefix + "/NavX/AngleAdjustment", this.navXSensorModule.getAngleAdjustment(), TelemetryLevel.VERBOSE);
     }
 
     public double getMaxSpeed() {

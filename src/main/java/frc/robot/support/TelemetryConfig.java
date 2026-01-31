@@ -30,9 +30,9 @@ public final class TelemetryConfig {
 
     /** Default USB paths to check on roboRIO (in order of preference) */
     private static final String[] USB_PATHS = {
-        "/media/sda1",  // Primary USB mount on roboRIO 2
-        "/U",           // Alternate USB mount point
-        "/media/sdb1"   // Secondary USB if multiple connected
+        "/media/sda1", // Primary USB mount on roboRIO 2
+        "/U", // Alternate USB mount point
+        "/media/sdb1" // Secondary USB if multiple connected
     };
 
     /** Subdirectory name for FRC logs on USB */

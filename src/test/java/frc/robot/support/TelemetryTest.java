@@ -197,13 +197,11 @@ public class TelemetryTest {
 
     @Test
     void testRegisterSubsystem_nullNameThrows() {
-        assertThrows(NullPointerException.class,
-                () -> Telemetry.registerSubsystem(null, prefix -> {}));
+        assertThrows(NullPointerException.class, () -> Telemetry.registerSubsystem(null, prefix -> {}));
     }
 
     @Test
     void testRegisterSubsystem_nullCaptureThrows() {
-        assertThrows(NullPointerException.class,
-                () -> Telemetry.registerSubsystem("Test", null));
+        assertThrows(NullPointerException.class, () -> Telemetry.registerSubsystem("Test", null));
     }
 }
