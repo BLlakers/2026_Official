@@ -18,6 +18,8 @@ public final class Constants {
         public static final String LIMELIGHT_BACK = "limelight-back";
     }
 
+    // Vision constants have been moved to VisionSubsystemContext as builder defaults
+
     public static final class DriverLabels {
         public static final String ASA = "Asa";
         public static final String BEN = "Ben";
