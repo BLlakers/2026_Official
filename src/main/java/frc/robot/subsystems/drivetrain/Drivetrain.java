@@ -14,7 +14,6 @@ import com.pathplanner.lib.config.PIDConstants;
 import com.pathplanner.lib.controllers.PPHolonomicDriveController;
 import com.studica.frc.AHRS;
 import edu.wpi.first.math.Matrix;
-import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.estimator.SwerveDrivePoseEstimator;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
@@ -35,11 +34,9 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants;
-import frc.robot.Constants.Limelights;
 import frc.robot.sim.SwerveModuleSim;
 import frc.robot.support.Telemetry;
 import frc.robot.support.TelemetryLevel;
-import frc.robot.support.limelight.LimelightHelpers;
 import java.util.Optional;
 
 /**
@@ -385,60 +382,6 @@ public class Drivetrain extends SubsystemBase {
     private void updatePoseEstimatorOdometry() {
         if (RobotBase.isSimulation()) return;
         this.swerveDrivePoseEstimator.update(this.getHeading(), this.getSwerveModulePositions());
-
-        boolean doRejectUpdate = false;
-        if (!this.context.isLimelightMegaTag2AlgorithmEnabled()) {
-            LimelightHelpers.PoseEstimate mt1 =
-                    LimelightHelpers.getBotPoseEstimate_wpiBlue(Limelights.LIMELIGHT_FRONT_LEFT);
-
-            if (mt1.tagCount == 1 && mt1.rawFiducials.length == 1) {
-                LimelightHelpers.RawFiducial rawFiducial0 = mt1.rawFiducials[0];
-                if (rawFiducial0.ambiguity > this.context.getRawFiducialAmbiguityThreshold()
-                        || rawFiducial0.distToCamera > this.context.getRawFiducialDistanceToCameraThreshold()) {
-                    doRejectUpdate = true;
-                }
-            } else if (mt1.tagCount == 0) {
-                doRejectUpdate = true;
-            }
-
-            if (!doRejectUpdate) {
-                this.swerveDrivePoseEstimator.setVisionMeasurementStdDevs(VecBuilder.fill(.5, .5, 9999999));
-                this.swerveDrivePoseEstimator.addVisionMeasurement(mt1.pose, mt1.timestampSeconds);
-            }
-        } else {
-            LimelightHelpers.SetRobotOrientation(
-                    Limelights.LIMELIGHT_FRONT_LEFT,
-                    this.swerveDrivePoseEstimator
-                            .getEstimatedPosition()
-                            .getRotation()
-                            .getDegrees(),
-                    0,
-                    navXSensorModule.getPitch(),
-                    0,
-                    navXSensorModule.getRoll(),
-                    0);
-
-            // NOTE: This is where we had issues in 2025 because mt2 required that we had correct robot orientation
-            // relative to the field. We couldn't figure out how to adjust our Gyro at the beginning of the match
-            // based on vision. So what we tried to do, was manually place the robot on the field at the beginning
-            // of the match. And if that of 2-3 degrees/rads. then that would blow auto up.
-            LimelightHelpers.PoseEstimate mt2 =
-                    LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2(Limelights.LIMELIGHT_FRONT_LEFT);
-
-            // if our angular velocity is greater than 720 degrees per second, ignore vision updates
-            if (Math.abs(navXSensorModule.getRate()) > this.context.getAngularVelocityThreshold()) {
-                doRejectUpdate = true;
-            }
-
-            if (mt2 == null || mt2.tagCount == 0) {
-                doRejectUpdate = true;
-            }
-
-            if (!doRejectUpdate) {
-                this.swerveDrivePoseEstimator.setVisionMeasurementStdDevs(VecBuilder.fill(.7, .7, 9999999));
-                this.swerveDrivePoseEstimator.addVisionMeasurement(mt2.pose, mt2.timestampSeconds);
-            }
-        }
     }
 
     /**
@@ -597,7 +540,7 @@ public class Drivetrain extends SubsystemBase {
     /**
      * This is a runnable command.
      * <li>This resets the gyro's position.
-     * <li>This is needed for Auto, Limelight, and the DriveTrain.
+     * <li>This is needed for Auto and the DriveTrain.
      *
      * @return Pose2d
      * @author Jared Forchheimer, Dimitri Lezcano
