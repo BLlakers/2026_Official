@@ -12,14 +12,6 @@ import java.util.List;
 
 public final class Constants {
 
-    public static final class Limelights {
-        public static final String LIMELIGHT_FRONT_LEFT = "limelight-front-left";
-        public static final String LIMELIGHT_FRONT_RIGHT = "limelight-front-right";
-        public static final String LIMELIGHT_BACK = "limelight-back";
-    }
-
-    // Vision constants have been moved to VisionSubsystemContext as builder defaults
-
     public static final class DriverLabels {
         public static final String ASA = "Asa";
         public static final String BEN = "Ben";
@@ -32,7 +24,7 @@ public final class Constants {
         public static final Translation2d SMBackLeftLocation = new Translation2d(-0.285, 0.285);
         public static final Translation2d SMBackRightLocation = new Translation2d(-0.285, -0.285);
 
-        // we do conversion in limelight. would normally tell robot where the camera
+        // Camera-to-robot transform (now configured in VisionSubsystemContext)
         public static final Transform3d CAMERA_TO_ROBOT = new Transform3d(0, 0, 0, new Rotation3d(0, 0, 0));
     }
 

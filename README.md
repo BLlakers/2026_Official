@@ -99,8 +99,7 @@ src/main/java/frc/robot/
     ├── Telemetry.java       # Enhanced telemetry API
     ├── TelemetryLevel.java  # Verbosity levels (NONE/MATCH/LAB/VERBOSE)
     ├── TelemetryConfig.java # Configuration with USB detection
-    ├── sparkmax/            # REV SPARK MAX abstractions
-    └── limelight/           # Limelight utilities (legacy)
+    └── sparkmax/            # REV SPARK MAX abstractions
   Constants.java       # Global constants (units in identifiers where possible)
 src/main/deploy/
   telemetry.properties # Telemetry configuration (level, USB settings)
@@ -1053,9 +1052,6 @@ We use **Spotless** for formatting with a Palantir config.
 - **PathPlanner:** https://pathplanner.dev/
 - **navX-MXP:** https://pdocs.kauailabs.com/navx-mxp/
 - **PhotonVision:** https://docs.photonvision.org/
-
-### Legacy (2025 Season)
-- **Limelight:** https://docs.limelightvision.io/ (removed for 2026)
 
 ---
 

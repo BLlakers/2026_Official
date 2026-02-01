@@ -9,8 +9,6 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import frc.robot.support.Telemetry;
 import frc.robot.support.TelemetryConfig;
-import frc.robot.support.limelight.LimelightUtil;
-// some imports no longer needed but leaving them here untill final version
 
 public class Robot extends TimedRobot {
     private Command m_autonomousCommand;
@@ -23,10 +21,6 @@ public class Robot extends TimedRobot {
     @Override
     public void close() {
         super.close();
-
-        // TODO: Evaluate port forwarding teardown
-        LimelightUtil.stopPortForwarding();
-
         Telemetry.shutdown();
     }
 

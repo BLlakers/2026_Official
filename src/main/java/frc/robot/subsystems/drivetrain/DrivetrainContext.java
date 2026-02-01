@@ -93,18 +93,6 @@ public class DrivetrainContext {
     @Builder.Default
     private SwerveModuleState fullStopAt45Degrees = new SwerveModuleState(0, new Rotation2d((Math.PI / 4)));
 
-    @Builder.Default
-    private boolean limelightMegaTag2AlgorithmEnabled = true;
-
-    @Builder.Default
-    private int angularVelocityThreshold = 720;
-
-    @Builder.Default
-    private double rawFiducialAmbiguityThreshold = 0.7;
-
-    @Builder.Default
-    private double rawFiducialDistanceToCameraThreshold = 3.0;
-
     public double getMaxTurnAngularSpeed() {
         return this.maxSpeed / Constants.Drive.SMBackLeftLocation.getNorm(); // 1/2
     }
