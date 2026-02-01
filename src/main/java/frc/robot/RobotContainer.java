@@ -11,6 +11,7 @@ import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
+import frc.robot.commands.auto.VisionAlignmentTestCommand;
 import frc.robot.commands.swervedrive.ControllerDelegate;
 import frc.robot.commands.swervedrive.SwerveDriveCommand;
 import frc.robot.subsystems.LedStrand;
@@ -187,6 +188,10 @@ public class RobotContainer {
         SmartDashboard.putData(this.driveTrain.getName() + "/Reset Pose 2D", this.driveTrain.getResetOdometryCommand());
         SmartDashboard.putData(this.fuelSubsystem);
         SmartDashboard.putData(this.visionSubsystem);
+
+        // Vision alignment test command (for simulation testing)
+        VisionAlignmentTestCommand.create(this.driveTrain)
+                .ifPresent(cmd -> SmartDashboard.putData("Vision/AlignmentTest", cmd));
     }
 
     // loads New Auto auto file
