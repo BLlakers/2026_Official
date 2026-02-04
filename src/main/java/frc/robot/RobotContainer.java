@@ -5,7 +5,6 @@ import com.pathplanner.lib.auto.NamedCommands;
 import com.pathplanner.lib.path.PathConstraints;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
-import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
@@ -21,6 +20,7 @@ import frc.robot.subsystems.fuel.FuelSubsystem;
 import frc.robot.subsystems.fuel.FuelSubsystemContext;
 import frc.robot.subsystems.vision.VisionSubsystem;
 import frc.robot.subsystems.vision.VisionSubsystemContext;
+import frc.robot.support.Telemetry;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -85,15 +85,15 @@ public class RobotContainer {
     private SendableChooser<Command> buildAutoChooserSafe() {
         try {
             SendableChooser<Command> chooser = AutoBuilder.buildAutoChooser();
-            SmartDashboard.putData("Auto Chooser", chooser);
+            Telemetry.putData("Auto Chooser", chooser);
             // Creates a field to be put to the shuffleboard
-            SmartDashboard.putData("AUTOPOSITION", (s) -> AutoBuilder.getCurrentPose());
+            Telemetry.putData("AUTOPOSITION", (s) -> AutoBuilder.getCurrentPose());
             return chooser;
         } catch (RuntimeException e) {
             System.out.println("WARNING: AutoBuilder not configured. Creating basic auto chooser with none() command.");
             SendableChooser<Command> chooser = new SendableChooser<>();
             chooser.setDefaultOption("None", Commands.none());
-            SmartDashboard.putData("Auto Chooser", chooser);
+            Telemetry.putData("Auto Chooser", chooser);
             return chooser;
         }
     }
@@ -181,17 +181,17 @@ public class RobotContainer {
     }
 
     private void configureShuffleboard() {
-        SmartDashboard.putData("Command Scheduler", CommandScheduler.getInstance());
+        Telemetry.putData("Command Scheduler", CommandScheduler.getInstance());
 
         // Add subsystems
-        SmartDashboard.putData(this.driveTrain);
-        SmartDashboard.putData(this.driveTrain.getName() + "/Reset Pose 2D", this.driveTrain.getResetOdometryCommand());
-        SmartDashboard.putData(this.fuelSubsystem);
-        SmartDashboard.putData(this.visionSubsystem);
+        Telemetry.putData(this.driveTrain);
+        Telemetry.putData(this.driveTrain.getName() + "/Reset Pose 2D", this.driveTrain.getResetOdometryCommand());
+        Telemetry.putData(this.fuelSubsystem);
+        Telemetry.putData(this.visionSubsystem);
 
         // Vision alignment test command (for simulation testing)
         VisionAlignmentTestCommand.create(this.driveTrain)
-                .ifPresent(cmd -> SmartDashboard.putData("Vision/AlignmentTest", cmd));
+                .ifPresent(cmd -> Telemetry.putData("Vision/AlignmentTest", cmd));
     }
 
     // loads New Auto auto file

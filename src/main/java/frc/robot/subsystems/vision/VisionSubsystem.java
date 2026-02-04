@@ -9,9 +9,10 @@ import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.wpilibj.RobotBase;
-import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.subsystems.drivetrain.Drivetrain;
+import frc.robot.support.Telemetry;
+import frc.robot.support.TelemetryLevel;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -98,10 +99,10 @@ public class VisionSubsystem extends SubsystemBase {
             initializeSimulation();
         }
 
-        // Set up SmartDashboard entries
-        SmartDashboard.putString("Vision/Status", "Initialized");
-        SmartDashboard.putBoolean("Vision/FrontCamera/Connected", false);
-        SmartDashboard.putBoolean("Vision/RearCamera/Connected", false);
+        // Set up initial telemetry values
+        Telemetry.publish("Vision/Status", "Initialized", TelemetryLevel.MATCH);
+        Telemetry.publish("Vision/FrontCamera/Connected", false, TelemetryLevel.MATCH);
+        Telemetry.publish("Vision/RearCamera/Connected", false, TelemetryLevel.MATCH);
     }
 
     /**
@@ -148,7 +149,7 @@ public class VisionSubsystem extends SubsystemBase {
         rearCameraSim.enableRawStream(false);
         rearCameraSim.enableProcessedStream(false);
 
-        SmartDashboard.putString("Vision/Simulation", "Active");
+        Telemetry.publish("Vision/Simulation", "Active", TelemetryLevel.LAB);
     }
 
     /**
@@ -180,14 +181,15 @@ public class VisionSubsystem extends SubsystemBase {
         Optional<EstimatedRobotPose> visionEst = poseEstimator.update(result);
 
         if (visionEst.isEmpty()) {
-            SmartDashboard.putString("Vision/" + cameraName + "Camera/EstimateStatus", "No valid estimate");
+            Telemetry.publish(
+                    "Vision/" + cameraName + "Camera/EstimateStatus", "No valid estimate", TelemetryLevel.LAB);
             return;
         }
 
         EstimatedRobotPose estimatedPose = visionEst.get();
 
         if (shouldRejectEstimate(estimatedPose, result)) {
-            SmartDashboard.putString("Vision/" + cameraName + "Camera/EstimateStatus", "Rejected");
+            Telemetry.publish("Vision/" + cameraName + "Camera/EstimateStatus", "Rejected", TelemetryLevel.LAB);
             return;
         }
 
@@ -196,9 +198,11 @@ public class VisionSubsystem extends SubsystemBase {
         visionMeasurementConsumer.accept(
                 estimatedPose.estimatedPose.toPose2d(), estimatedPose.timestampSeconds, stdDevs);
 
-        SmartDashboard.putString("Vision/" + cameraName + "Camera/EstimateStatus", "Accepted");
-        SmartDashboard.putNumber("Vision/" + cameraName + "Camera/EstimateX", estimatedPose.estimatedPose.getX());
-        SmartDashboard.putNumber("Vision/" + cameraName + "Camera/EstimateY", estimatedPose.estimatedPose.getY());
+        Telemetry.publish("Vision/" + cameraName + "Camera/EstimateStatus", "Accepted", TelemetryLevel.MATCH);
+        Telemetry.publish(
+                "Vision/" + cameraName + "Camera/EstimateX", estimatedPose.estimatedPose.getX(), TelemetryLevel.MATCH);
+        Telemetry.publish(
+                "Vision/" + cameraName + "Camera/EstimateY", estimatedPose.estimatedPose.getY(), TelemetryLevel.MATCH);
     }
 
     /**
@@ -230,9 +234,9 @@ public class VisionSubsystem extends SubsystemBase {
         double xyStdDev = baseStdDev * distanceScaling;
         double thetaStdDev = 9999999;
 
-        SmartDashboard.putNumber("Vision/StdDev/XY", xyStdDev);
-        SmartDashboard.putNumber("Vision/TagCount", tagCount);
-        SmartDashboard.putNumber("Vision/AvgDistance", avgDistance);
+        Telemetry.publish("Vision/StdDev/XY", xyStdDev, TelemetryLevel.LAB);
+        Telemetry.publish("Vision/TagCount", tagCount, TelemetryLevel.MATCH);
+        Telemetry.publish("Vision/AvgDistance", avgDistance, TelemetryLevel.LAB);
 
         return VecBuilder.fill(xyStdDev, xyStdDev, thetaStdDev);
     }
@@ -270,8 +274,8 @@ public class VisionSubsystem extends SubsystemBase {
         boolean frontConnected = isSimulation || frontCamera.isConnected();
         boolean rearConnected = isSimulation || rearCamera.isConnected();
 
-        SmartDashboard.putBoolean("Vision/FrontCamera/Connected", frontConnected);
-        SmartDashboard.putBoolean("Vision/RearCamera/Connected", rearConnected);
+        Telemetry.publish("Vision/FrontCamera/Connected", frontConnected, TelemetryLevel.MATCH);
+        Telemetry.publish("Vision/RearCamera/Connected", rearConnected, TelemetryLevel.MATCH);
 
         // Get latest results from both cameras
         PhotonPipelineResult frontResult = frontCamera.getLatestResult();
@@ -281,16 +285,16 @@ public class VisionSubsystem extends SubsystemBase {
         if (frontConnected && frontResult.hasTargets()) {
             processAndLogTargets("Front", frontResult);
         } else {
-            SmartDashboard.putNumber("Vision/FrontCamera/TargetCount", 0);
-            SmartDashboard.putString("Vision/FrontCamera/DetectedTags", "None");
+            Telemetry.publish("Vision/FrontCamera/TargetCount", 0, TelemetryLevel.MATCH);
+            Telemetry.publish("Vision/FrontCamera/DetectedTags", "None", TelemetryLevel.LAB);
         }
 
         // Process and log AprilTag detections from rear camera
         if (rearConnected && rearResult.hasTargets()) {
             processAndLogTargets("Rear", rearResult);
         } else {
-            SmartDashboard.putNumber("Vision/RearCamera/TargetCount", 0);
-            SmartDashboard.putString("Vision/RearCamera/DetectedTags", "None");
+            Telemetry.publish("Vision/RearCamera/TargetCount", 0, TelemetryLevel.MATCH);
+            Telemetry.publish("Vision/RearCamera/DetectedTags", "None", TelemetryLevel.LAB);
         }
 
         // Update overall system status
@@ -318,8 +322,9 @@ public class VisionSubsystem extends SubsystemBase {
         List<PhotonTrackedTarget> targets = result.getTargets();
         int targetCount = targets.size();
 
-        SmartDashboard.putNumber("Vision/" + cameraName + "Camera/TargetCount", targetCount);
-        SmartDashboard.putNumber("Vision/" + cameraName + "Camera/TimestampSeconds", result.getTimestampSeconds());
+        Telemetry.publish("Vision/" + cameraName + "Camera/TargetCount", targetCount, TelemetryLevel.MATCH);
+        Telemetry.publish(
+                "Vision/" + cameraName + "Camera/TimestampSeconds", result.getTimestampSeconds(), TelemetryLevel.LAB);
 
         // Collect AprilTag IDs
         List<Integer> detectedTagIds = new ArrayList<>();
@@ -331,23 +336,24 @@ public class VisionSubsystem extends SubsystemBase {
                 // Log detailed target info if verbose logging enabled
                 if (context.isEnableVerboseLogging()) {
                     String prefix = "Vision/" + cameraName + "Camera/Tag" + fiducialId;
-                    SmartDashboard.putNumber(prefix + "/Yaw", target.getYaw());
-                    SmartDashboard.putNumber(prefix + "/Pitch", target.getPitch());
-                    SmartDashboard.putNumber(prefix + "/Area", target.getArea());
-                    SmartDashboard.putNumber(prefix + "/Skew", target.getSkew());
+                    Telemetry.publish(prefix + "/Yaw", target.getYaw(), TelemetryLevel.VERBOSE);
+                    Telemetry.publish(prefix + "/Pitch", target.getPitch(), TelemetryLevel.VERBOSE);
+                    Telemetry.publish(prefix + "/Area", target.getArea(), TelemetryLevel.VERBOSE);
+                    Telemetry.publish(prefix + "/Skew", target.getSkew(), TelemetryLevel.VERBOSE);
                 }
             }
         }
 
         // Log comma-separated list of detected tag IDs
         String tagList = detectedTagIds.isEmpty() ? "None" : detectedTagIds.toString();
-        SmartDashboard.putString("Vision/" + cameraName + "Camera/DetectedTags", tagList);
+        Telemetry.publish("Vision/" + cameraName + "Camera/DetectedTags", tagList, TelemetryLevel.LAB);
 
         // Log best target info
         if (!targets.isEmpty()) {
             PhotonTrackedTarget bestTarget = result.getBestTarget();
-            SmartDashboard.putNumber("Vision/" + cameraName + "Camera/BestTargetID", bestTarget.getFiducialId());
-            SmartDashboard.putNumber("Vision/" + cameraName + "Camera/BestTargetYaw", bestTarget.getYaw());
+            Telemetry.publish(
+                    "Vision/" + cameraName + "Camera/BestTargetID", bestTarget.getFiducialId(), TelemetryLevel.MATCH);
+            Telemetry.publish("Vision/" + cameraName + "Camera/BestTargetYaw", bestTarget.getYaw(), TelemetryLevel.LAB);
         }
     }
 
@@ -387,7 +393,7 @@ public class VisionSubsystem extends SubsystemBase {
             }
         }
 
-        SmartDashboard.putString("Vision/Status", status);
+        Telemetry.publish("Vision/Status", status, TelemetryLevel.MATCH);
 
         // Total tag count across both cameras
         int totalTags = 0;
@@ -397,7 +403,7 @@ public class VisionSubsystem extends SubsystemBase {
         if (rearConnected && rearResult.hasTargets()) {
             totalTags += rearResult.getTargets().size();
         }
-        SmartDashboard.putNumber("Vision/TotalTagsDetected", totalTags);
+        Telemetry.publish("Vision/TotalTagsDetected", totalTags, TelemetryLevel.MATCH);
     }
 
     /**

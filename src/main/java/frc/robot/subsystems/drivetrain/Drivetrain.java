@@ -30,7 +30,6 @@ import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
-import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants;
@@ -316,9 +315,9 @@ public class Drivetrain extends SubsystemBase {
 
         this.swerveDrivePoseEstimator.addVisionMeasurement(visionPose, timestampSeconds, stdDevs);
 
-        SmartDashboard.putNumber("Vision/AcceptedPose/X", visionPose.getX());
-        SmartDashboard.putNumber("Vision/AcceptedPose/Y", visionPose.getY());
-        SmartDashboard.putNumber("Vision/AcceptedPose/Timestamp", timestampSeconds);
+        Telemetry.publish("Vision/AcceptedPose/X", visionPose.getX(), TelemetryLevel.MATCH);
+        Telemetry.publish("Vision/AcceptedPose/Y", visionPose.getY(), TelemetryLevel.MATCH);
+        Telemetry.publish("Vision/AcceptedPose/Timestamp", timestampSeconds, TelemetryLevel.MATCH);
     }
 
     /**
@@ -481,10 +480,10 @@ public class Drivetrain extends SubsystemBase {
      */
     public void drive(double xSpeed, double ySpeed, double rot) {
         // Commanded inputs (m/s, rad/s)
-        SmartDashboard.putNumber(getName() + "/Cmd/xSpeed_in", xSpeed);
-        SmartDashboard.putNumber(getName() + "/Cmd/ySpeed_in", ySpeed);
-        SmartDashboard.putNumber(getName() + "/Cmd/rot_in", rot);
-        SmartDashboard.putBoolean(getName() + "/Cmd/FieldRelative", this.fieldRelativeEnable);
+        Telemetry.publish("Drivetrain/Cmd/xSpeed_in", xSpeed, TelemetryLevel.LAB);
+        Telemetry.publish("Drivetrain/Cmd/ySpeed_in", ySpeed, TelemetryLevel.LAB);
+        Telemetry.publish("Drivetrain/Cmd/rot_in", rot, TelemetryLevel.LAB);
+        Telemetry.publish("Drivetrain/Cmd/FieldRelative", this.fieldRelativeEnable, TelemetryLevel.LAB);
 
         Rotation2d rawHeading = getHeading();
 
@@ -493,12 +492,12 @@ public class Drivetrain extends SubsystemBase {
                 : new ChassisSpeeds(xSpeed, ySpeed, rot);
 
         // IMPORTANT: NavX is CW+, WPILib is CCW+. Negate heading for fromFieldRelativeSpeeds.
-        SmartDashboard.putNumber(getName() + "/HeadingUsedDeg", rawHeading.getDegrees());
+        Telemetry.publish("Drivetrain/HeadingUsedDeg", rawHeading.getDegrees(), TelemetryLevel.LAB);
 
         // What we will pass to kinematics
-        SmartDashboard.putNumber(getName() + "/Chassis/vx", speeds.vxMetersPerSecond);
-        SmartDashboard.putNumber(getName() + "/Chassis/vy", speeds.vyMetersPerSecond);
-        SmartDashboard.putNumber(getName() + "/Chassis/omega", speeds.omegaRadiansPerSecond);
+        Telemetry.publish("Drivetrain/Chassis/vx", speeds.vxMetersPerSecond, TelemetryLevel.LAB);
+        Telemetry.publish("Drivetrain/Chassis/vy", speeds.vyMetersPerSecond, TelemetryLevel.LAB);
+        Telemetry.publish("Drivetrain/Chassis/omega", speeds.omegaRadiansPerSecond, TelemetryLevel.LAB);
 
         // Compute and apply
         this.desiredStates = this.swerveDriveKinematics.toSwerveModuleStates(speeds);
@@ -584,7 +583,7 @@ public class Drivetrain extends SubsystemBase {
 
         // Log alliance for debugging path flipping
         Optional<Alliance> alliance = DriverStation.getAlliance();
-        SmartDashboard.putString("Auto/Alliance", alliance.map(Enum::name).orElse("NOT SET"));
+        Telemetry.publish("Auto/Alliance", alliance.map(Enum::name).orElse("NOT SET"), TelemetryLevel.MATCH);
     }
 
     @Override
@@ -702,14 +701,14 @@ public class Drivetrain extends SubsystemBase {
         builder.addDoubleProperty(
                 "GOALPOSE/ROT", () -> this.refreshGoalPose2d().getRotation().getRadians(), null);
 
-        SmartDashboard.putData("DriveTrain/" + this.flSwerve.getName(), this.flSwerve);
-        SmartDashboard.putData("DriveTrain/" + this.frSwerve.getName(), this.frSwerve);
-        SmartDashboard.putData("DriveTrain/" + this.rlSwerve.getName(), this.rlSwerve);
-        SmartDashboard.putData("DriveTrain/" + this.rrSwerve.getName(), this.rrSwerve);
-        SmartDashboard.putData("field", this.field);
+        Telemetry.putData("DriveTrain/" + this.flSwerve.getName(), this.flSwerve);
+        Telemetry.putData("DriveTrain/" + this.frSwerve.getName(), this.frSwerve);
+        Telemetry.putData("DriveTrain/" + this.rlSwerve.getName(), this.rlSwerve);
+        Telemetry.putData("DriveTrain/" + this.rrSwerve.getName(), this.rrSwerve);
+        Telemetry.putData("field", this.field);
 
         builder.addDoubleProperty("GYRO ANGLE", this.navXSensorModule::getAngle, null);
-        SmartDashboard.putData("NAVX DATA", this.navXSensorModule);
+        Telemetry.putData("NAVX DATA", this.navXSensorModule);
         builder.addDoubleProperty("GYRO ROTATION", () -> this.getGyroRotation().getDegrees(), null);
         builder.addDoubleProperty("NAVX AngleAdjustment", this.navXSensorModule::getAngleAdjustment, null);
     }

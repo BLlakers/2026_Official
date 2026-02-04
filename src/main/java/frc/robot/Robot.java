@@ -4,11 +4,11 @@ import edu.wpi.first.cameraserver.CameraServer;
 import edu.wpi.first.cscore.UsbCamera;
 import edu.wpi.first.wpilibj.PowerDistribution;
 import edu.wpi.first.wpilibj.TimedRobot;
-import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import frc.robot.support.Telemetry;
 import frc.robot.support.TelemetryConfig;
+import frc.robot.support.TelemetryLevel;
 
 public class Robot extends TimedRobot {
     private Command m_autonomousCommand;
@@ -41,7 +41,7 @@ public class Robot extends TimedRobot {
             e.printStackTrace();
         }
 
-        SmartDashboard.putString("Code Version", codeVersion);
+        Telemetry.publish("Code Version", codeVersion, TelemetryLevel.MATCH);
 
         // TODO: Evaluate port forwarding setup
     }
@@ -51,7 +51,7 @@ public class Robot extends TimedRobot {
         // Capture telemetry from all registered subsystems
         Telemetry.periodic();
 
-        SmartDashboard.putData(PDH);
+        Telemetry.putData(PDH);
         CommandScheduler.getInstance().run();
     }
 

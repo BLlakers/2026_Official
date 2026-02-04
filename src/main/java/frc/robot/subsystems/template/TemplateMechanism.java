@@ -9,6 +9,8 @@ import com.ctre.phoenix6.signals.NeutralModeValue;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Subsystem;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import frc.robot.support.Telemetry;
+import frc.robot.support.TelemetryLevel;
 
 /**
  * A {@link Subsystem} template for a basic single-motor mechanism using Phoenix6 TalonFX.
@@ -24,9 +26,21 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
  */
 public class TemplateMechanism extends SubsystemBase {
 
+    /** Mechanism state for telemetry visibility. */
+    public enum State {
+        STOPPED,
+        ADVANCING,
+        REVERSING
+    }
+
+    private static final String TELEMETRY_PREFIX = "Template";
+
     private final TemplateMechanismContext context;
     private final TalonFX motor;
     private final DutyCycleOut dutyCycleRequest;
+
+    private State currentState = State.STOPPED;
+    private double lastOutputPercent = 0.0;
 
     /**
      * Instantiates a new TemplateMechanism with default {@link TemplateMechanismContext}
@@ -48,6 +62,48 @@ public class TemplateMechanism extends SubsystemBase {
         this.dutyCycleRequest = new DutyCycleOut(0).withEnableFOC(true);
 
         configureMotor();
+        initializeTelemetry();
+    }
+
+    /**
+     * Initializes telemetry: registers for auto-capture and logs configuration.
+     */
+    private void initializeTelemetry() {
+        Telemetry.registerSubsystem(TELEMETRY_PREFIX, this::captureTelemetry);
+
+        // Log configuration once at startup
+        Telemetry.event(TELEMETRY_PREFIX + "/Started", "MotorID=" + context.getMotorId());
+        Telemetry.record(TELEMETRY_PREFIX + "/Config/MotorId", context.getMotorId(), TelemetryLevel.MATCH);
+        Telemetry.record(TELEMETRY_PREFIX + "/Config/CanBus", context.getCanBus(), TelemetryLevel.LAB);
+        Telemetry.record(TELEMETRY_PREFIX + "/Config/CurrentLimit", context.getCurrentLimit(), TelemetryLevel.LAB);
+        Telemetry.record(TELEMETRY_PREFIX + "/Config/AdvanceSpeed", context.getAdvanceSpeed(), TelemetryLevel.LAB);
+        Telemetry.record(TELEMETRY_PREFIX + "/Config/ReverseSpeed", context.getReverseSpeed(), TelemetryLevel.LAB);
+    }
+
+    /**
+     * Captures telemetry data. Called automatically by Telemetry.periodic().
+     *
+     * @param prefix The telemetry key prefix (will be "Template")
+     */
+    private void captureTelemetry(String prefix) {
+        // MATCH level - competition-critical data
+        Telemetry.record(prefix + "/State", currentState.name(), TelemetryLevel.MATCH);
+        Telemetry.record(prefix + "/Motor/OutputPercent", lastOutputPercent, TelemetryLevel.MATCH);
+        Telemetry.record(
+                prefix + "/Motor/SupplyCurrent", motor.getSupplyCurrent().getValueAsDouble(), TelemetryLevel.MATCH);
+
+        // LAB level - tuning and diagnostics
+        Telemetry.record(prefix + "/Motor/Temperature", motor.getDeviceTemp().getValueAsDouble(), TelemetryLevel.LAB);
+        Telemetry.record(
+                prefix + "/Motor/StatorCurrent", motor.getStatorCurrent().getValueAsDouble(), TelemetryLevel.LAB);
+        Telemetry.record(
+                prefix + "/Motor/SupplyVoltage", motor.getSupplyVoltage().getValueAsDouble(), TelemetryLevel.LAB);
+        Telemetry.record(prefix + "/Motor/Velocity", motor.getVelocity().getValueAsDouble(), TelemetryLevel.LAB);
+
+        // VERBOSE level - deep diagnostics
+        Telemetry.record(prefix + "/Motor/Position", motor.getPosition().getValueAsDouble(), TelemetryLevel.VERBOSE);
+        Telemetry.record(
+                prefix + "/Motor/Acceleration", motor.getAcceleration().getValueAsDouble(), TelemetryLevel.VERBOSE);
     }
 
     /**
@@ -68,23 +124,38 @@ public class TemplateMechanism extends SubsystemBase {
     }
 
     /**
-     * Advances the motor forward at the configured speed
+     * Advances the motor forward at the configured speed.
      */
     private void advance() {
-        this.motor.setControl(dutyCycleRequest.withOutput(this.context.getAdvanceSpeed()));
+        if (currentState != State.ADVANCING) {
+            Telemetry.event(TELEMETRY_PREFIX + "/Advancing", "speed=" + context.getAdvanceSpeed());
+        }
+        currentState = State.ADVANCING;
+        lastOutputPercent = context.getAdvanceSpeed();
+        this.motor.setControl(dutyCycleRequest.withOutput(lastOutputPercent));
     }
 
     /**
-     * Reverses the motor backward at the configured speed
+     * Reverses the motor backward at the configured speed.
      */
     private void reverse() {
-        this.motor.setControl(dutyCycleRequest.withOutput(this.context.getReverseSpeed()));
+        if (currentState != State.REVERSING) {
+            Telemetry.event(TELEMETRY_PREFIX + "/Reversing", "speed=" + context.getReverseSpeed());
+        }
+        currentState = State.REVERSING;
+        lastOutputPercent = context.getReverseSpeed();
+        this.motor.setControl(dutyCycleRequest.withOutput(lastOutputPercent));
     }
 
     /**
-     * Stops the motor
+     * Stops the motor.
      */
     private void stop() {
+        if (currentState != State.STOPPED) {
+            Telemetry.event(TELEMETRY_PREFIX + "/Stopped", "from=" + currentState.name());
+        }
+        currentState = State.STOPPED;
+        lastOutputPercent = 0.0;
         this.motor.setControl(dutyCycleRequest.withOutput(0));
     }
 
