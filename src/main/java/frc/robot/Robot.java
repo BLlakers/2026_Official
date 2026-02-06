@@ -43,6 +43,9 @@ public class Robot extends TimedRobot {
 
         Telemetry.publish("Code Version", codeVersion, TelemetryLevel.MATCH);
 
+        // Register PDH as a Sendable (only needs to be done once)
+        Telemetry.putData(PDH);
+
         // TODO: Evaluate port forwarding setup
     }
 
@@ -51,7 +54,6 @@ public class Robot extends TimedRobot {
         // Capture telemetry from all registered subsystems
         Telemetry.periodic();
 
-        Telemetry.putData(PDH);
         CommandScheduler.getInstance().run();
     }
 

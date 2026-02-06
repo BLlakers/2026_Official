@@ -95,6 +95,9 @@ public class VisionSubsystem extends SubsystemBase {
                 fieldLayout, context.getPoseEstimationStrategy(), context.getRearCameraToRobot());
 
         // Initialize simulation if enabled
+        // NOTE: PhotonVision simulation is expensive (~96ms per loop) and causes "CommandScheduler
+        // loop overrun" warnings. This is a sim-only artifact and does not affect real robot performance.
+        // To disable, set enableSimulation=false in VisionSubsystemContext.
         if (RobotBase.isSimulation() && context.isEnableSimulation()) {
             initializeSimulation();
         }

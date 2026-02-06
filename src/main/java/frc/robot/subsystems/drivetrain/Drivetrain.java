@@ -251,6 +251,9 @@ public class Drivetrain extends SubsystemBase {
         Telemetry.record(prefix + "/FieldRelative", this.fieldRelativeEnable, TelemetryLevel.MATCH);
         Telemetry.record(prefix + "/WheelLock", this.wheelLock, TelemetryLevel.MATCH);
 
+        // Publish effective heading to NT for dashboard visibility (works in both sim and real)
+        Telemetry.publish(prefix + "/HeadingDeg", this.getHeading().getDegrees(), TelemetryLevel.MATCH);
+
         // LAB level - detailed data for practice and tuning
         Telemetry.record(prefix + "/ModuleStates/Current", this.getSwerveModuleStates(), TelemetryLevel.LAB);
         Telemetry.record(prefix + "/ModuleStates/Desired", this.desiredStates, TelemetryLevel.LAB);
@@ -259,6 +262,11 @@ public class Drivetrain extends SubsystemBase {
         Telemetry.record(prefix + "/GyroPitch", this.navXSensorModule.getPitch(), TelemetryLevel.LAB);
         Telemetry.record(prefix + "/GyroRoll", this.navXSensorModule.getRoll(), TelemetryLevel.LAB);
         Telemetry.record(prefix + "/GyroRate", this.navXSensorModule.getRate(), TelemetryLevel.LAB);
+
+        // In simulation, also publish the simulated gyro values for debugging
+        if (RobotBase.isSimulation()) {
+            Telemetry.publish(prefix + "/Sim/YawDeg", this.simYaw.getDegrees(), TelemetryLevel.LAB);
+        }
 
         if (this.goalPose != null) {
             Telemetry.record(prefix + "/GoalPose", this.goalPose, TelemetryLevel.LAB);
@@ -711,5 +719,8 @@ public class Drivetrain extends SubsystemBase {
         Telemetry.putData("NAVX DATA", this.navXSensorModule);
         builder.addDoubleProperty("GYRO ROTATION", () -> this.getGyroRotation().getDegrees(), null);
         builder.addDoubleProperty("NAVX AngleAdjustment", this.navXSensorModule::getAngleAdjustment, null);
+
+        // Effective heading - uses simYaw in simulation, real NavX on robot
+        builder.addDoubleProperty("EffectiveHeading", () -> this.getHeading().getDegrees(), null);
     }
 }
