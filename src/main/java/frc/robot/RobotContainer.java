@@ -18,6 +18,8 @@ import frc.robot.subsystems.drivetrain.Drivetrain;
 import frc.robot.subsystems.drivetrain.DrivetrainContext;
 import frc.robot.subsystems.fuel.FuelSubsystem;
 import frc.robot.subsystems.fuel.FuelSubsystemContext;
+import frc.robot.subsystems.turrettracker.TurretTracker;
+import frc.robot.subsystems.turrettracker.TurretTrackerContext;
 import frc.robot.subsystems.vision.VisionSubsystem;
 import frc.robot.subsystems.vision.VisionSubsystemContext;
 import frc.robot.support.Telemetry;
@@ -38,6 +40,8 @@ public class RobotContainer {
             VisionSubsystemContext.builder().enablePhotonCameraSimStreams(true).build(),
             driveTrain,
             driveTrain::addVisionMeasurement);
+
+    private final TurretTracker turretTracker = new TurretTracker(TurretTrackerContext.defaults(), driveTrain);
 
     private final Command resetPoseAuto =
             Commands.runOnce(() -> this.driveTrain.resetOdometry(this.currentPath.get(0)), this.driveTrain);
@@ -69,6 +73,7 @@ public class RobotContainer {
         this.driveTrain.setName("DriveTrain");
         this.fuelSubsystem.setName("FuelSubsystem");
         this.visionSubsystem.setName("VisionSubsystem");
+        this.turretTracker.setName("TurretTracker");
 
         this.configureShuffleboard();
         this.configureBindings();
@@ -112,6 +117,10 @@ public class RobotContainer {
 
     public VisionSubsystem getVisionSubsystem() {
         return visionSubsystem;
+    }
+
+    public TurretTracker getTurretTracker() {
+        return turretTracker;
     }
 
     public void periodic() {
@@ -188,6 +197,7 @@ public class RobotContainer {
         Telemetry.putData(this.driveTrain.getName() + "/Reset Pose 2D", this.driveTrain.getResetOdometryCommand());
         Telemetry.putData(this.fuelSubsystem);
         Telemetry.putData(this.visionSubsystem);
+        Telemetry.putData(this.turretTracker);
 
         // Vision alignment test command (for simulation testing)
         VisionAlignmentTestCommand.create(this.driveTrain)
