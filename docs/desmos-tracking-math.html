@@ -70,6 +70,17 @@
             font-style: italic;
             color: #8080a0;
         }
+        .graph-description .note-badge {
+            display: inline-block;
+            background: #e94560;
+            color: #fff;
+            font-size: 11px;
+            font-weight: bold;
+            padding: 2px 8px;
+            border-radius: 3px;
+            margin-right: 6px;
+            vertical-align: middle;
+        }
         .calculator {
             width: 100%;
             height: 500px;
@@ -105,44 +116,53 @@
 <body>
     <div class="header">
         <h1>Turret Tracking Math Visualizations</h1>
-        <p>Interactive Desmos graphs for the key math in our turret hub tracking system.
+        <p>Interactive Desmos graphs for the math in our turret hub tracking system.
+           The turret always aims at the hub center (top-entry target, like a basketball hoop).
            Drag points to explore. See TRACKING.md for full documentation.</p>
     </div>
 
     <div class="container">
         <div class="nav">
-            <a href="#dot-product">1. Dot Product</a>
+            <a href="#hub-tracking">1. Hub Center Tracking</a>
             <a href="#atan2">2. atan2</a>
             <a href="#normalization">3. Normalization</a>
             <a href="#clamping">4. Range Clamping</a>
+            <a href="#dot-product">5. Dot Product (Reference)</a>
         </div>
 
-        <!-- Graph 1: Dot Product Face Visibility -->
-        <div class="graph-section" id="dot-product">
-            <h2>1. Dot Product Face Visibility <span>TurretTracker.java - face selection</span></h2>
+        <!-- Graph 1: Hub Center Tracking (the actual system) -->
+        <div class="graph-section" id="hub-tracking">
+            <h2>1. Hub Center Tracking <span>TurretTracker.java - the full pipeline</span></h2>
             <div class="graph-description">
-                The hub has 4 faces. We use the <strong>dot product</strong> to determine which
-                faces the robot can see (and shoot into). For each face, we compute
-                <code>dot = robotToFace . faceNormal</code>. If dot &gt; 0, the robot is in front
-                of that face.
-                <div class="instructions">Drag the blue robot point around the hub to see
-                which faces are visible (green) vs hidden (red).</div>
+                This is the complete turret tracking pipeline. The robot aims at the
+                <strong>geometric center</strong> of the hub (computed from all 4 face tag
+                positions). The hub is a top-entry target -- the ball goes in from above, so
+                we always aim at the center regardless of approach angle.
+                <br><br>
+                The pipeline: compute <code>atan2(dy, dx)</code> for the field angle, subtract
+                robot heading to get robot-relative, normalize to [-pi, pi], clamp to the 270-degree
+                turret range.
+                <div class="instructions">Drag the blue robot around the field. Drag the
+                heading arrow to rotate the robot. Watch the turret arm (green/red) and the
+                aim line to the hub center.</div>
             </div>
-            <div id="calc-dot-product" class="calculator"></div>
+            <div id="calc-hub-tracking" class="calculator"></div>
             <div class="formula-ref">
-                <strong>Java:</strong> <code>double dot = robotToFace.getX() * normal.getX() + robotToFace.getY() * normal.getY();</code>
+                <strong>Java:</strong> <code>double fieldAngleRad = Math.atan2(hubCenter.getY() - robot.getY(), hubCenter.getX() - robot.getX());</code>
             </div>
         </div>
 
         <!-- Graph 2: atan2 Angle Computation -->
         <div class="graph-section" id="atan2">
-            <h2>2. atan2 Angle Computation <span>TurretTracker.java - angle to target</span></h2>
+            <h2>2. atan2 Angle to Hub Center <span>TurretTracker.java - field-relative angle</span></h2>
             <div class="graph-description">
-                <code>Math.atan2(dy, dx)</code> computes the angle from the robot to the target
-                in field coordinates. It returns a value in [-pi, pi] measured counter-clockwise
-                from the +X axis.
-                <div class="instructions">Drag the orange target point to see how the
-                field-relative angle changes. The arc shows the measured angle.</div>
+                <code>Math.atan2(dy, dx)</code> computes the angle from the robot to the hub
+                center in field coordinates. It returns a value in [-pi, pi] measured
+                counter-clockwise from the +X axis. This is the first step in the turret
+                tracking pipeline.
+                <div class="instructions">Drag the red hub center point to see how the
+                field-relative angle changes. The green line is dx, orange is dy, and
+                the purple arc is the measured angle.</div>
             </div>
             <div id="calc-atan2" class="calculator"></div>
             <div class="formula-ref">
@@ -172,15 +192,34 @@
             <h2>4. Range Clamping (270 degrees) <span>TurretTracker.java - clamp to turret limits</span></h2>
             <div class="graph-description">
                 The turret has 270 degrees of freedom (+/-135 degrees from forward). If the
-                computed angle is outside this range, we clamp it to the nearest limit using
-                <code>Math.copySign(halfRange, angle)</code>. The green zone is the reachable
-                range; the red zone is clamped.
+                hub center is behind the robot, the computed angle exceeds this range and we
+                clamp it to the nearest limit using <code>Math.copySign(halfRange, angle)</code>.
+                The green arc is the reachable range; the red arc is the dead zone.
                 <div class="instructions">Drag the angle slider to move the turret arm.
                 Watch it clamp when entering the red zone (behind the robot).</div>
             </div>
             <div id="calc-clamp" class="calculator"></div>
             <div class="formula-ref">
                 <strong>Java:</strong> <code>turretAngleDegrees = Math.copySign(halfRange, rawAngleDegrees);</code>
+            </div>
+        </div>
+
+        <!-- Graph 5: Dot Product (Reference Only) -->
+        <div class="graph-section" id="dot-product">
+            <h2>5. Dot Product Face Visibility <span>Reference - not used in current code</span></h2>
+            <div class="graph-description">
+                <span class="note-badge">REFERENCE ONLY</span>
+                The dot product is a generally useful FRC concept, but our turret does
+                <strong>not</strong> use face selection. Since the hub is a top-entry target,
+                we always aim at the center. This visualization is kept for educational purposes --
+                it shows how you <em>would</em> determine which faces a robot is in front of if
+                the hub had side-entry openings.
+                <div class="instructions">Drag the blue robot point around the hub to see
+                which faces would be visible (green) vs hidden (red) based on the dot product test.</div>
+            </div>
+            <div id="calc-dot-product" class="calculator"></div>
+            <div class="formula-ref">
+                <strong>Math:</strong> <code>dot = (face - robot) . normal</code> &mdash; positive means robot is in front of the face.
             </div>
         </div>
     </div>
@@ -203,70 +242,78 @@
     }
 
     // =====================================================
-    // GRAPH 1: Dot Product Face Visibility
+    // GRAPH 1: Hub Center Tracking (the actual system)
     // =====================================================
     (function() {
-        var calc = makeCalc('calc-dot-product');
+        var calc = makeCalc('calc-hub-tracking');
 
-        calc.setMathBounds({ left: -3, right: 7, bottom: -3, top: 7 });
+        calc.setMathBounds({ left: -2, right: 10, bottom: -2, top: 8 });
 
-        // Hub center and face midpoints (simplified square hub)
         calc.setExpressions([
-            // Hub square outline
-            { id: 'hub1', latex: 'x = -1 \\left\\{-1 \\le y \\le 1\\right\\}', color: '#555555', lineWidth: 3 },
-            { id: 'hub2', latex: 'x = 1 \\left\\{-1 \\le y \\le 1\\right\\}', color: '#555555', lineWidth: 3 },
-            { id: 'hub3', latex: 'y = -1 \\left\\{-1 \\le x \\le 1\\right\\}', color: '#555555', lineWidth: 3 },
-            { id: 'hub4', latex: 'y = 1 \\left\\{-1 \\le x \\le 1\\right\\}', color: '#555555', lineWidth: 3 },
+            // --- Hub structure (simplified square, centered at ~4.6, 4.0) ---
+            { id: 'hub1', latex: 'x = 3.6 \\left\\{3 \\le y \\le 5\\right\\}', color: '#555555', lineWidth: 3 },
+            { id: 'hub2', latex: 'x = 5.6 \\left\\{3 \\le y \\le 5\\right\\}', color: '#555555', lineWidth: 3 },
+            { id: 'hub3', latex: 'y = 3 \\left\\{3.6 \\le x \\le 5.6\\right\\}', color: '#555555', lineWidth: 3 },
+            { id: 'hub4', latex: 'y = 5 \\left\\{3.6 \\le x \\le 5.6\\right\\}', color: '#555555', lineWidth: 3 },
 
-            // Hub center
-            { id: 'hubcenter', latex: '(0, 0)', color: '#888888', pointSize: 8, showLabel: true, label: 'Hub', labelOrientation: Desmos.LabelOrientations.BELOW },
+            // Hub center (the target!)
+            { id: 'hx', latex: 'h_x = 4.6' },
+            { id: 'hy', latex: 'h_y = 4.0' },
+            { id: 'hubcenter', latex: '(h_x, h_y)', color: '#e94560', pointSize: 12, showLabel: true, label: 'Hub Center', labelOrientation: Desmos.LabelOrientations.ABOVE },
 
-            // Robot position (draggable)
-            { id: 'rx', latex: 'r_x = 3', sliderBounds: { min: '-5', max: '5', step: '0.1' } },
-            { id: 'ry', latex: 'r_y = 2', sliderBounds: { min: '-5', max: '5', step: '0.1' } },
-            { id: 'robot', latex: '(r_x, r_y)', color: '#2d70b3', pointSize: 12, showLabel: true, label: 'Robot', labelOrientation: Desmos.LabelOrientations.ABOVE, dragMode: Desmos.DragModes.XY },
+            // Face tag positions (small dots for reference)
+            { id: 'tw', latex: '(3.6, 4.0)', color: '#666666', pointSize: 5, showLabel: true, label: 'W', labelSize: Desmos.LabelSizes.SMALL },
+            { id: 'te', latex: '(5.6, 4.0)', color: '#666666', pointSize: 5, showLabel: true, label: 'E', labelSize: Desmos.LabelSizes.SMALL },
+            { id: 'tn', latex: '(4.6, 5.0)', color: '#666666', pointSize: 5, showLabel: true, label: 'N', labelSize: Desmos.LabelSizes.SMALL },
+            { id: 'ts', latex: '(4.6, 3.0)', color: '#666666', pointSize: 5, showLabel: true, label: 'S', labelSize: Desmos.LabelSizes.SMALL },
 
-            // Face normals (unit vectors pointing outward)
-            // West face (midpoint at x=-1, normal = (-1, 0))
-            { id: 'wdot', latex: 'd_w = (-1 - r_x) \\cdot (-1) + (0 - r_y) \\cdot 0' },
-            // East face (midpoint at x=1, normal = (1, 0))
-            { id: 'edot', latex: 'd_e = (1 - r_x) \\cdot 1 + (0 - r_y) \\cdot 0' },
-            // South face (midpoint at y=-1, normal = (0, -1))
-            { id: 'sdot', latex: 'd_s = (0 - r_x) \\cdot 0 + (-1 - r_y) \\cdot (-1)' },
-            // North face (midpoint at y=1, normal = (0, 1))
-            { id: 'ndot', latex: 'd_n = (0 - r_x) \\cdot 0 + (1 - r_y) \\cdot 1' },
+            // --- Robot position (draggable) ---
+            { id: 'rx', latex: 'r_x = 1.5', sliderBounds: { min: '-2', max: '10', step: '0.1' } },
+            { id: 'ry', latex: 'r_y = 2.0', sliderBounds: { min: '-2', max: '8', step: '0.1' } },
+            { id: 'robot', latex: '(r_x, r_y)', color: '#2d70b3', pointSize: 14, showLabel: true, label: 'Robot', labelOrientation: Desmos.LabelOrientations.BELOW, dragMode: Desmos.DragModes.XY },
 
-            // Face coloring: green if dot > 0, red if dot <= 0
-            // West face
-            { id: 'wvis', latex: 'x = -1 \\left\\{-1 \\le y \\le 1\\right\\} \\left\\{d_w > 0\\right\\}', color: '#2ecc71', lineWidth: 6 },
-            { id: 'whid', latex: 'x = -1 \\left\\{-1 \\le y \\le 1\\right\\} \\left\\{d_w \\le 0\\right\\}', color: '#e74c3c', lineWidth: 6 },
-            // East face
-            { id: 'evis', latex: 'x = 1 \\left\\{-1 \\le y \\le 1\\right\\} \\left\\{d_e > 0\\right\\}', color: '#2ecc71', lineWidth: 6 },
-            { id: 'ehid', latex: 'x = 1 \\left\\{-1 \\le y \\le 1\\right\\} \\left\\{d_e \\le 0\\right\\}', color: '#e74c3c', lineWidth: 6 },
-            // South face
-            { id: 'svis', latex: 'y = -1 \\left\\{-1 \\le x \\le 1\\right\\} \\left\\{d_s > 0\\right\\}', color: '#2ecc71', lineWidth: 6 },
-            { id: 'shid', latex: 'y = -1 \\left\\{-1 \\le x \\le 1\\right\\} \\left\\{d_s \\le 0\\right\\}', color: '#e74c3c', lineWidth: 6 },
-            // North face
-            { id: 'nvis', latex: 'y = 1 \\left\\{-1 \\le x \\le 1\\right\\} \\left\\{d_n > 0\\right\\}', color: '#2ecc71', lineWidth: 6 },
-            { id: 'nhid', latex: 'y = 1 \\left\\{-1 \\le x \\le 1\\right\\} \\left\\{d_n \\le 0\\right\\}', color: '#e74c3c', lineWidth: 6 },
+            // Robot heading (adjustable via slider)
+            { id: 'heading', latex: '\\theta_h = 0.8', sliderBounds: { min: String(-Math.PI), max: String(Math.PI), step: '0.01' } },
 
-            // Normal arrows (short lines from face midpoints)
-            { id: 'wnorm', latex: '(-1 - 0.5t, 0) \\left\\{0 \\le t \\le 1\\right\\}', color: '#aaaaaa', lineWidth: 1, lineStyle: Desmos.Styles.DASHED },
-            { id: 'enorml', latex: '(1 + 0.5t, 0) \\left\\{0 \\le t \\le 1\\right\\}', color: '#aaaaaa', lineWidth: 1, lineStyle: Desmos.Styles.DASHED },
-            { id: 'snorm', latex: '(0, -1 - 0.5t) \\left\\{0 \\le t \\le 1\\right\\}', color: '#aaaaaa', lineWidth: 1, lineStyle: Desmos.Styles.DASHED },
-            { id: 'nnorm', latex: '(0, 1 + 0.5t) \\left\\{0 \\le t \\le 1\\right\\}', color: '#aaaaaa', lineWidth: 1, lineStyle: Desmos.Styles.DASHED },
+            // Robot heading arrow (shows which way robot faces)
+            { id: 'headarrow', latex: '(r_x + t \\cos(\\theta_h), r_y + t \\sin(\\theta_h)) \\left\\{0 \\le t \\le 0.8\\right\\}', color: '#2d70b3', lineWidth: 3 },
 
-            // Labels
-            { id: 'wlabel', latex: '(-1.8, 0)', color: '#ffffff', pointSize: 0, showLabel: true, label: 'West', labelSize: Desmos.LabelSizes.MEDIUM },
-            { id: 'elabel', latex: '(1.8, 0)', color: '#ffffff', pointSize: 0, showLabel: true, label: 'East', labelSize: Desmos.LabelSizes.MEDIUM },
-            { id: 'slabel', latex: '(0, -1.8)', color: '#ffffff', pointSize: 0, showLabel: true, label: 'South', labelSize: Desmos.LabelSizes.MEDIUM },
-            { id: 'nlabel', latex: '(0, 1.8)', color: '#ffffff', pointSize: 0, showLabel: true, label: 'North', labelSize: Desmos.LabelSizes.MEDIUM },
+            // --- Distance computation ---
+            { id: 'dx', latex: 'd_x = h_x - r_x' },
+            { id: 'dy', latex: 'd_y = h_y - r_y' },
+            { id: 'dist', latex: 'D = \\sqrt{d_x^2 + d_y^2}' },
 
-            // Robot-to-face line (to nearest visible face)
-            { id: 'aimline', latex: '(r_x + t \\cdot (0 - r_x), r_y + t \\cdot (0 - r_y)) \\left\\{0 \\le t \\le 1\\right\\}', color: '#2d70b3', lineWidth: 2, lineStyle: Desmos.Styles.DASHED },
+            // --- Angle pipeline ---
+            // Step 1: field-relative angle
+            { id: 'fieldangle', latex: '\\theta_f = \\arctan(d_y, d_x)' },
 
-            // Note
-            { id: 'note1', type: 'text', text: 'Green faces: dot > 0 (robot can shoot into them). Red faces: dot <= 0 (facing away).' },
+            // Step 2: robot-relative angle
+            { id: 'robotrel', latex: '\\theta_{rel} = \\theta_f - \\theta_h' },
+
+            // Step 3: normalize to [-pi, pi]
+            { id: 'normalized', latex: '\\theta_n = \\arctan(\\sin(\\theta_{rel}), \\cos(\\theta_{rel}))' },
+
+            // Step 4: clamp to turret range (+/- 135 deg = 3pi/4)
+            { id: 'halfrange', latex: 'L = \\frac{3\\pi}{4}' },
+            { id: 'clamped', latex: '\\theta_c = \\min(\\max(\\theta_n, -L), L)' },
+            { id: 'inrange', latex: 'R = \\left\\{|\\theta_n| \\le L : 1, 0\\right\\}' },
+
+            // --- Aim line from robot to hub center (always shown) ---
+            { id: 'aimtohub', latex: '(r_x + t \\cdot d_x, r_y + t \\cdot d_y) \\left\\{0 \\le t \\le 1\\right\\}', color: '#888888', lineWidth: 1, lineStyle: Desmos.Styles.DASHED },
+
+            // --- Turret aim line (field-relative = heading + clamped) ---
+            { id: 'aimang', latex: '\\alpha = \\theta_h + \\theta_c' },
+            { id: 'aimline', latex: '(r_x + t \\cos(\\alpha), r_y + t \\sin(\\alpha)) \\left\\{0 \\le t \\le 3\\right\\} \\left\\{R = 1\\right\\}', color: '#2ecc71', lineWidth: 4 },
+            { id: 'aimlinered', latex: '(r_x + t \\cos(\\alpha), r_y + t \\sin(\\alpha)) \\left\\{0 \\le t \\le 3\\right\\} \\left\\{R = 0\\right\\}', color: '#e74c3c', lineWidth: 4 },
+
+            // --- Turret range arc (shows the 270-degree coverage) ---
+            { id: 'rangearc', latex: '(r_x + 1.5\\cos(\\theta_h + t), r_y + 1.5\\sin(\\theta_h + t)) \\left\\{-L \\le t \\le L\\right\\}', color: '#2ecc71', lineWidth: 2, lineStyle: Desmos.Styles.DASHED },
+
+            // --- Readouts ---
+            { id: 'angdeg', latex: '\\theta_{deg} = \\frac{180}{\\pi} \\cdot \\theta_c' },
+            { id: 'headingdeg', latex: 'H_{deg} = \\frac{180}{\\pi} \\cdot \\theta_h' },
+
+            { id: 'note1', type: 'text', text: 'Green aim line = hub in range. Red = hub behind robot (clamped). Dashed gray = true direction to hub center. Blue arrow = robot heading. Dashed green arc = 270-degree turret range.' },
         ]);
     })();
 
@@ -282,16 +329,16 @@
             // Robot at origin
             { id: 'robot2', latex: '(0, 0)', color: '#2d70b3', pointSize: 12, showLabel: true, label: 'Robot (0,0)', labelOrientation: Desmos.LabelOrientations.BELOW },
 
-            // Target (draggable)
+            // Hub center (draggable)
             { id: 'tx', latex: 't_x = 4', sliderBounds: { min: '-6', max: '6', step: '0.1' } },
             { id: 'ty', latex: 't_y = 3', sliderBounds: { min: '-6', max: '6', step: '0.1' } },
-            { id: 'target', latex: '(t_x, t_y)', color: '#e94560', pointSize: 12, showLabel: true, label: 'Target', labelOrientation: Desmos.LabelOrientations.ABOVE, dragMode: Desmos.DragModes.XY },
+            { id: 'target', latex: '(t_x, t_y)', color: '#e94560', pointSize: 12, showLabel: true, label: 'Hub Center', labelOrientation: Desmos.LabelOrientations.ABOVE, dragMode: Desmos.DragModes.XY },
 
             // dx and dy lines
             { id: 'dxline', latex: '(t \\cdot t_x, 0) \\left\\{0 \\le t \\le 1\\right\\}', color: '#27ae60', lineWidth: 3 },
             { id: 'dyline', latex: '(t_x, t \\cdot t_y) \\left\\{0 \\le t \\le 1\\right\\}', color: '#f39c12', lineWidth: 3 },
 
-            // Line from robot to target
+            // Line from robot to hub center
             { id: 'aimline2', latex: '(t \\cdot t_x, t \\cdot t_y) \\left\\{0 \\le t \\le 1\\right\\}', color: '#e94560', lineWidth: 2 },
 
             // Angle arc
@@ -311,7 +358,7 @@
             { id: 'xaxis', latex: '(t, 0) \\left\\{-6 \\le t \\le 6\\right\\}', color: '#444444', lineWidth: 1 },
             { id: 'yaxis', latex: '(0, t) \\left\\{-6 \\le t \\le 6\\right\\}', color: '#444444', lineWidth: 1 },
 
-            { id: 'note2', type: 'text', text: 'atan2(dy, dx) gives the angle from +X axis to the target. Green = dx, Orange = dy, Purple arc = measured angle.' },
+            { id: 'note2', type: 'text', text: 'atan2(dy, dx) gives the field-relative angle from robot to hub center. Green = dx, Orange = dy, Purple arc = measured angle.' },
         ]);
     })();
 
@@ -353,7 +400,7 @@
             { id: 'pilabel', latex: '(-11.5, \\pi)', color: '#888888', pointSize: 0, showLabel: true, label: '+pi', labelSize: Desmos.LabelSizes.SMALL },
             { id: 'negpilabel', latex: '(-11.5, -\\pi)', color: '#888888', pointSize: 0, showLabel: true, label: '-pi', labelSize: Desmos.LabelSizes.SMALL },
 
-            { id: 'note3', type: 'text', text: 'Blue dashed = identity. Red = atan2(sin(x), cos(x)). Values outside [-pi, pi] wrap back into range.' },
+            { id: 'note3', type: 'text', text: 'Blue dashed = identity. Red = atan2(sin(x), cos(x)). Values outside [-pi, pi] wrap back into range. This is needed after subtracting robot heading from field angle.' },
         ]);
     })();
 
@@ -412,7 +459,65 @@
             { id: 'rawdeg', latex: '\\theta_{raw} = \\frac{180}{\\pi} \\cdot \\theta_r' },
             { id: 'clampdeg', latex: '\\theta_{clamp} = \\frac{180}{\\pi} \\cdot \\theta_c' },
 
-            { id: 'note4', type: 'text', text: 'Blue solid = clamped turret angle. Red dashed = raw desired angle. Green arc = reachable range (270 deg). Gray dashed = limits (+/-135 deg).' },
+            { id: 'note4', type: 'text', text: 'Blue solid = clamped turret angle. Red dashed = raw desired angle. Green arc = reachable range (270 deg). When hub is in the red zone behind the robot, the turret pins to the nearest limit.' },
+        ]);
+    })();
+
+    // =====================================================
+    // GRAPH 5: Dot Product Face Visibility (Reference)
+    // =====================================================
+    (function() {
+        var calc = makeCalc('calc-dot-product');
+
+        calc.setMathBounds({ left: -3, right: 7, bottom: -3, top: 7 });
+
+        calc.setExpressions([
+            // Hub square outline
+            { id: 'hub1', latex: 'x = -1 \\left\\{-1 \\le y \\le 1\\right\\}', color: '#555555', lineWidth: 3 },
+            { id: 'hub2', latex: 'x = 1 \\left\\{-1 \\le y \\le 1\\right\\}', color: '#555555', lineWidth: 3 },
+            { id: 'hub3', latex: 'y = -1 \\left\\{-1 \\le x \\le 1\\right\\}', color: '#555555', lineWidth: 3 },
+            { id: 'hub4', latex: 'y = 1 \\left\\{-1 \\le x \\le 1\\right\\}', color: '#555555', lineWidth: 3 },
+
+            // Hub center
+            { id: 'hubcenter', latex: '(0, 0)', color: '#888888', pointSize: 8, showLabel: true, label: 'Hub Center', labelOrientation: Desmos.LabelOrientations.BELOW },
+
+            // Robot position (draggable)
+            { id: 'rx', latex: 'r_x = 3', sliderBounds: { min: '-5', max: '5', step: '0.1' } },
+            { id: 'ry', latex: 'r_y = 2', sliderBounds: { min: '-5', max: '5', step: '0.1' } },
+            { id: 'robot', latex: '(r_x, r_y)', color: '#2d70b3', pointSize: 12, showLabel: true, label: 'Robot', labelOrientation: Desmos.LabelOrientations.ABOVE, dragMode: Desmos.DragModes.XY },
+
+            // Face normals (unit vectors pointing outward)
+            { id: 'wdot', latex: 'd_w = (-1 - r_x) \\cdot (-1) + (0 - r_y) \\cdot 0' },
+            { id: 'edot', latex: 'd_e = (1 - r_x) \\cdot 1 + (0 - r_y) \\cdot 0' },
+            { id: 'sdot', latex: 'd_s = (0 - r_x) \\cdot 0 + (-1 - r_y) \\cdot (-1)' },
+            { id: 'ndot', latex: 'd_n = (0 - r_x) \\cdot 0 + (1 - r_y) \\cdot 1' },
+
+            // Face coloring: green if dot > 0, red if dot <= 0
+            { id: 'wvis', latex: 'x = -1 \\left\\{-1 \\le y \\le 1\\right\\} \\left\\{d_w > 0\\right\\}', color: '#2ecc71', lineWidth: 6 },
+            { id: 'whid', latex: 'x = -1 \\left\\{-1 \\le y \\le 1\\right\\} \\left\\{d_w \\le 0\\right\\}', color: '#e74c3c', lineWidth: 6 },
+            { id: 'evis', latex: 'x = 1 \\left\\{-1 \\le y \\le 1\\right\\} \\left\\{d_e > 0\\right\\}', color: '#2ecc71', lineWidth: 6 },
+            { id: 'ehid', latex: 'x = 1 \\left\\{-1 \\le y \\le 1\\right\\} \\left\\{d_e \\le 0\\right\\}', color: '#e74c3c', lineWidth: 6 },
+            { id: 'svis', latex: 'y = -1 \\left\\{-1 \\le x \\le 1\\right\\} \\left\\{d_s > 0\\right\\}', color: '#2ecc71', lineWidth: 6 },
+            { id: 'shid', latex: 'y = -1 \\left\\{-1 \\le x \\le 1\\right\\} \\left\\{d_s \\le 0\\right\\}', color: '#e74c3c', lineWidth: 6 },
+            { id: 'nvis', latex: 'y = 1 \\left\\{-1 \\le x \\le 1\\right\\} \\left\\{d_n > 0\\right\\}', color: '#2ecc71', lineWidth: 6 },
+            { id: 'nhid', latex: 'y = 1 \\left\\{-1 \\le x \\le 1\\right\\} \\left\\{d_n \\le 0\\right\\}', color: '#e74c3c', lineWidth: 6 },
+
+            // Normal arrows
+            { id: 'wnorm', latex: '(-1 - 0.5t, 0) \\left\\{0 \\le t \\le 1\\right\\}', color: '#aaaaaa', lineWidth: 1, lineStyle: Desmos.Styles.DASHED },
+            { id: 'enorml', latex: '(1 + 0.5t, 0) \\left\\{0 \\le t \\le 1\\right\\}', color: '#aaaaaa', lineWidth: 1, lineStyle: Desmos.Styles.DASHED },
+            { id: 'snorm', latex: '(0, -1 - 0.5t) \\left\\{0 \\le t \\le 1\\right\\}', color: '#aaaaaa', lineWidth: 1, lineStyle: Desmos.Styles.DASHED },
+            { id: 'nnorm', latex: '(0, 1 + 0.5t) \\left\\{0 \\le t \\le 1\\right\\}', color: '#aaaaaa', lineWidth: 1, lineStyle: Desmos.Styles.DASHED },
+
+            // Labels
+            { id: 'wlabel', latex: '(-1.8, 0)', color: '#ffffff', pointSize: 0, showLabel: true, label: 'West', labelSize: Desmos.LabelSizes.MEDIUM },
+            { id: 'elabel', latex: '(1.8, 0)', color: '#ffffff', pointSize: 0, showLabel: true, label: 'East', labelSize: Desmos.LabelSizes.MEDIUM },
+            { id: 'slabel', latex: '(0, -1.8)', color: '#ffffff', pointSize: 0, showLabel: true, label: 'South', labelSize: Desmos.LabelSizes.MEDIUM },
+            { id: 'nlabel', latex: '(0, 1.8)', color: '#ffffff', pointSize: 0, showLabel: true, label: 'North', labelSize: Desmos.LabelSizes.MEDIUM },
+
+            // Robot-to-center line
+            { id: 'aimline', latex: '(r_x + t \\cdot (0 - r_x), r_y + t \\cdot (0 - r_y)) \\left\\{0 \\le t \\le 1\\right\\}', color: '#2d70b3', lineWidth: 2, lineStyle: Desmos.Styles.DASHED },
+
+            { id: 'note1', type: 'text', text: 'REFERENCE: Not used in current code. Green faces = dot > 0 (robot in front). Red = dot <= 0 (facing away). Our turret always aims at center instead.' },
         ]);
     })();
     </script>
