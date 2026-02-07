@@ -9,17 +9,24 @@ import org.photonvision.PhotonPoseEstimator.PoseStrategy;
 
 /**
  * Configuration context for the Vision subsystem using PhotonVision.
- * Supports multiple cameras for AprilTag detection and localization.
+ * Supports three cameras (front-right, front-left, rear) for AprilTag detection
+ * and localization, with FOV visualization in simulation.
  */
 @Data
 @Builder
 public class VisionSubsystemContext {
 
     /**
-     * Network table name for the front camera
+     * Network table name for the front-right camera
      */
     @Builder.Default
-    private final String frontCameraName = "photonvision-front";
+    private final String frontRightCameraName = "photonvision-front-right";
+
+    /**
+     * Network table name for the front-left camera
+     */
+    @Builder.Default
+    private final String frontLeftCameraName = "photonvision-front-left";
 
     /**
      * Network table name for the rear camera
@@ -40,20 +47,34 @@ public class VisionSubsystemContext {
     private final boolean enableCameraTelemetry = true;
 
     /**
-     * Transform from robot center to front camera optical center
-     * TODO: Calibrate from CAD
+     * Transform from robot center to front-right camera optical center.
+     * Mounted on the front-right bumper corner, angled 30deg outward to the right.
+     * Position: X=+0.30m forward, Y=-0.25m right, Z=+0.25m up.
+     * Rotation: pitch=-15deg (tilted down), yaw=-30deg (angled right).
      */
     @Builder.Default
-    private final Transform3d frontCameraToRobot =
-            new Transform3d(new Translation3d(0.0, 0.0, 0.0), new Rotation3d(0, 0, 0));
+    private final Transform3d frontRightCameraToRobot = new Transform3d(
+            new Translation3d(0.30, -0.25, 0.25), new Rotation3d(0, Math.toRadians(-15), Math.toRadians(-30)));
 
     /**
-     * Transform from robot center to rear camera optical center
-     * TODO: Calibrate from CAD
+     * Transform from robot center to front-left camera optical center.
+     * Mounted on the front-left bumper corner, angled 30deg outward to the left.
+     * Position: X=+0.30m forward, Y=+0.25m left, Z=+0.25m up.
+     * Rotation: pitch=-15deg (tilted down), yaw=+30deg (angled left).
+     */
+    @Builder.Default
+    private final Transform3d frontLeftCameraToRobot = new Transform3d(
+            new Translation3d(0.30, 0.25, 0.25), new Rotation3d(0, Math.toRadians(-15), Math.toRadians(30)));
+
+    /**
+     * Transform from robot center to rear camera optical center.
+     * Mounted centered on the rear of the robot, facing backward.
+     * Position: X=-0.30m backward, Y=0 centered, Z=+0.25m up.
+     * Rotation: pitch=-15deg (tilted down), yaw=180deg (facing backward).
      */
     @Builder.Default
     private final Transform3d rearCameraToRobot =
-            new Transform3d(new Translation3d(0.0, 0.0, 0.0), new Rotation3d(0, 0, Math.PI));
+            new Transform3d(new Translation3d(-0.30, 0.0, 0.25), new Rotation3d(0, Math.toRadians(-15), Math.PI));
 
     /**
      * Whether to enable simulation features (VisionSystemSim)
@@ -151,6 +172,20 @@ public class VisionSubsystemContext {
 
     @Builder.Default
     private final boolean enablePhotonCameraSimStreams = false;
+
+    // FOV visualization
+
+    /**
+     * Length of the FOV cone visualization rays in meters
+     */
+    @Builder.Default
+    private final double fovVisualizationRayLength = 2.0;
+
+    /**
+     * Whether to enable FOV cone visualization in simulation
+     */
+    @Builder.Default
+    private final boolean enableFovVisualization = true;
 
     /**
      * Creates a default configuration for the Vision subsystem.
