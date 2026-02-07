@@ -1,6 +1,7 @@
-# Turret Hub Tracking System
+# Turret Hub Tracking & Vision System
 
-Design document for the simulated turret tracker in `frc.robot.subsystems.turrettracker`.
+Design document for the turret tracker (`frc.robot.subsystems.turrettracker`) and the
+triple-camera vision system (`frc.robot.subsystems.vision`).
 
 ---
 
@@ -10,16 +11,22 @@ Design document for the simulated turret tracker in `frc.robot.subsystems.turret
 2. [High-Level Design](#2-high-level-design)
 3. [The Hub Model](#3-the-hub-model)
 4. [The Math](#4-the-math)
-5. [WPILib Visualization APIs](#5-wpilib-visualization-apis)
-6. [NetworkTables and AdvantageScope](#6-networktables-and-advantagescope)
-7. [File-by-File Implementation Notes](#7-file-by-file-implementation-notes)
-8. [How to View It In Sim](#8-how-to-view-it-in-sim)
-9. [Configuration and Tuning](#9-configuration-and-tuning)
-10. [Next Steps](#10-next-steps)
+5. [Interactive Math Visualizations (Desmos)](#5-interactive-math-visualizations-desmos)
+6. [WPILib Visualization APIs](#6-wpilib-visualization-apis)
+7. [NetworkTables and AdvantageScope](#7-networktables-and-advantagescope)
+8. [Triple-Camera Vision System](#8-triple-camera-vision-system)
+9. [File-by-File Implementation Notes](#9-file-by-file-implementation-notes)
+10. [How to View It In Sim](#10-how-to-view-it-in-sim)
+11. [Configuration and Tuning](#11-configuration-and-tuning)
+12. [Next Steps](#12-next-steps)
 
 ---
 
 ## 1. What This Does
+
+The system has two main components:
+
+### Turret Tracker
 
 The `TurretTracker` is a **software-only subsystem** with no physical motor. Every 20ms
 (the robot's periodic loop rate), it answers one question:
@@ -29,14 +36,34 @@ The `TurretTracker` is a **software-only subsystem** with no physical motor. Eve
 It reads the robot's current pose from the drivetrain's pose estimator, looks up the hub's
 AprilTag positions from the field layout, picks the best hub face to aim at, computes the
 angle, clamps it to the turret's range of motion (270 degrees), and publishes the result
-in three ways so you can see it working in simulation.
+so you can see it working in simulation.
 
 There is no PID controller, no motor output, no closed-loop control. This is the
 **geometric targeting layer** that a future turret motor controller would consume.
 
+### Triple-Camera Vision System
+
+The `VisionSubsystem` manages three PhotonVision cameras for AprilTag-based localization:
+
+- **Front-right** camera: angled 30 degrees outward to the right
+- **Front-left** camera: angled 30 degrees outward to the left
+- **Rear** camera: facing backward
+
+Together, the two front cameras provide approximately 150 degrees of forward coverage
+with a 60-degree overlap zone in the center. The rear camera covers 90 degrees behind
+the robot. Combined, the system provides near-360-degree AprilTag detection.
+
+Each camera feeds into its own `PhotonPoseEstimator`, and all three contribute vision
+measurements to the drivetrain's `SwerveDrivePoseEstimator` for sensor-fused localization.
+
+In simulation, FOV (field-of-view) cone visualizations are published to AdvantageScope
+so you can see exactly what each camera can see.
+
 ---
 
 ## 2. High-Level Design
+
+### Turret Tracker Data Flow
 
 ```
                                   +-------------------+
@@ -65,7 +92,35 @@ There is no PID controller, no motor output, no closed-loop control. This is the
                  blue/red hub
 ```
 
-### Data flow
+### Vision System Data Flow
+
+```
++---------------------+     +---------------------+     +---------------------+
+| PhotonCamera        |     | PhotonCamera        |     | PhotonCamera        |
+| "front-right"       |     | "front-left"        |     | "rear"              |
+| yaw=-30deg          |     | yaw=+30deg          |     | yaw=180deg          |
++----------+----------+     +----------+----------+     +----------+----------+
+           |                           |                           |
+           v                           v                           v
++----------+----------+     +----------+----------+     +----------+----------+
+| PhotonPoseEstimator |     | PhotonPoseEstimator |     | PhotonPoseEstimator |
+| MULTI_TAG_PNP       |     | MULTI_TAG_PNP       |     | MULTI_TAG_PNP       |
++----------+----------+     +----------+----------+     +----------+----------+
+           |                           |                           |
+           | reject / accept           | reject / accept           | reject / accept
+           | + dynamic std devs        | + dynamic std devs        | + dynamic std devs
+           |                           |                           |
+           +---------------------------+---------------------------+
+                                       |
+                                       v
+                          +----------------------------+
+                          | Drivetrain                 |
+                          | SwerveDrivePoseEstimator   |
+                          | addVisionMeasurement()     |
+                          +----------------------------+
+```
+
+### Turret Tracker Data Flow Steps
 
 1. **Input**: Robot pose (from `Drivetrain.getPose2dEstimator()`) and alliance color
    (from `DriverStation.getAlliance()`).
@@ -295,11 +350,91 @@ endX = robotX + length * cos(aimFieldAngleRad);
 endY = robotY + length * sin(aimFieldAngleRad);
 ```
 
+### 4.7 FOV cone projection (vision system)
+
+Each camera's field-of-view is visualized as a V-shaped cone on the field. The math
+projects the camera's position and FOV edges from robot-relative to field-relative
+coordinates.
+
+**Camera position in field coordinates:**
+
+```java
+// Rotate camera's robot-relative offset by the robot's heading
+camX = robotX + cam.x * cos(heading) - cam.y * sin(heading)
+camY = robotY + cam.x * sin(heading) + cam.y * cos(heading)
+```
+
+This is a standard 2D rotation matrix application. The camera's mounting position
+(e.g., front-right at x=+0.30m, y=-0.25m) is rotated by the robot's heading to get
+its field-absolute position.
+
+**Camera heading in field coordinates:**
+
+```java
+camHeading = robotHeading + cameraYaw
+```
+
+Where `cameraYaw` is the camera's mounting angle (e.g., -30 degrees for the front-right
+camera). This gives the direction the camera is pointing in field coordinates.
+
+**FOV edge computation:**
+
+```java
+leftEdgeX  = camX + rayLength * cos(camHeading + halfFOV)
+leftEdgeY  = camY + rayLength * sin(camHeading + halfFOV)
+rightEdgeX = camX + rayLength * cos(camHeading - halfFOV)
+rightEdgeY = camY + rayLength * sin(camHeading - halfFOV)
+```
+
+With a 90-degree FOV, `halfFOV` = 45 degrees. The two edge rays and the camera position
+form a V-shape published as a 3-point `Pose2d[]` array.
+
 ---
 
-## 5. WPILib Visualization APIs
+## 5. Interactive Math Visualizations (Desmos)
 
-### 5.1 Mechanism2d
+To help the team understand the math, we provide an interactive Desmos visualization.
+
+### Using the visualization
+
+Open `docs/desmos-tracking-math.html` in any web browser. It contains four interactive
+graphs embedded using the Desmos API:
+
+1. **Dot Product Face Visibility** -- Move the robot point around a hub to see which faces
+   are visible (green) vs hidden (red). Shows the dot product computation in real time.
+
+2. **atan2 Angle Computation** -- Drag a target point to see how `atan2(dy, dx)` computes
+   the field-relative angle. Visualizes the angle arc and the dx/dy components.
+
+3. **Angle Normalization** -- Shows how `atan2(sin(theta), cos(theta))` maps any input
+   angle to the [-pi, pi] range. Drag the input angle slider to see the wrapping behavior.
+
+4. **Range Clamping** -- Visualizes the turret's 270-degree range of motion. Drag the
+   target angle to see how it clamps to the nearest limit when out of range.
+
+The HTML file is self-contained (uses Desmos's CDN) and works offline once loaded. Share
+it with the team or open it during code reviews.
+
+### Desmos LaTeX reference
+
+The key formulas as Desmos-compatible LaTeX (you can paste these directly into
+[desmos.com/calculator](https://www.desmos.com/calculator)):
+
+| Formula | Desmos LaTeX | Section |
+|---------|-------------|---------|
+| Dot product | `d = (f_x - r_x) \cdot n_x + (f_y - r_y) \cdot n_y` | 4.1 |
+| Field angle | `\theta_f = \arctan(t_y - r_y, t_x - r_x)` | 4.2 |
+| Robot-relative angle | `\theta_r = \theta_f - \theta_h` | 4.3 |
+| Normalization | `\theta_n = \arctan(\sin(\theta_r), \cos(\theta_r))` | 4.4 |
+| Clamping | `\theta_c = \min(\max(\theta_n, -L), L)` | 4.5 |
+| Aim endpoint X | `a_x = r_x + d \cdot \cos(\theta_h + \theta_c)` | 4.6 |
+| Aim endpoint Y | `a_y = r_y + d \cdot \sin(\theta_h + \theta_c)` | 4.6 |
+
+---
+
+## 6. WPILib Visualization APIs
+
+### 6.1 Mechanism2d
 
 `Mechanism2d` is a WPILib API for drawing simple 2D mechanisms as a Sendable widget.
 It was designed for visualizing robot arms, elevators, and similar mechanisms, but it works
@@ -319,7 +454,11 @@ Mechanism2d                  -- The canvas. A rectangular area with a coordinate
                                     Created via: root.append(new MechanismLigament2d(...))
 ```
 
-**Our setup**:
+**Important**: Mechanism2d is a SimGUI/Glass/Shuffleboard widget only. It does NOT
+control what AdvantageScope shows on its 2D/3D field views. Those are driven by
+`StructPublisher<Pose2d>` and `StructArrayPublisher<Pose2d>` (see section 7).
+
+**Our turret tracker setup**:
 
 ```java
 Mechanism2d mechanism2d = new Mechanism2d(100, 100);          // 100x100 pixel canvas
@@ -332,6 +471,20 @@ MechanismLigament2d turretArm = root.append(
 // Range limit indicators: shorter, thinner, gray
 root.append(new MechanismLigament2d("limitCW", 28, 90-135, 2, new Color8Bit(Color.kGray)));
 root.append(new MechanismLigament2d("limitCCW", 28, 90+135, 2, new Color8Bit(Color.kGray)));
+```
+
+**Our camera layout setup** (vision system):
+
+```java
+Mechanism2d cameraLayoutMech = new Mechanism2d(100, 100);
+MechanismRoot2d center = cameraLayoutMech.getRoot("robotCenter", 50, 50);
+
+// Front-right camera: orange line at 60 degrees (90 - 30deg yaw)
+center.append(new MechanismLigament2d("frontRightCam", 30, 60, 2, new Color8Bit(Color.kOrange)));
+// Front-left camera: yellow line at 120 degrees (90 + 30deg yaw)
+center.append(new MechanismLigament2d("frontLeftCam", 30, 120, 2, new Color8Bit(Color.kYellow)));
+// Rear camera: cyan line at 270 degrees (90 + 180deg yaw)
+center.append(new MechanismLigament2d("rearCam", 30, 270, 2, new Color8Bit(Color.kCyan)));
 ```
 
 **Coordinate system**: Mechanism2d uses a standard screen coordinate system where
@@ -350,7 +503,7 @@ feedback that the target is outside the turret's range.
 which puts it on NetworkTables as a Sendable. SimGUI, Glass, and Shuffleboard all know
 how to render Mechanism2d widgets. In SimGUI, it appears under the "Other Devices" section.
 
-### 5.2 Sendable Protocol
+### 6.2 Sendable Protocol
 
 `Mechanism2d` implements `Sendable`, which is WPILib's interface for objects that can
 publish themselves to NetworkTables in a standardized way. When you call
@@ -366,9 +519,9 @@ other WPILib objects appear as widgets on dashboards.
 
 ---
 
-## 6. NetworkTables and AdvantageScope
+## 7. NetworkTables and AdvantageScope
 
-### 6.1 StructPublisher
+### 7.1 StructPublisher
 
 WPILib 2024+ introduced **struct-based NetworkTables publishing** for geometry types.
 Instead of publishing X, Y, and rotation as separate doubles, you publish an entire
@@ -395,7 +548,7 @@ publisher.set(new Pose3d(...));
 arrayPublisher.set(new Pose2d[] { startPose, endPose });
 ```
 
-### 6.2 What we publish
+### 7.2 Turret Tracker NT Keys
 
 | NT Key | Type | Purpose |
 |--------|------|---------|
@@ -408,7 +561,24 @@ arrayPublisher.set(new Pose2d[] { startPose, endPose });
 | `TurretTracker/ActiveFace` | `String` | "West", "East", "North", or "South" |
 | `TurretTracker/Status` | `String` | Human-readable status like "Tracking West (12.3 deg, 3.4m)" |
 
-### 6.3 Telemetry dual-path
+### 7.3 Vision System NT Keys
+
+| NT Key | Type | Purpose |
+|--------|------|---------|
+| `Vision/Status` | `String` | Overall status: "Tracking (FR+FL+Rear)", "No Targets", etc. |
+| `Vision/TotalTagsDetected` | `int` | Sum of tags seen across all cameras |
+| `Vision/FrontRightCamera/Connected` | `boolean` | Camera connection status |
+| `Vision/FrontLeftCamera/Connected` | `boolean` | Camera connection status |
+| `Vision/RearCamera/Connected` | `boolean` | Camera connection status |
+| `Vision/{cam}Camera/TargetCount` | `int` | Number of AprilTags seen by this camera |
+| `Vision/{cam}Camera/DetectedTags` | `String` | List of tag IDs: "[25, 26]" |
+| `Vision/{cam}Camera/BestTargetID` | `int` | Closest/best tag fiducial ID |
+| `Vision/{cam}Camera/EstimateStatus` | `String` | "Accepted", "Rejected", or "No valid estimate" |
+| `Vision/FrontRight/FOVCone` | `Pose2d[]` | 3-point V-shape for AdvantageScope field overlay |
+| `Vision/FrontLeft/FOVCone` | `Pose2d[]` | 3-point V-shape for AdvantageScope field overlay |
+| `Vision/Rear/FOVCone` | `Pose2d[]` | 3-point V-shape for AdvantageScope field overlay |
+
+### 7.4 Telemetry dual-path
 
 Our custom `Telemetry` class has two output paths:
 
@@ -419,14 +589,109 @@ Our custom `Telemetry` class has two output paths:
 - **`Telemetry.recordPoses(key, poses, level)`** writes a `Pose2d[]` to the DataLog using
   struct encoding.
 
-We use both so the turret tracker data is available both live (during simulation) and in
-post-match replay.
+We use both so the data is available both live (during simulation) and in post-match replay.
 
 ---
 
-## 7. File-by-File Implementation Notes
+## 8. Triple-Camera Vision System
 
-### `TurretTrackerContext.java`
+### 8.1 Camera Layout
+
+```
+                  Robot Front
+                    ^
+                   / \
+     Front-Left   /   \   Front-Right
+     yaw=+30deg  /     \  yaw=-30deg
+                /       \
+               /  60deg  \
+              /  overlap  \
+
+     Combined forward coverage: ~150 degrees
+
+
+                  Robot Rear
+                    |
+                    |   Rear Camera
+                    |   yaw=180deg
+                    v
+
+     Rear coverage: ~90 degrees
+```
+
+### 8.2 Camera Positions (Transform3d)
+
+Each camera's position is defined as a `Transform3d` from the robot center. The transform
+has two parts: a `Translation3d` (where on the robot) and a `Rotation3d` (which way it
+points).
+
+| Camera | X (m) | Y (m) | Z (m) | Pitch | Yaw | Color |
+|--------|-------|-------|-------|-------|-----|-------|
+| Front-Right | +0.30 | -0.25 | +0.25 | -15 deg | -30 deg | Orange |
+| Front-Left | +0.30 | +0.25 | +0.25 | -15 deg | +30 deg | Yellow |
+| Rear | -0.30 | 0.00 | +0.25 | -15 deg | 180 deg | Cyan |
+
+**Coordinate conventions**:
+- **X**: positive = forward, negative = backward
+- **Y**: positive = left, negative = right (WPILib convention)
+- **Z**: positive = up
+- **Pitch**: negative = tilted down (all cameras tilt 15 deg downward)
+- **Yaw**: positive = counter-clockwise. 0 = forward, +30 = angled left, -30 = angled right, 180 = facing backward
+
+### 8.3 FOV Visualization
+
+The vision system provides two types of visualization:
+
+**AdvantageScope field overlay** (controlled by `fovVisualizationRayLength` in context):
+
+Each camera publishes a 3-point `Pose2d[]` to NetworkTables. AdvantageScope renders
+these as polylines on the 2D field, forming a V-shaped FOV cone for each camera. The
+cone rotates with the robot in real time.
+
+To adjust the length of these FOV lines, change `fovVisualizationRayLength` in
+`VisionSubsystemContext.java` (default: 2.0 meters).
+
+**Mechanism2d camera layout widget** (visible in Glass/SimGUI only):
+
+A small top-down diagram showing three colored lines radiating from a center point,
+representing the direction each camera faces relative to the robot body. This is a
+static diagram (doesn't change at runtime) and is purely for reference.
+
+### 8.4 Pose Estimation Pipeline
+
+Each camera independently runs this pipeline every 20ms:
+
+1. **Get latest result** from PhotonCamera
+2. **Update PhotonPoseEstimator** with the result
+3. **Reject bad estimates**:
+   - Single-tag estimates with ambiguity > 0.2 are rejected
+   - Estimates where any tag is > 4.0m away are rejected
+4. **Calculate dynamic standard deviations**:
+   - Multi-tag (2+ tags): base std dev = 0.5 (high trust)
+   - Single-tag: base std dev = 4.0 (low trust)
+   - Scaled by distance: `stdDev = base * (1 + distance * 0.1)`
+   - Heading std dev is always very large (9999999) -- we trust the gyro for heading
+5. **Send to drivetrain**: `addVisionMeasurement(pose, timestamp, stdDevs)`
+
+### 8.5 Simulation
+
+In simulation, `VisionSystemSim` creates virtual cameras that "see" AprilTags placed
+on the field. Each `PhotonCameraSim` uses the same camera properties (resolution, FOV,
+latency) configured in `VisionSubsystemContext`.
+
+**Performance note**: PhotonVision simulation is computationally expensive (~96ms per
+camera per loop). With 3 cameras this causes "CommandScheduler loop overrun" warnings.
+This is a simulation-only artifact and does not affect real robot performance. To mitigate,
+only the front-right camera has optional video streams enabled; front-left and rear have
+streams disabled.
+
+---
+
+## 9. File-by-File Implementation Notes
+
+### Turret Tracker Files
+
+#### `TurretTrackerContext.java`
 
 A Lombok `@Data @Builder` configuration class. Follows the same pattern as
 `VisionSubsystemContext`, `DrivetrainContext`, and `FuelSubsystemContext`.
@@ -438,7 +703,7 @@ A Lombok `@Data @Builder` configuration class. Follows the same pattern as
 All parameters have sensible defaults. The `defaults()` static method returns a
 fully-default instance.
 
-### `TurretTracker.java`
+#### `TurretTracker.java`
 
 The core subsystem. Extends `SubsystemBase` which means:
 - Its `periodic()` method is called automatically every 20ms by the `CommandScheduler`.
@@ -463,7 +728,7 @@ The core subsystem. Extends `SubsystemBase` which means:
   impossible for a 4-face hub, but defensive programming), we fall back to the nearest face
   regardless of visibility.
 
-### `Constants.java` (modified)
+#### `Constants.java` (modified)
 
 Added the `Hub` inner class with tag ID arrays. These are `int[]` and `int[][]` rather
 than `List<Integer>` because they're compile-time constants and simpler to declare inline.
@@ -472,7 +737,7 @@ The tag IDs were extracted from `2026-rebuilt-welded.json` in the WPILib aprilta
 Corner tags (1, 6, 7, 12 for red; 17, 22, 23, 28 for blue) are excluded because they're
 at a different height (0.889m vs 1.124m) and aren't useful for turret aiming.
 
-### `RobotContainer.java` (modified)
+#### `RobotContainer.java` (modified)
 
 Added turret tracker instantiation alongside the other subsystems:
 
@@ -484,28 +749,60 @@ private final TurretTracker turretTracker =
 It's created after `driveTrain` (which it depends on) and registered with the telemetry
 system via `Telemetry.putData(this.turretTracker)`.
 
+### Vision System Files
+
+#### `VisionSubsystemContext.java`
+
+Lombok `@Data @Builder` configuration for the vision subsystem. Key fields:
+
+- **Camera names**: `frontRightCameraName`, `frontLeftCameraName`, `rearCameraName`
+- **Camera transforms**: `frontRightCameraToRobot`, `frontLeftCameraToRobot`, `rearCameraToRobot`
+  (each a `Transform3d` with Translation3d + Rotation3d)
+- **Sim camera properties**: resolution (960x720), FOV (90 deg), FPS (30), latency (50ms)
+- **Quality thresholds**: `poseAmbiguityThreshold` (0.2), `maxPoseEstimationDistance` (4.0m)
+- **Std dev factors**: `singleTagStdDevFactor` (4.0), `multiTagStdDevFactor` (0.5)
+- **FOV visualization**: `fovVisualizationRayLength` (2.0m), `enableFovVisualization` (true)
+
+#### `VisionSubsystem.java`
+
+The main vision subsystem. Key structure:
+
+- **Three `PhotonCamera` instances** and three `PhotonPoseEstimator` instances
+- **`VisionMeasurementConsumer` functional interface**: decouples vision from drivetrain.
+  In `RobotContainer`, this is wired to `drivetrain::addVisionMeasurement`.
+- **`periodic()`**: Updates camera telemetry and runs pose estimation for all 3 cameras
+- **`simulationPeriodic()`**: Updates `VisionSystemSim` with robot pose and refreshes
+  FOV cone visualization
+- **`processCamera()`**: Extracted helper that handles one camera's pose estimation pipeline
+- **`publishCameraFov()`**: Computes field-relative FOV cone edges for one camera
+- **`updateSystemStatus()`**: Builds dynamic status string like "Tracking (FR+FL+Rear)"
+
 ---
 
-## 8. How to View It In Sim
+## 10. How to View It In Sim
 
-### SimGUI (Mechanism2d widget)
+### SimGUI (Mechanism2d widgets)
 
 1. Run `./gradlew simulateJava`
 2. In the SimGUI window, look for **"Other Devices"** or **"NetworkTables"** in the left panel
 3. Find `TurretTracker/Mechanism` and drag it into the main area
 4. You'll see a turret dial: a green arm that rotates to track the hub, with gray lines
    showing the +/-135 degree limits
-5. Drive the robot around -- the arm follows the nearest hub face
-6. When the hub is behind the robot, the arm turns red and pins to the limit
+5. Find `Vision/CameraLayout` for the top-down camera direction diagram
+6. Drive the robot around -- the turret arm follows the nearest hub face
+7. When the hub is behind the robot, the arm turns red and pins to the limit
 
-### AdvantageScope (aim line on field)
+### AdvantageScope (2D field overlay)
 
 1. Open AdvantageScope and connect to `localhost` (or open a `.wpilog` file)
 2. Create a new **2D Field** tab
 3. Drag `CurrentPoseEstimator` (the robot's pose) onto the field
-4. Drag `TurretTracker/AimLine` onto the same field -- it renders as a path/trajectory
+4. Drag `TurretTracker/AimLine` onto the same field -- it renders as a line
    showing the aim direction
-5. For 3D: create a **3D Field** tab, add `TurretTracker/AimPose3d` and
+5. Drag `Vision/FrontRight/FOVCone`, `Vision/FrontLeft/FOVCone`, and
+   `Vision/Rear/FOVCone` onto the field -- they render as V-shaped FOV cones
+   that rotate with the robot
+6. For 3D: create a **3D Field** tab, add `TurretTracker/AimPose3d` and
    `TurretTracker/TargetPose3d` as poses
 
 ### NetworkTables (raw values)
@@ -517,10 +814,15 @@ In Glass, OutlineViewer, or the SimGUI NetworkTables view:
 - `TurretTracker/DistanceM` -- how far the target face is
 - `TurretTracker/ActiveFace` -- which of the 4 faces is being tracked
 - `TurretTracker/Status` -- human-readable string
+- `Vision/Status` -- overall vision status (e.g., "Tracking (FR+FL+Rear)")
+- `Vision/TotalTagsDetected` -- total AprilTags seen across all cameras
+- `Vision/{cam}Camera/DetectedTags` -- per-camera detected tag list
 
 ---
 
-## 9. Configuration and Tuning
+## 11. Configuration and Tuning
+
+### Turret Tracker
 
 All parameters are in `TurretTrackerContext` and can be overridden via the builder:
 
@@ -540,12 +842,41 @@ TurretTrackerContext.builder()
 | `mechanism2dSize` | 100.0 | Canvas size for the Mechanism2d widget (pixels). |
 | `mechanismArmLength` | 40.0 | Length of the turret arm in the Mechanism2d (pixels). |
 
+### Vision System
+
+All parameters are in `VisionSubsystemContext`:
+
+```java
+// Example: tighter rejection thresholds
+VisionSubsystemContext.builder()
+    .poseAmbiguityThreshold(0.15)
+    .maxPoseEstimationDistance(3.0)
+    .fovVisualizationRayLength(3.0)   // longer FOV lines on field
+    .build();
+```
+
+| Parameter | Default | What it controls |
+|-----------|---------|-----------------|
+| `cameraFovDegrees` | 90.0 | Simulated camera field of view. |
+| `cameraFps` | 30 | Simulated camera frame rate. |
+| `cameraAvgLatencyMs` | 50.0 | Simulated average processing latency. |
+| `poseAmbiguityThreshold` | 0.2 | Max ambiguity for single-tag estimates (lower = stricter). |
+| `maxPoseEstimationDistance` | 4.0 | Max tag distance in meters to trust. |
+| `singleTagStdDevFactor` | 4.0 | Base std dev for 1-tag estimates (higher = less trust). |
+| `multiTagStdDevFactor` | 0.5 | Base std dev for 2+ tag estimates (lower = more trust). |
+| `fovVisualizationRayLength` | 2.0 | Length of FOV cone lines on AdvantageScope field (meters). |
+| `enableFovVisualization` | true | Toggle FOV cone rendering. |
+
+**Key distinction**: `fovVisualizationRayLength` controls the AdvantageScope field overlay
+FOV cones. The `MechanismLigament2d` length in the camera layout widget is a separate
+value that only affects the small Glass/SimGUI diagram.
+
 ---
 
-## 10. Next Steps
+## 12. Next Steps
 
-This subsystem provides the **targeting math and visualization**. To turn it into a
-functional shoot-while-driving system, the following pieces would be added on top:
+This system provides the **targeting math, vision localization, and visualization**. To
+turn it into a functional shoot-while-driving system, the following pieces would be added:
 
 1. **Turret motor subsystem**: A physical motor (likely a TalonFX or SparkMax) that
    receives a target angle from `TurretTracker.getTurretAngleDegrees()` and uses a PID
