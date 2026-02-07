@@ -33,10 +33,14 @@ The `TurretTracker` is a **software-only subsystem** with no physical motor. Eve
 
 > "If I had a turret on this robot, what angle would it need to be at to aim at the hub?"
 
-It reads the robot's current pose from the drivetrain's pose estimator, looks up the hub's
-AprilTag positions from the field layout, picks the best hub face to aim at, computes the
-angle, clamps it to the turret's range of motion (270 degrees), and publishes the result
-so you can see it working in simulation.
+It reads the robot's current pose from the drivetrain's pose estimator, computes the
+geometric center of the alliance hub from AprilTag positions, calculates the angle to
+aim at that center point, clamps it to the turret's range of motion (270 degrees), and
+publishes the result so you can see it working in simulation.
+
+The hub is a top-entry target (like a basketball hoop with an intake scoop on top).
+The ball enters from above, so the turret always aims at the **hub center** regardless
+of which side the robot is on. There is no need for face selection.
 
 There is no PID controller, no motor output, no closed-loop control. This is the
 **geometric targeting layer** that a future turret motor controller would consume.
@@ -78,7 +82,7 @@ so you can see exactly what each camera can see.
 +---------------+    getPose2d    +-------------------+
 |  Drivetrain   | -------------> |   TurretTracker   |
 | (pose         |   Estimator()  |                   |
-|  estimator)   |                | 1. Pick hub face  |
+|  estimator)   |                | 1. Get hub center  |
 +---------------+                | 2. Compute angle  |
                                  | 3. Clamp to range |
                                  | 4. Publish viz    |
@@ -125,21 +129,19 @@ so you can see exactly what each camera can see.
 1. **Input**: Robot pose (from `Drivetrain.getPose2dEstimator()`) and alliance color
    (from `DriverStation.getAlliance()`).
 
-2. **Hub face data**: Built once at construction time. The constructor reads every hub
-   tag's 3D pose from the field layout JSON, computes face midpoints and outward normals,
-   and stores them in a list of `HubFace` records.
+2. **Hub center**: Computed once at construction time. The constructor reads every hub
+   face tag's 3D pose from the field layout JSON, averages the midpoints of all 4 faces,
+   and stores the result as a single `Translation2d` per hub.
 
-3. **Face selection**: Each cycle, the tracker iterates the 4 faces of the active hub
-   and picks the nearest one that the robot is "in front of" (using a dot product test).
+3. **Angle computation**: Standard atan2 trigonometry to get the field-relative angle
+   from robot to hub center, then subtract the robot's heading to get a robot-relative
+   angle.
 
-4. **Angle computation**: Standard atan2 trigonometry to get the field-relative angle
-   from robot to face, then subtract the robot's heading to get a robot-relative angle.
-
-5. **Clamping**: If the robot-relative angle exceeds +/-135 degrees (half of the 270-degree
+4. **Clamping**: If the robot-relative angle exceeds +/-135 degrees (half of the 270-degree
    range), the turret angle is clamped to the nearest limit and `targetInRange` is set
    to `false`.
 
-6. **Output**: The computed angle, distance, and status are published via three channels:
+5. **Output**: The computed angle, distance, and status are published via three channels:
    Mechanism2d widget, NetworkTables struct publishers, and the telemetry system.
 
 ---
@@ -190,81 +192,47 @@ Z = 0.889m which we ignore for aiming purposes.
                     South face
 ```
 
-### How faces are built at construction
+### How the hub center is computed
 
-The `buildHubFaces` method does three things:
+The `computeHubCenter` method averages all four face midpoints:
 
 1. **Compute each face's midpoint**: Average the (X, Y) positions of the two tags on
    that face. For example, blue West face tags 25 and 26 are at (4.022, 4.390) and
    (4.022, 4.035), so the midpoint is (4.022, 4.212).
 
-2. **Compute the hub center**: Average all four face midpoints. This gives us the
-   geometric center of the hub.
+2. **Average all face midpoints**: The hub center is the mean of the four face midpoints.
+   This gives the geometric center of the hub structure.
 
-3. **Compute each face's outward normal**: The vector from the hub center to the face
-   midpoint, normalized to length 1. This tells us which direction each face is "looking"
-   outward. For the blue West face, this normal points in the -X direction (toward the
-   blue wall).
-
-These are stored as `HubFace` records:
-
-```java
-record HubFace(int tag1Id, int tag2Id, Translation2d midpoint, Translation2d normal, String name)
-```
-
-This is a Java 16+ record -- an immutable data class that automatically generates
-`equals`, `hashCode`, `toString`, and accessor methods (e.g., `face.midpoint()`).
+The turret always aims at this single center point. Since the hub is a top-entry target
+(like a basketball hoop), the specific face the robot is near doesn't matter -- the ball
+goes in from above.
 
 ---
 
 ## 4. The Math
 
-### 4.1 Face visibility test (dot product)
+### 4.1 Dot product (reference material)
 
-**Problem**: The hub has 4 faces, but you should only aim at faces you could actually
-shoot into. If you're standing to the west of the hub, you want the West face, not the
-East face (which faces away from you).
-
-**Solution**: The dot product. For each face, we compute:
-
-```
-robotToFace = face.midpoint - robot.position     (a 2D vector)
-dot = robotToFace . face.normal                   (dot product)
-```
-
-If `dot > 0`, the robot is on the "front" side of that face (the face normal and the
-vector from robot to face point in roughly the same direction). If `dot <= 0`, the robot
-is behind or beside the face.
-
-**Visual intuition**:
-
-```
-        face normal
-            ^
-            |
-    +-------+-------+   <-- face
-            |
-            |
-     dot>0  |  dot<0
-    (front) | (behind)
-            |
-          Robot
-```
+> **Note**: The current implementation does NOT use dot product face selection. The turret
+> always aims at the hub center because the hub is a top-entry target. This section is
+> retained as reference material since the Desmos visualization covers it and it's a
+> generally useful concept for FRC.
 
 The dot product of two vectors A and B equals `|A| * |B| * cos(theta)` where theta is the
-angle between them. When theta < 90 degrees, cos is positive, meaning the vectors point
-in roughly the same direction. When theta > 90 degrees, cos is negative, meaning they
-point away from each other.
+angle between them. When theta < 90 degrees, cos is positive (vectors point in roughly the
+same direction). When theta > 90 degrees, cos is negative (they point apart).
 
-Among all visible faces (dot > 0), we pick the nearest one by Euclidean distance.
+This would be useful if the hub had side-entry openings and you needed to pick which face
+to shoot into. In that case, you'd compute `dot = robotToFace . faceNormal` for each face
+and only aim at faces where dot > 0 (robot is in front of the face).
 
-### 4.2 Angle to target (atan2)
+### 4.2 Angle to hub center (atan2)
 
-Once we've picked a face, we need the angle from the robot to that face's midpoint.
+We need the angle from the robot to the hub center.
 
 ```java
-double dx = target.getX() - robot.getX();
-double dy = target.getY() - robot.getY();
+double dx = hubCenter.getX() - robot.getX();
+double dy = hubCenter.getY() - robot.getY();
 double fieldAngleRad = Math.atan2(dy, dx);
 ```
 
@@ -553,13 +521,14 @@ arrayPublisher.set(new Pose2d[] { startPose, endPose });
 | NT Key | Type | Purpose |
 |--------|------|---------|
 | `TurretTracker/AimPose3d` | `Pose3d` | Robot position + turret aim rotation (for 3D view) |
-| `TurretTracker/TargetPose3d` | `Pose3d` | Hub face midpoint in 3D space |
+| `TurretTracker/TargetPose3d` | `Pose3d` | Hub center in 3D space |
 | `TurretTracker/AimLine` | `Pose2d[]` | Two-point array: robot position and aim endpoint |
 | `TurretTracker/AngleDeg` | `double` | Current turret angle in degrees |
 | `TurretTracker/InRange` | `boolean` | Whether target is within range |
-| `TurretTracker/DistanceM` | `double` | Distance to tracked face |
-| `TurretTracker/ActiveFace` | `String` | "West", "East", "North", or "South" |
-| `TurretTracker/Status` | `String` | Human-readable status like "Tracking West (12.3 deg, 3.4m)" |
+| `TurretTracker/DistanceM` | `double` | Distance to hub center |
+| `TurretTracker/BlueHubCenter` | `String` | Computed blue hub center "(X, Y)" (LAB level) |
+| `TurretTracker/RedHubCenter` | `String` | Computed red hub center "(X, Y)" (LAB level) |
+| `TurretTracker/Status` | `String` | "Tracking Hub Center (12.3 deg, 3.4m)" or "Out of Range" |
 
 ### 7.3 Vision System NT Keys
 
@@ -712,21 +681,18 @@ The core subsystem. Extends `SubsystemBase` which means:
 
 **Key design decisions**:
 
-- **Hub data is immutable after construction**. The `blueHubFaces` and `redHubFaces` lists
-  are built once from the field layout and never change. This avoids repeated field layout
-  lookups during periodic.
+- **Hub center is immutable after construction**. The `blueHubCenter` and `redHubCenter`
+  are computed once from the field layout and never change. This avoids repeated field
+  layout lookups during periodic.
 
-- **`HubFace` is a record, not a class**. Records are ideal for small, immutable data
-  containers. The compiler generates the constructor, accessors, equals, hashCode, and
-  toString.
+- **Hub-center targeting, not face targeting**. The hub is a top-entry target (basketball
+  hoop style). The turret always aims at the geometric center of the hub regardless of
+  which side the robot approaches from. This eliminates the need for face selection,
+  dot products, and normal vectors.
 
 - **Alliance defaults to blue**. In simulation, `DriverStation.getAlliance()` often returns
   empty until you set it in the DS sim panel. Defaulting to blue means the tracker works
   immediately.
-
-- **The fallback in face selection**. If no face passes the dot product test (theoretically
-  impossible for a 4-face hub, but defensive programming), we fall back to the nearest face
-  regardless of visibility.
 
 #### `Constants.java` (modified)
 
@@ -789,7 +755,7 @@ The main vision subsystem. Key structure:
 4. You'll see a turret dial: a green arm that rotates to track the hub, with gray lines
    showing the +/-135 degree limits
 5. Find `Vision/CameraLayout` for the top-down camera direction diagram
-6. Drive the robot around -- the turret arm follows the nearest hub face
+6. Drive the robot around -- the turret arm follows the hub center
 7. When the hub is behind the robot, the arm turns red and pins to the limit
 
 ### AdvantageScope (2D field overlay)
@@ -811,8 +777,7 @@ In Glass, OutlineViewer, or the SimGUI NetworkTables view:
 
 - `TurretTracker/AngleDeg` -- the turret angle (positive = left/CCW)
 - `TurretTracker/InRange` -- true when tracking, false when clamped
-- `TurretTracker/DistanceM` -- how far the target face is
-- `TurretTracker/ActiveFace` -- which of the 4 faces is being tracked
+- `TurretTracker/DistanceM` -- how far the hub center is
 - `TurretTracker/Status` -- human-readable string
 - `Vision/Status` -- overall vision status (e.g., "Tracking (FR+FL+Rear)")
 - `Vision/TotalTagsDetected` -- total AprilTags seen across all cameras
