@@ -22,6 +22,7 @@ import frc.robot.subsystems.drivetrain.Drivetrain;
 import frc.robot.support.Telemetry;
 import frc.robot.support.TelemetryLevel;
 import java.util.Optional;
+import lombok.Getter;
 
 /**
  * Simulated turret tracking subsystem that calculates the angle needed to aim
@@ -51,10 +52,19 @@ public class TurretTracker extends SubsystemBase {
     private final Translation2d blueHubCenter;
     private final Translation2d redHubCenter;
 
-    // Computed state (updated each periodic cycle)
-    private double turretAngleDegrees = 0.0;
     private double rawAngleDegrees = 0.0;
+
+    // Current turret angle in degrees (robot-relative, 0 = forward, positive = CCW).
+    // Computed state (updated each periodic cycle)
+    @Getter
+    private double turretAngleDegrees = 0.0;
+
+    // Whether the hub center is within the turret's range of motion.
+    @Getter
     private boolean targetInRange = false;
+
+    // Distance from robot to the hub center in meters.
+    @Getter
     private double distanceToTargetMeters = 0.0;
 
     // Visualization: Mechanism2d
@@ -251,22 +261,5 @@ public class TurretTracker extends SubsystemBase {
                 ? String.format("Tracking Hub Center (%.1f deg, %.1fm)", turretAngleDegrees, distanceToTargetMeters)
                 : String.format("Out of Range (%.1f deg)", rawAngleDegrees);
         Telemetry.publish(prefix + "/Status", status, TelemetryLevel.MATCH);
-    }
-
-    // --- PUBLIC API (for future commands, e.g. shoot-while-driving) ---
-
-    /** Current turret angle in degrees (robot-relative, 0 = forward, positive = CCW). */
-    public double getTurretAngleDegrees() {
-        return turretAngleDegrees;
-    }
-
-    /** Whether the hub center is within the turret's range of motion. */
-    public boolean isTargetInRange() {
-        return targetInRange;
-    }
-
-    /** Distance from robot to the hub center in meters. */
-    public double getDistanceToTargetMeters() {
-        return distanceToTargetMeters;
     }
 }
