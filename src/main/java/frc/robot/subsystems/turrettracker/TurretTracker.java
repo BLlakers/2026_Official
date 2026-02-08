@@ -26,19 +26,25 @@ import lombok.Getter;
 
 /**
  * Simulated turret tracking subsystem that calculates the angle needed to aim
- * at the hub center. No physical motor -- pure software tracking based on pose
+ * at a target. No physical motor -- pure software tracking based on pose
  * estimation.
  *
- * <p>The hub is a top-entry target (like a basketball hoop). The turret always
- * aims at the geometric center of the hub, computed from AprilTag positions on
- * all four faces. Face selection is not needed because the ball enters from the
- * top, not through a side opening.
+ * <p>Supports two tracking modes:
+ * <ul>
+ *   <li><b>Shooting</b> (default): aims at the geometric hub center, computed
+ *       from AprilTag positions on all four faces. The hub is a top-entry target
+ *       (basketball hoop style).</li>
+ *   <li><b>Passing</b>: aims at a point between the alliance wall and the hub,
+ *       offset north or south depending on the robot's position relative to the
+ *       hub Y-center. Used when the robot collects fuel mid-field and passes it
+ *       back toward the shooting zone for teammates.</li>
+ * </ul>
  *
  * <p>Visualization:
  * <ul>
  *   <li>Mechanism2d: 2D overhead turret dial showing aim angle and range limits</li>
- *   <li>AdvantageScope: Pose2d[] aim line from robot to hub center</li>
- *   <li>NetworkTables: Live angle, distance, and status values</li>
+ *   <li>AdvantageScope: Pose2d[] aim line from robot to active target</li>
+ *   <li>NetworkTables: Live angle, distance, mode, and status values</li>
  * </ul>
  */
 public class TurretTracker extends SubsystemBase {
@@ -52,6 +58,14 @@ public class TurretTracker extends SubsystemBase {
     private final Translation2d blueHubCenter;
     private final Translation2d redHubCenter;
 
+    // Field dimensions (from AprilTag field layout)
+    private final double fieldLengthMeters;
+    private final double fieldWidthMeters;
+
+    // Current tracking mode (auto-determined each cycle based on robot position)
+    @Getter
+    private TrackingMode trackingMode = TrackingMode.SHOOTING;
+
     private double rawAngleDegrees = 0.0;
 
     // Current turret angle in degrees (robot-relative, 0 = forward, positive = CCW).
@@ -63,9 +77,13 @@ public class TurretTracker extends SubsystemBase {
     @Getter
     private boolean targetInRange = false;
 
-    // Distance from robot to the hub center in meters.
+    // Distance from robot to the active target in meters.
     @Getter
     private double distanceToTargetMeters = 0.0;
+
+    // The currently resolved target position (hub center or passing target).
+    @Getter
+    private Translation2d activeTarget = new Translation2d();
 
     // Visualization: Mechanism2d
     private final Mechanism2d mechanism2d;
@@ -81,6 +99,8 @@ public class TurretTracker extends SubsystemBase {
         this.drivetrain = requireNonNull(drivetrain, "Drivetrain cannot be null");
 
         AprilTagFieldLayout fieldLayout = AprilTagFieldLayout.loadField(AprilTagFields.kDefaultField);
+        this.fieldLengthMeters = fieldLayout.getFieldLength();
+        this.fieldWidthMeters = fieldLayout.getFieldWidth();
 
         // Compute hub centers from all face tag positions
         this.blueHubCenter = computeHubCenter(fieldLayout, Constants.Hub.BLUE_FACES);
@@ -161,15 +181,19 @@ public class TurretTracker extends SubsystemBase {
     public void periodic() {
         Pose2d robotPose = drivetrain.getPose2dEstimator();
 
-        // Select hub center based on alliance
+        // Auto-select tracking mode based on robot position relative to hub
         Translation2d hubCenter = resolveHubCenter();
+        trackingMode = isRobotPastHub(robotPose, hubCenter) ? TrackingMode.PASSING : TrackingMode.SHOOTING;
 
-        // Calculate distance to hub center
-        double dx = hubCenter.getX() - robotPose.getX();
-        double dy = hubCenter.getY() - robotPose.getY();
+        // Resolve the active target based on tracking mode
+        activeTarget = (trackingMode == TrackingMode.PASSING) ? computePassingTarget(robotPose, hubCenter) : hubCenter;
+
+        // Calculate distance to active target
+        double dx = activeTarget.getX() - robotPose.getX();
+        double dy = activeTarget.getY() - robotPose.getY();
         distanceToTargetMeters = Math.sqrt(dx * dx + dy * dy);
 
-        // Calculate field-relative angle from robot to hub center
+        // Calculate field-relative angle from robot to active target
         double fieldAngleRad = Math.atan2(dy, dx);
 
         // Convert to robot-relative angle
@@ -192,7 +216,7 @@ public class TurretTracker extends SubsystemBase {
 
         // Update all visualizations
         updateMechanism2d();
-        updateAdvantageScope(robotPose, hubCenter);
+        updateAdvantageScope(robotPose, activeTarget);
     }
 
     private Translation2d resolveHubCenter() {
@@ -204,12 +228,81 @@ public class TurretTracker extends SubsystemBase {
         return blueHubCenter;
     }
 
+    /**
+     * Returns true if the robot has crossed past the hub toward the center of the field.
+     * "Past" means farther from the alliance wall than the hub is.
+     * <ul>
+     *   <li>Blue: robot X &gt; hub X (robot is to the right/red-side of hub)</li>
+     *   <li>Red: robot X &lt; hub X (robot is to the left/blue-side of hub)</li>
+     * </ul>
+     */
+    private boolean isRobotPastHub(Pose2d robotPose, Translation2d hubCenter) {
+        Optional<Alliance> alliance = DriverStation.getAlliance();
+        boolean isRed = alliance.isPresent() && alliance.get() == Alliance.Red;
+
+        if (isRed) {
+            return robotPose.getX() < hubCenter.getX();
+        } else {
+            return robotPose.getX() > hubCenter.getX();
+        }
+    }
+
+    /**
+     * Computes the passing target position based on robot location and alliance.
+     *
+     * <p>X: midpoint between the alliance wall and the hub center.
+     * <ul>
+     *   <li>Blue alliance: wall is at X=0, so passX = hubCenter.X / 2</li>
+     *   <li>Red alliance: wall is at X=fieldLength, so passX = (fieldLength + hubCenter.X) / 2</li>
+     * </ul>
+     *
+     * <p>Y: the field is divided into two halves at the hub's Y-center.
+     * <ul>
+     *   <li>Robot north of hub (robotY &gt; hubY): passY = (hubCenter.Y + fieldWidth) / 2</li>
+     *   <li>Robot south of hub (robotY &le; hubY): passY = hubCenter.Y / 2</li>
+     * </ul>
+     */
+    private Translation2d computePassingTarget(Pose2d robotPose, Translation2d hubCenter) {
+        Optional<Alliance> alliance = DriverStation.getAlliance();
+        boolean isRed = alliance.isPresent() && alliance.get() == Alliance.Red;
+
+        // X: midpoint between alliance wall and hub
+        double passX;
+        if (isRed) {
+            passX = (fieldLengthMeters + hubCenter.getX()) / 2.0;
+        } else {
+            passX = hubCenter.getX() / 2.0;
+        }
+
+        // Y: center of the half of the field the robot is on (divided at hub Y)
+        double passY;
+        if (robotPose.getY() > hubCenter.getY()) {
+            // Robot is north of hub — aim at center of northern half
+            passY = (hubCenter.getY() + fieldWidthMeters) / 2.0;
+        } else {
+            // Robot is south of hub — aim at center of southern half
+            passY = hubCenter.getY() / 2.0;
+        }
+
+        return new Translation2d(passX, passY);
+    }
+
     private void updateMechanism2d() {
         // Mechanism2d: 0 deg = right (east), 90 deg = up (north/forward)
         // turretAngleDegrees: 0 deg = robot forward, positive = CCW
         // So mechanism angle = 90 + turretAngleDegrees
         turretArm.setAngle(90.0 + turretAngleDegrees);
-        turretArm.setColor(targetInRange ? new Color8Bit(Color.kGreen) : new Color8Bit(Color.kRed));
+
+        // Color: green = shooting & in range, yellow = passing & in range, red = out of range
+        Color8Bit armColor;
+        if (!targetInRange) {
+            armColor = new Color8Bit(Color.kRed);
+        } else if (trackingMode == TrackingMode.PASSING) {
+            armColor = new Color8Bit(Color.kDarkTurquoise);
+        } else {
+            armColor = new Color8Bit(Color.kGreen);
+        }
+        turretArm.setColor(armColor);
     }
 
     private void updateAdvantageScope(Pose2d robotPose, Translation2d hubCenter) {
@@ -247,18 +340,25 @@ public class TurretTracker extends SubsystemBase {
         Telemetry.record(prefix + "/AngleDeg", turretAngleDegrees, TelemetryLevel.MATCH);
         Telemetry.record(prefix + "/InRange", targetInRange, TelemetryLevel.MATCH);
         Telemetry.record(prefix + "/DistanceM", distanceToTargetMeters, TelemetryLevel.MATCH);
+        Telemetry.record(prefix + "/Mode", trackingMode.name(), TelemetryLevel.MATCH);
 
         // Publish to NT for live dashboard
         Telemetry.publish(prefix + "/AngleDeg", turretAngleDegrees, TelemetryLevel.MATCH);
         Telemetry.publish(prefix + "/InRange", targetInRange, TelemetryLevel.MATCH);
         Telemetry.publish(prefix + "/DistanceM", distanceToTargetMeters, TelemetryLevel.MATCH);
+        Telemetry.publish(prefix + "/Mode", trackingMode.name(), TelemetryLevel.MATCH);
 
         // LAB level - detailed tracking data
         Telemetry.record(prefix + "/RawAngleDeg", rawAngleDegrees, TelemetryLevel.LAB);
         Telemetry.record(prefix + "/RangeOfMotionDeg", context.getTurretRangeOfMotionDegrees(), TelemetryLevel.LAB);
+        Telemetry.publish(
+                prefix + "/ActiveTarget",
+                String.format("(%.3f, %.3f)", activeTarget.getX(), activeTarget.getY()),
+                TelemetryLevel.LAB);
 
+        String modeLabel = trackingMode == TrackingMode.PASSING ? "Passing" : "Hub Center";
         String status = targetInRange
-                ? String.format("Tracking Hub Center (%.1f deg, %.1fm)", turretAngleDegrees, distanceToTargetMeters)
+                ? String.format("Tracking %s (%.1f deg, %.1fm)", modeLabel, turretAngleDegrees, distanceToTargetMeters)
                 : String.format("Out of Range (%.1f deg)", rawAngleDegrees);
         Telemetry.publish(prefix + "/Status", status, TelemetryLevel.MATCH);
     }
