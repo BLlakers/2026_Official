@@ -580,7 +580,15 @@ public class Drivetrain extends SubsystemBase {
         this.updateOdometry();
         this.updatePoseEstimatorOdometry();
         super.periodic();
-        this.field.setRobotPose(this.getPose2dEstimator());
+
+        // NOTE: In simulation, DO NOT set Field2d here. It is set in simulationPeriodic()
+        // AFTER the physics step computes the new simYaw. Setting it in both places causes
+        // AdvantageScope to see two yaw values per cycle (stale + fresh), making the
+        // "SmartDashboard/field/Robot" appear to spin twice as fast as "CurrentPoseEstimator".
+        if (!RobotBase.isSimulation()) {
+            this.field.setRobotPose(this.getPose2dEstimator());
+        }
+
         this.desiredStatePublisher.set(this.desiredStates);
         this.currentStatePublisher.set(this.getSwerveModuleStates());
         this.currentSpeedsPublisher.set(this.getChassisSpeeds());
