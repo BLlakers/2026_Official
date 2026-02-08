@@ -7,18 +7,31 @@ import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
+import edu.wpi.first.networktables.BooleanPublisher;
+import edu.wpi.first.networktables.DoublePublisher;
+import edu.wpi.first.networktables.IntegerPublisher;
+import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.NetworkTableInstance;
+import edu.wpi.first.networktables.StringPublisher;
 import edu.wpi.first.util.datalog.*;
+import edu.wpi.first.util.sendable.Sendable;
 import edu.wpi.first.util.struct.Struct;
 import edu.wpi.first.wpilibj.DataLogManager;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Timer;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
 /**
  * Enhanced telemetry system for FRC robot data capture and analysis.
+ *
+ * <p><strong>Thread Safety:</strong> This class is NOT thread-safe. All calls to
+ * {@code record()}, {@code publish()}, and other methods must be made from the main
+ * robot thread (i.e., within the TimedRobot periodic loop). Do not call from Notifiers,
+ * background threads, or asynchronous callbacks. If multi-threaded telemetry is required
+ * in the future, a thread-safe implementation should be introduced.
  *
  * <p>Features:
  * <ul>
@@ -54,22 +67,31 @@ public final class Telemetry {
     // STATE
     // ═══════════════════════════════════════════════════════════════════════════
 
-    private static volatile boolean initialized = false;
-    private static volatile TelemetryConfig config;
-    private static volatile TelemetryLevel currentLevel = TelemetryLevel.MATCH;
+    private static boolean initialized = false;
+    private static TelemetryConfig config;
+    private static TelemetryLevel currentLevel = TelemetryLevel.MATCH;
 
-    // Entry registries (thread-safe for potential multi-threaded access)
-    private static final Map<String, StringLogEntry> stringLogs = new ConcurrentHashMap<>();
-    private static final Map<String, DoubleLogEntry> doubleLogs = new ConcurrentHashMap<>();
-    private static final Map<String, FloatLogEntry> floatLogs = new ConcurrentHashMap<>();
-    private static final Map<String, IntegerLogEntry> intLogs = new ConcurrentHashMap<>();
-    private static final Map<String, BooleanLogEntry> booleanLogs = new ConcurrentHashMap<>();
-    private static final Map<String, DoubleArrayLogEntry> doubleArrayLogs = new ConcurrentHashMap<>();
-    private static final Map<String, StructLogEntry<?>> structLogs = new ConcurrentHashMap<>();
-    private static final Map<String, StructArrayLogEntry<?>> structArrayLogs = new ConcurrentHashMap<>();
+    // DataLog entry registries (NOT thread-safe - must only be accessed from main robot thread)
+    private static final Map<String, StringLogEntry> stringLogs = new HashMap<>();
+    private static final Map<String, DoubleLogEntry> doubleLogs = new HashMap<>();
+    private static final Map<String, FloatLogEntry> floatLogs = new HashMap<>();
+    private static final Map<String, IntegerLogEntry> intLogs = new HashMap<>();
+    private static final Map<String, BooleanLogEntry> booleanLogs = new HashMap<>();
+    private static final Map<String, DoubleArrayLogEntry> doubleArrayLogs = new HashMap<>();
+    private static final Map<String, StructLogEntry<?>> structLogs = new HashMap<>();
+    private static final Map<String, StructArrayLogEntry<?>> structArrayLogs = new HashMap<>();
 
-    // Subsystem capture registry
-    private static final Map<String, Consumer<String>> subsystemCaptures = new ConcurrentHashMap<>();
+    // NetworkTables publisher registries (NOT thread-safe - must only be accessed from main robot thread)
+    private static final Map<String, DoublePublisher> doublePublishers = new HashMap<>();
+    private static final Map<String, IntegerPublisher> intPublishers = new HashMap<>();
+    private static final Map<String, StringPublisher> stringPublishers = new HashMap<>();
+    private static final Map<String, BooleanPublisher> booleanPublishers = new HashMap<>();
+
+    // Default NT table for publishing
+    private static final String NT_ROOT = "Telemetry";
+
+    // Subsystem capture registry (NOT thread-safe - must only be accessed from main robot thread)
+    private static final Map<String, Consumer<String>> subsystemCaptures = new HashMap<>();
 
     // Match state tracking
     private static String lastMatchInfo = "";
@@ -333,6 +355,111 @@ public final class Telemetry {
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
+    // NETWORKTABLES PUBLISHING (Level-aware, for live dashboard visibility)
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Publishes a double value to NetworkTables if the specified level permits.
+     * Use this for live dashboard visibility (SmartDashboard/Shuffleboard).
+     *
+     * @param key The telemetry key (e.g., "Drivetrain/FL/Velocity")
+     * @param value The value to publish
+     * @param level The minimum level required to publish this data
+     */
+    public static void publish(String key, double value, TelemetryLevel level) {
+        if (!shouldLog(level)) return;
+        requireNonNull(key, "key cannot be null");
+        DoublePublisher publisher = doublePublishers.computeIfAbsent(key, k -> {
+            NetworkTable table = NetworkTableInstance.getDefault().getTable(NT_ROOT);
+            return table.getDoubleTopic(k).publish();
+        });
+        publisher.set(value);
+    }
+
+    /**
+     * Publishes an int value to NetworkTables if the specified level permits.
+     */
+    public static void publish(String key, int value, TelemetryLevel level) {
+        if (!shouldLog(level)) return;
+        requireNonNull(key, "key cannot be null");
+        IntegerPublisher publisher = intPublishers.computeIfAbsent(key, k -> {
+            NetworkTable table = NetworkTableInstance.getDefault().getTable(NT_ROOT);
+            return table.getIntegerTopic(k).publish();
+        });
+        publisher.set(value);
+    }
+
+    /**
+     * Publishes a String value to NetworkTables if the specified level permits.
+     */
+    public static void publish(String key, String value, TelemetryLevel level) {
+        if (!shouldLog(level)) return;
+        requireNonNull(key, "key cannot be null");
+        requireNonNull(value, "value cannot be null");
+        StringPublisher publisher = stringPublishers.computeIfAbsent(key, k -> {
+            NetworkTable table = NetworkTableInstance.getDefault().getTable(NT_ROOT);
+            return table.getStringTopic(k).publish();
+        });
+        publisher.set(value);
+    }
+
+    /**
+     * Publishes a boolean value to NetworkTables if the specified level permits.
+     */
+    public static void publish(String key, boolean value, TelemetryLevel level) {
+        if (!shouldLog(level)) return;
+        requireNonNull(key, "key cannot be null");
+        BooleanPublisher publisher = booleanPublishers.computeIfAbsent(key, k -> {
+            NetworkTable table = NetworkTableInstance.getDefault().getTable(NT_ROOT);
+            return table.getBooleanTopic(k).publish();
+        });
+        publisher.set(value);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // SENDABLE REGISTRATION (Interactive dashboard widgets)
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Registers a {@link Sendable} object (subsystem, command, mechanism) with NetworkTables
+     * for interactive dashboard display in Shuffleboard/Glass.
+     *
+     * <p>This enables bidirectional data binding where the dashboard can both read values
+     * from and write values back to the robot. Appropriate widgets are automatically
+     * created based on the Sendable type.
+     *
+     * <p>Note: This delegates to {@link SmartDashboard#putData(String, Sendable)} since
+     * Sendables require the full SendableBuilder protocol for interactive widgets.
+     *
+     * <p>Example:
+     * <pre>{@code
+     * Telemetry.putData("Drivetrain/FrontLeft", frontLeftModule);
+     * Telemetry.putData("Field", field2d);
+     * Telemetry.putData("PDP", powerDistribution);
+     * }</pre>
+     *
+     * @param key The NetworkTables key for this Sendable
+     * @param data The Sendable object to register
+     */
+    public static void putData(String key, Sendable data) {
+        requireNonNull(key, "key cannot be null");
+        requireNonNull(data, "data cannot be null");
+        SmartDashboard.putData(key, data);
+    }
+
+    /**
+     * Registers a {@link Sendable} object using its default name.
+     *
+     * <p>This delegates to {@link SmartDashboard#putData(Sendable)}.
+     *
+     * @param data The Sendable object to register
+     */
+    public static void putData(Sendable data) {
+        requireNonNull(data, "data cannot be null");
+        SmartDashboard.putData(data);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
     // STRUCTURED TYPE RECORDING (WPILib structs for AdvantageScope)
     // ═══════════════════════════════════════════════════════════════════════════
 
@@ -584,6 +711,7 @@ public final class Telemetry {
      * Clears all entry registries. Primarily for testing.
      */
     static void reset() {
+        // Clear DataLog entries
         stringLogs.clear();
         doubleLogs.clear();
         floatLogs.clear();
@@ -592,6 +720,17 @@ public final class Telemetry {
         doubleArrayLogs.clear();
         structLogs.clear();
         structArrayLogs.clear();
+
+        // Close and clear NT publishers
+        doublePublishers.values().forEach(DoublePublisher::close);
+        doublePublishers.clear();
+        intPublishers.values().forEach(IntegerPublisher::close);
+        intPublishers.clear();
+        stringPublishers.values().forEach(StringPublisher::close);
+        stringPublishers.clear();
+        booleanPublishers.values().forEach(BooleanPublisher::close);
+        booleanPublishers.clear();
+
         subsystemCaptures.clear();
         initialized = false;
         config = null;

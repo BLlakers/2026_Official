@@ -1,10 +1,11 @@
 package frc.robot.commands.swervedrive;
 
 import edu.wpi.first.math.MathUtil;
-import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.Constants;
 import frc.robot.subsystems.drivetrain.Drivetrain;
+import frc.robot.support.Telemetry;
+import frc.robot.support.TelemetryLevel;
 
 public class SwerveDriveCommand extends Command {
 
@@ -71,9 +72,9 @@ public class SwerveDriveCommand extends Command {
             rotSpeed /= 2;
         }
 
-        SmartDashboard.putNumber("DriveTrain/Controller/Command/X Speed", xSpeed);
-        SmartDashboard.putNumber("DriveTrain/Controller/Command/Y Speed", ySpeed);
-        SmartDashboard.putNumber("DriveTrain/Controller/Command/Rot Speed", rotSpeed);
+        Telemetry.publish("Drivetrain/Controller/Command/X Speed", xSpeed, TelemetryLevel.LAB);
+        Telemetry.publish("Drivetrain/Controller/Command/Y Speed", ySpeed, TelemetryLevel.LAB);
+        Telemetry.publish("Drivetrain/Controller/Command/Rot Speed", rotSpeed, TelemetryLevel.LAB);
 
         drivetrain.drive(xSpeed, ySpeed, rotSpeed);
     }

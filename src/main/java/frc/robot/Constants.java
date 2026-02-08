@@ -79,6 +79,31 @@ public final class Constants {
         public static final Pose2d RedSpeakerCenterPose = new Pose2d(); // TODO
     }
 
+    /**
+     * Hub AprilTag face definitions for the 2026 game.
+     * Each hub has 4 faces (N/S/E/W), each with 2 tags at Z=1.124m.
+     * Tag pairs per face and their approximate face-normal directions.
+     */
+    public static class Hub {
+        // Blue hub face tag pairs (tags at Z=1.124m only; corners 17,22,23,28 excluded)
+        public static final int[] BLUE_WEST_TAGS = {25, 26}; // Facing -X (toward blue wall)
+        public static final int[] BLUE_EAST_TAGS = {19, 20}; // Facing +X (toward red wall)
+        public static final int[] BLUE_NORTH_TAGS = {21, 24}; // Facing +Y
+        public static final int[] BLUE_SOUTH_TAGS = {18, 27}; // Facing -Y
+
+        // Red hub face tag pairs (tags at Z=1.124m only; corners 1,6,7,12 excluded)
+        public static final int[] RED_WEST_TAGS = {3, 4}; // Facing -X (toward blue wall)
+        public static final int[] RED_EAST_TAGS = {9, 10}; // Facing +X (toward red wall)
+        public static final int[] RED_NORTH_TAGS = {2, 11}; // Facing +Y
+        public static final int[] RED_SOUTH_TAGS = {5, 8}; // Facing -Y
+
+        // All blue hub face tags (for iteration)
+        public static final int[][] BLUE_FACES = {BLUE_WEST_TAGS, BLUE_EAST_TAGS, BLUE_NORTH_TAGS, BLUE_SOUTH_TAGS};
+        public static final int[][] RED_FACES = {RED_WEST_TAGS, RED_EAST_TAGS, RED_NORTH_TAGS, RED_SOUTH_TAGS};
+
+        public static final double DEFAULT_TURRET_RANGE_DEGREES = 270.0;
+    }
+
     public static class Port {
         public static final int REAR_LEFT_TURN_CHANNEL = 1;
         public static final int REAR_LEFT_DRIVE_CHANNEL = 2;

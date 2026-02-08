@@ -6,7 +6,6 @@ package frc.robot.subsystems.drivetrain;
 
 import static frc.robot.Constants.Conversion.NeoMaxSpeedRPM;
 import static frc.robot.Constants.Conversion.TurnGearRatio;
-import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
 
 import com.revrobotics.spark.FeedbackSensor;
@@ -22,10 +21,11 @@ import edu.wpi.first.math.trajectory.TrapezoidProfile;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.util.sendable.SendableBuilder;
 import edu.wpi.first.wpilibj.DutyCycleEncoder;
-import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants;
 import frc.robot.support.PIDSettings;
+import frc.robot.support.Telemetry;
+import frc.robot.support.TelemetryLevel;
 import frc.robot.support.sparkmax.TeamSparkMax;
 
 /**
@@ -56,6 +56,7 @@ public class SwerveModule extends SubsystemBase {
     private static final int TURNING_MOTOR_ASSUMED_FREQUENCY = 242;
 
     private final SwerveModuleContext context;
+    private final String telemetryPrefix;
 
     private final TeamSparkMax driveMotor;
 
@@ -80,6 +81,7 @@ public class SwerveModule extends SubsystemBase {
         requireNonNull(context, "SwerveModuleContext cannot be null");
 
         this.context = context;
+        this.telemetryPrefix = "Drivetrain/" + context.getName();
 
         this.setName(this.context.getName());
 
@@ -161,7 +163,7 @@ public class SwerveModule extends SubsystemBase {
         double driveMotorPercentPower = desiredState.speedMetersPerSecond / DRIVE_MAX_SPEED;
         this.driveMotor.set(driveMotorPercentPower);
 
-        this.refreshSmartDashboard(
+        this.publishTelemetry(
                 driveMotorPercentPower,
                 turnMotorPercentPower,
                 signedAngleDifference,
@@ -203,40 +205,20 @@ public class SwerveModule extends SubsystemBase {
     }
 
     /**
-     * Sends the specified values to the {@link SmartDashboard} under predefined keys
-     *
-     * @param driveMotorPercentPower
-     * @param turnMotorPercentPower
-     * @param signedAngleDifference
-     * @param desiredAngle
-     * @param currentAngle
+     * Publishes telemetry values to NetworkTables for live dashboard visibility.
      */
-    private void refreshSmartDashboard(
+    private void publishTelemetry(
             double driveMotorPercentPower,
             double turnMotorPercentPower,
             double signedAngleDifference,
             double desiredAngle,
             double currentAngle) {
 
-        String nameTag = format("DriveTrain/%s", this.getName());
-        int driveMotorId = this.driveMotor.getDeviceId();
-        int turningMotorId = this.turningMotor.getDeviceId();
-
-        // TODO: Improve and cleanup these names
-        SmartDashboard.putNumber(
-                format("%s/Drive Encoder/ID:%s/DrivePercent", nameTag, driveMotorId), driveMotorPercentPower);
-
-        SmartDashboard.putNumber(
-                format("%s/Turn Encoder/ID:%s/DrivePercent", nameTag, turningMotorId), turnMotorPercentPower);
-
-        SmartDashboard.putNumber(
-                format("%s/Turn Encoder/SignedAngleDiff:%s/Angle", nameTag, turningMotorId), signedAngleDifference);
-
-        SmartDashboard.putNumber(
-                format("%s/Turn Encoder/DesiredState:%s/DesiredAngle", nameTag, turningMotorId), desiredAngle);
-
-        SmartDashboard.putNumber(
-                format("%s/Turn Encoder/CurrentState:%s/DesiredAngle", nameTag, turningMotorId), currentAngle);
+        Telemetry.publish(telemetryPrefix + "/Drive/OutputPercent", driveMotorPercentPower, TelemetryLevel.MATCH);
+        Telemetry.publish(telemetryPrefix + "/Turn/OutputPercent", turnMotorPercentPower, TelemetryLevel.MATCH);
+        Telemetry.publish(telemetryPrefix + "/Turn/AngleError", signedAngleDifference, TelemetryLevel.MATCH);
+        Telemetry.publish(telemetryPrefix + "/Turn/DesiredAngle", desiredAngle, TelemetryLevel.MATCH);
+        Telemetry.publish(telemetryPrefix + "/Turn/CurrentAngle", currentAngle, TelemetryLevel.MATCH);
     }
 
     /**

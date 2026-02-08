@@ -8,11 +8,12 @@ import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
-import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
 import frc.robot.subsystems.drivetrain.Drivetrain;
+import frc.robot.support.Telemetry;
+import frc.robot.support.TelemetryLevel;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -67,8 +68,8 @@ public class VisionAlignmentTestCommand extends SequentialCommandGroup {
 
             // Log which tag we're navigating to
             addCommands(Commands.runOnce(() -> {
-                SmartDashboard.putNumber("VisionTest/CurrentTagID", target.tagId);
-                SmartDashboard.putString("VisionTest/Status", "Navigating to Tag " + target.tagId);
+                Telemetry.publish("VisionTest/CurrentTagID", target.tagId, TelemetryLevel.LAB);
+                Telemetry.publish("VisionTest/Status", "Navigating to Tag " + target.tagId, TelemetryLevel.LAB);
             }));
 
             // Drive to the target pose (5m from tag, facing it)
@@ -76,20 +77,23 @@ public class VisionAlignmentTestCommand extends SequentialCommandGroup {
 
             // Pause
             addCommands(
-                    Commands.runOnce(
-                            () -> SmartDashboard.putString("VisionTest/Status", "Paused at Tag " + target.tagId)),
+                    Commands.runOnce(() -> Telemetry.publish(
+                            "VisionTest/Status", "Paused at Tag " + target.tagId, TelemetryLevel.LAB)),
                     Commands.waitSeconds(PAUSE_DURATION_SECONDS));
 
             // If this is the last tag, do a 360-degree spin
             if (isLastTag) {
                 addCommands(
-                        Commands.runOnce(() -> SmartDashboard.putString("VisionTest/Status", "Completing 360° spin")),
+                        Commands.runOnce(() ->
+                                Telemetry.publish("VisionTest/Status", "Completing 360° spin", TelemetryLevel.LAB)),
                         createSpinCommand(drivetrain),
                         Commands.runOnce(() -> {
                             loopCount++;
-                            SmartDashboard.putNumber("VisionTest/LoopCount", loopCount);
-                            SmartDashboard.putString(
-                                    "VisionTest/Status", "Loop " + loopCount + " complete, restarting...");
+                            Telemetry.publish("VisionTest/LoopCount", loopCount, TelemetryLevel.LAB);
+                            Telemetry.publish(
+                                    "VisionTest/Status",
+                                    "Loop " + loopCount + " complete, restarting...",
+                                    TelemetryLevel.LAB);
                         }));
             }
 
