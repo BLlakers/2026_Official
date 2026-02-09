@@ -9,8 +9,8 @@ import org.photonvision.PhotonPoseEstimator.PoseStrategy;
 
 /**
  * Configuration context for the Vision subsystem using PhotonVision.
- * Supports three cameras (front-right, front-left, rear) for AprilTag detection
- * and localization, with FOV visualization in simulation.
+ * Supports four cameras (front-right, front-left, right-side, left-side)
+ * for AprilTag detection and localization, with FOV visualization in simulation.
  */
 @Data
 @Builder
@@ -29,10 +29,16 @@ public class VisionSubsystemContext {
     private final String frontLeftCameraName = "photonvision-front-left";
 
     /**
-     * Network table name for the rear camera
+     * Network table name for the right-side camera
      */
     @Builder.Default
-    private final String rearCameraName = "photonvision-rear";
+    private final String rightSideCameraName = "photonvision-right-side";
+
+    /**
+     * Network table name for the left-side camera
+     */
+    @Builder.Default
+    private final String leftSideCameraName = "photonvision-left-side";
 
     /**
      * Whether to enable verbose logging to SmartDashboard
@@ -67,14 +73,24 @@ public class VisionSubsystemContext {
             new Translation3d(0.30, 0.25, 0.25), new Rotation3d(0, Math.toRadians(-15), Math.toRadians(30)));
 
     /**
-     * Transform from robot center to rear camera optical center.
-     * Mounted centered on the rear of the robot, facing backward.
-     * Position: X=-0.30m backward, Y=0 centered, Z=+0.25m up.
-     * Rotation: pitch=-15deg (tilted down), yaw=180deg (facing backward).
+     * Transform from robot center to right-side camera optical center.
+     * Mounted on the right side of the robot, facing perpendicular to the right.
+     * Position: X=0.0m (centered fore-aft), Y=-0.30m right, Z=+0.25m up.
+     * Rotation: pitch=-15deg (tilted down), yaw=-90deg (facing right).
      */
     @Builder.Default
-    private final Transform3d rearCameraToRobot =
-            new Transform3d(new Translation3d(-0.30, 0.0, 0.25), new Rotation3d(0, Math.toRadians(-15), Math.PI));
+    private final Transform3d rightSideCameraToRobot = new Transform3d(
+            new Translation3d(0.0, -0.30, 0.25), new Rotation3d(0, Math.toRadians(-15), Math.toRadians(-90)));
+
+    /**
+     * Transform from robot center to left-side camera optical center.
+     * Mounted on the left side of the robot, facing perpendicular to the left.
+     * Position: X=0.0m (centered fore-aft), Y=+0.30m left, Z=+0.25m up.
+     * Rotation: pitch=-15deg (tilted down), yaw=+90deg (facing left).
+     */
+    @Builder.Default
+    private final Transform3d leftSideCameraToRobot = new Transform3d(
+            new Translation3d(0.0, 0.30, 0.25), new Rotation3d(0, Math.toRadians(-15), Math.toRadians(90)));
 
     /**
      * Whether to enable simulation features (VisionSystemSim)
