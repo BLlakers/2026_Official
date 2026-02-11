@@ -5,7 +5,9 @@ import edu.wpi.first.apriltag.AprilTagFields;
 import edu.wpi.first.math.Matrix;
 import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
@@ -81,10 +83,10 @@ public class VisionSubsystem extends SubsystemBase {
     private PhotonCameraSim leftSideCameraSim;
 
     // FOV visualization publishers (simulation only)
-    private StructArrayPublisher<Pose2d> frontRightFovPublisher;
-    private StructArrayPublisher<Pose2d> frontLeftFovPublisher;
-    private StructArrayPublisher<Pose2d> rightSideFovPublisher;
-    private StructArrayPublisher<Pose2d> leftSideFovPublisher;
+    private StructArrayPublisher<Pose3d> frontRightFovPublisher;
+    private StructArrayPublisher<Pose3d> frontLeftFovPublisher;
+    private StructArrayPublisher<Pose3d> rightSideFovPublisher;
+    private StructArrayPublisher<Pose3d> leftSideFovPublisher;
     private Mechanism2d cameraLayoutMech;
 
     /**
@@ -214,13 +216,13 @@ public class VisionSubsystem extends SubsystemBase {
     private void initializeFovVisualization() {
         NetworkTableInstance nti = NetworkTableInstance.getDefault();
 
-        frontRightFovPublisher = nti.getStructArrayTopic("Vision/FrontRight/FOVCone", Pose2d.struct)
+        frontRightFovPublisher = nti.getStructArrayTopic("Vision/FrontRight/FOVCone", Pose3d.struct)
                 .publish();
-        frontLeftFovPublisher = nti.getStructArrayTopic("Vision/FrontLeft/FOVCone", Pose2d.struct)
+        frontLeftFovPublisher = nti.getStructArrayTopic("Vision/FrontLeft/FOVCone", Pose3d.struct)
                 .publish();
-        rightSideFovPublisher = nti.getStructArrayTopic("Vision/RightSide/FOVCone", Pose2d.struct)
+        rightSideFovPublisher = nti.getStructArrayTopic("Vision/RightSide/FOVCone", Pose3d.struct)
                 .publish();
-        leftSideFovPublisher = nti.getStructArrayTopic("Vision/LeftSide/FOVCone", Pose2d.struct)
+        leftSideFovPublisher = nti.getStructArrayTopic("Vision/LeftSide/FOVCone", Pose3d.struct)
                 .publish();
 
         // Mechanism2d: top-down camera layout (robot center, 4 directional lines)
@@ -233,10 +235,10 @@ public class VisionSubsystem extends SubsystemBase {
         center.append(new MechanismLigament2d("frontRightCam", 30, 90 - 30, 2, new Color8Bit(Color.kOrange)));
         // Front-left at yaw=+30deg: mechanism angle = 90 + 30 = 120
         center.append(new MechanismLigament2d("frontLeftCam", 30, 90 + 30, 2, new Color8Bit(Color.kYellow)));
-        // Right-side at yaw=-90deg: mechanism angle = 90 + (-90) = 0
-        center.append(new MechanismLigament2d("rightSideCam", 30, 0, 2, new Color8Bit(Color.kCyan)));
-        // Left-side at yaw=+90deg: mechanism angle = 90 + 90 = 180
-        center.append(new MechanismLigament2d("leftSideCam", 30, 180, 2, new Color8Bit(Color.kMagenta)));
+        // Right-side at yaw=-120deg: mechanism angle = 90 + (-120) = -30
+        center.append(new MechanismLigament2d("rightSideCam", 30, -30, 2, new Color8Bit(Color.kCyan)));
+        // Left-side at yaw=+120deg: mechanism angle = 90 + 120 = 210
+        center.append(new MechanismLigament2d("leftSideCam", 30, 210, 2, new Color8Bit(Color.kMagenta)));
 
         Telemetry.putData("Vision/CameraLayout", cameraLayoutMech);
     }
@@ -422,8 +424,9 @@ public class VisionSubsystem extends SubsystemBase {
 
     /**
      * Computes field-relative FOV cone edges for each camera and publishes
-     * as Pose2d arrays for AdvantageScope 2D field overlay.
-     * Each FOV cone is a 3-point V shape: [left edge, camera position, right edge].
+     * as Pose3d arrays for AdvantageScope 3D field overlay at the camera's
+     * mounted height. Each FOV cone is a 3-point V shape:
+     * [left edge, camera position, right edge].
      */
     private void updateFovVisualization(Pose2d robotPose) {
         double rayLength = context.getFovVisualizationRayLength();
@@ -437,11 +440,12 @@ public class VisionSubsystem extends SubsystemBase {
     }
 
     /**
-     * Publishes a single camera's FOV cone as a V-shaped Pose2d array.
-     * Projects the camera position and FOV edges onto the field coordinate system.
+     * Publishes a single camera's FOV cone as a V-shaped Pose3d array.
+     * Projects the camera position and FOV edges onto the field coordinate system
+     * at the camera's mounted Z height.
      */
     private void publishCameraFov(
-            StructArrayPublisher<Pose2d> publisher,
+            StructArrayPublisher<Pose3d> publisher,
             Pose2d robotPose,
             Transform3d cameraToRobot,
             double halfFovRad,
@@ -454,6 +458,7 @@ public class VisionSubsystem extends SubsystemBase {
         double sinH = Math.sin(robotHeading);
         double camX = robotPose.getX() + cameraToRobot.getX() * cosH - cameraToRobot.getY() * sinH;
         double camY = robotPose.getY() + cameraToRobot.getX() * sinH + cameraToRobot.getY() * cosH;
+        double camZ = cameraToRobot.getZ();
 
         // Camera heading in field coordinates (robot heading + camera yaw)
         double cameraYaw = cameraToRobot.getRotation().getZ();
@@ -468,11 +473,15 @@ public class VisionSubsystem extends SubsystemBase {
         double rightX = camX + rayLength * Math.cos(rightAngle);
         double rightY = camY + rayLength * Math.sin(rightAngle);
 
-        Pose2d leftEdge = new Pose2d(leftX, leftY, new Rotation2d(leftAngle));
-        Pose2d camPose = new Pose2d(camX, camY, new Rotation2d(camHeading));
-        Pose2d rightEdge = new Pose2d(rightX, rightY, new Rotation2d(rightAngle));
+        Rotation3d leftRot = new Rotation3d(0, 0, leftAngle);
+        Rotation3d camRot = new Rotation3d(0, 0, camHeading);
+        Rotation3d rightRot = new Rotation3d(0, 0, rightAngle);
 
-        publisher.set(new Pose2d[] {leftEdge, camPose, rightEdge});
+        Pose3d leftEdge = new Pose3d(leftX, leftY, camZ, leftRot);
+        Pose3d camPose = new Pose3d(camX, camY, camZ, camRot);
+        Pose3d rightEdge = new Pose3d(rightX, rightY, camZ, rightRot);
+
+        publisher.set(new Pose3d[] {leftEdge, camPose, rightEdge});
     }
 
     /**

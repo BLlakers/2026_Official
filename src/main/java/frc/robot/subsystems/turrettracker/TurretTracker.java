@@ -77,9 +77,18 @@ public class TurretTracker extends SubsystemBase {
     @Getter
     private boolean targetInRange = false;
 
-    // Distance from robot to the active target in meters.
+    // Horizontal distance from robot to the active target in meters (2D, X/Y only).
+    @Getter
+    private double horizontalDistanceMeters = 0.0;
+
+    // 3D distance from turret to the target, accounting for height difference (meters).
     @Getter
     private double distanceToTargetMeters = 0.0;
+
+    // Elevation angle to the target in degrees (positive = upward, 0 = flat).
+    // In passing mode this is always 0 (flat lob trajectory).
+    @Getter
+    private double elevationAngleDegrees = 0.0;
 
     // The currently resolved target position (hub center or passing target).
     @Getter
@@ -92,7 +101,7 @@ public class TurretTracker extends SubsystemBase {
     // Visualization: AdvantageScope via StructPublisher
     private final StructPublisher<Pose3d> aimPose3dPublisher;
     private final StructPublisher<Pose3d> targetPose3dPublisher;
-    private final StructArrayPublisher<Pose2d> aimLinePublisher;
+    private final StructArrayPublisher<Pose3d> aimLinePublisher;
 
     public TurretTracker(final TurretTrackerContext context, final Drivetrain drivetrain) {
         this.context = requireNonNull(context, "TurretTrackerContext cannot be null");
@@ -129,7 +138,7 @@ public class TurretTracker extends SubsystemBase {
         this.targetPose3dPublisher =
                 nti.getStructTopic("TurretTracker/TargetPose3d", Pose3d.struct).publish();
         this.aimLinePublisher =
-                nti.getStructArrayTopic("TurretTracker/AimLine", Pose2d.struct).publish();
+                nti.getStructArrayTopic("TurretTracker/AimLine", Pose3d.struct).publish();
 
         // Register telemetry
         Telemetry.registerSubsystem(TELEMETRY_PREFIX, this::captureTelemetry);
@@ -188,10 +197,25 @@ public class TurretTracker extends SubsystemBase {
         // Resolve the active target based on tracking mode
         activeTarget = (trackingMode == TrackingMode.PASSING) ? computePassingTarget(robotPose, hubCenter) : hubCenter;
 
-        // Calculate distance to active target
+        // Calculate horizontal distance to active target (2D)
         double dx = activeTarget.getX() - robotPose.getX();
         double dy = activeTarget.getY() - robotPose.getY();
-        distanceToTargetMeters = Math.sqrt(dx * dx + dy * dy);
+        horizontalDistanceMeters = Math.sqrt(dx * dx + dy * dy);
+
+        // Calculate height difference and 3D distance
+        double targetZ = (trackingMode == TrackingMode.SHOOTING)
+                ? context.getShootingTargetHeightMeters()
+                : context.getPassingTargetHeightMeters();
+        double dz = targetZ - context.getTurretHeightMeters();
+        distanceToTargetMeters = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+        // Calculate elevation angle (positive = upward, 0 = flat)
+        // For passing mode, force flat (0°) since we lob over obstacles
+        if (trackingMode == TrackingMode.PASSING) {
+            elevationAngleDegrees = 0.0;
+        } else {
+            elevationAngleDegrees = Units.radiansToDegrees(Math.atan2(dz, horizontalDistanceMeters));
+        }
 
         // Calculate field-relative angle from robot to active target
         double fieldAngleRad = Math.atan2(dy, dx);
@@ -309,30 +333,41 @@ public class TurretTracker extends SubsystemBase {
         // Field-relative aim direction
         double aimFieldAngleRad = robotPose.getRotation().getRadians() + Units.degreesToRadians(turretAngleDegrees);
 
-        // Aim pose at robot position, pointed toward hub center
+        // Aim pose at robot position, pointed toward active target with elevation pitch
+        double elevPitchRad = Units.degreesToRadians(elevationAngleDegrees);
         Pose3d aimPose = new Pose3d(
                 robotPose.getX(),
                 robotPose.getY(),
                 context.getTurretHeightMeters(),
-                new Rotation3d(0, 0, aimFieldAngleRad));
+                new Rotation3d(0, -elevPitchRad, aimFieldAngleRad));
         aimPose3dPublisher.set(aimPose);
 
-        // Hub center as a Pose3d (Z = turret height for visual alignment)
-        Pose3d targetPose =
-                new Pose3d(hubCenter.getX(), hubCenter.getY(), context.getTurretHeightMeters(), new Rotation3d());
+        // Active target as a Pose3d at the actual target height
+        double activeTargetZ = (trackingMode == TrackingMode.SHOOTING)
+                ? context.getShootingTargetHeightMeters()
+                : context.getPassingTargetHeightMeters();
+        Pose3d targetPose = new Pose3d(hubCenter.getX(), hubCenter.getY(), activeTargetZ, new Rotation3d());
         targetPose3dPublisher.set(targetPose);
 
-        // Aim line: array of 2 Pose2d (start at robot, end at aim vector endpoint)
-        double endX = robotPose.getX() + context.getAimVectorLengthMeters() * Math.cos(aimFieldAngleRad);
-        double endY = robotPose.getY() + context.getAimVectorLengthMeters() * Math.sin(aimFieldAngleRad);
+        // Aim line: array of 2 Pose3d from turret to aim vector endpoint.
+        // In shooting mode the line pitches upward toward the hub intake height;
+        // in passing mode it stays flat (elevation = 0).
+        double turretZ = context.getTurretHeightMeters();
+        double elevationRad = Units.degreesToRadians(elevationAngleDegrees);
+        double aimLength = context.getAimVectorLengthMeters();
 
-        Pose2d[] aimLine = new Pose2d[] {
-            robotPose, new Pose2d(endX, endY, new Rotation2d(aimFieldAngleRad)),
+        // Horizontal projection of the aim vector (shortened by pitch)
+        double horizontalLength = aimLength * Math.cos(elevationRad);
+        double endX = robotPose.getX() + horizontalLength * Math.cos(aimFieldAngleRad);
+        double endY = robotPose.getY() + horizontalLength * Math.sin(aimFieldAngleRad);
+        double endZ = turretZ + aimLength * Math.sin(elevationRad);
+
+        // Rotation3d: roll=0, pitch=-elevation (WPILib pitch is nose-down positive), yaw=aim heading
+        Rotation3d aimRot = new Rotation3d(0, -elevationRad, aimFieldAngleRad);
+        Pose3d[] aimLine = new Pose3d[] {
+            new Pose3d(robotPose.getX(), robotPose.getY(), turretZ, aimRot), new Pose3d(endX, endY, endZ, aimRot),
         };
         aimLinePublisher.set(aimLine);
-
-        // Also record for DataLog (AdvantageScope replay)
-        Telemetry.recordPoses(TELEMETRY_PREFIX + "/AimLine", aimLine, TelemetryLevel.MATCH);
     }
 
     private void captureTelemetry(String prefix) {
@@ -340,12 +375,16 @@ public class TurretTracker extends SubsystemBase {
         Telemetry.record(prefix + "/AngleDeg", turretAngleDegrees, TelemetryLevel.MATCH);
         Telemetry.record(prefix + "/InRange", targetInRange, TelemetryLevel.MATCH);
         Telemetry.record(prefix + "/DistanceM", distanceToTargetMeters, TelemetryLevel.MATCH);
+        Telemetry.record(prefix + "/HorizontalDistM", horizontalDistanceMeters, TelemetryLevel.MATCH);
+        Telemetry.record(prefix + "/ElevationDeg", elevationAngleDegrees, TelemetryLevel.MATCH);
         Telemetry.record(prefix + "/Mode", trackingMode.name(), TelemetryLevel.MATCH);
 
         // Publish to NT for live dashboard
         Telemetry.publish(prefix + "/AngleDeg", turretAngleDegrees, TelemetryLevel.MATCH);
         Telemetry.publish(prefix + "/InRange", targetInRange, TelemetryLevel.MATCH);
         Telemetry.publish(prefix + "/DistanceM", distanceToTargetMeters, TelemetryLevel.MATCH);
+        Telemetry.publish(prefix + "/HorizontalDistM", horizontalDistanceMeters, TelemetryLevel.MATCH);
+        Telemetry.publish(prefix + "/ElevationDeg", elevationAngleDegrees, TelemetryLevel.MATCH);
         Telemetry.publish(prefix + "/Mode", trackingMode.name(), TelemetryLevel.MATCH);
 
         // LAB level - detailed tracking data
@@ -358,7 +397,9 @@ public class TurretTracker extends SubsystemBase {
 
         String modeLabel = trackingMode == TrackingMode.PASSING ? "Passing" : "Hub Center";
         String status = targetInRange
-                ? String.format("Tracking %s (%.1f deg, %.1fm)", modeLabel, turretAngleDegrees, distanceToTargetMeters)
+                ? String.format(
+                        "Tracking %s (%.1f deg, %.1f elev, %.1fm)",
+                        modeLabel, turretAngleDegrees, elevationAngleDegrees, distanceToTargetMeters)
                 : String.format("Out of Range (%.1f deg)", rawAngleDegrees);
         Telemetry.publish(prefix + "/Status", status, TelemetryLevel.MATCH);
     }

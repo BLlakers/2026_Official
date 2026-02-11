@@ -55,42 +55,42 @@ public class VisionSubsystemContext {
     /**
      * Transform from robot center to front-right camera optical center.
      * Mounted on the front-right bumper corner, angled 30deg outward to the right.
-     * Position: X=+0.30m forward, Y=-0.25m right, Z=+0.25m up.
+     * Position: X=+0.30m forward, Y=-0.25m right, Z=+0.2286m up (9in).
      * Rotation: pitch=-15deg (tilted down), yaw=-30deg (angled right).
      */
     @Builder.Default
     private final Transform3d frontRightCameraToRobot = new Transform3d(
-            new Translation3d(0.30, -0.25, 0.25), new Rotation3d(0, Math.toRadians(-15), Math.toRadians(-30)));
+            new Translation3d(0.30, -0.25, 0.2286), new Rotation3d(0, Math.toRadians(-15), Math.toRadians(-30)));
 
     /**
      * Transform from robot center to front-left camera optical center.
      * Mounted on the front-left bumper corner, angled 30deg outward to the left.
-     * Position: X=+0.30m forward, Y=+0.25m left, Z=+0.25m up.
+     * Position: X=+0.30m forward, Y=+0.25m left, Z=+0.2286m up (9in).
      * Rotation: pitch=-15deg (tilted down), yaw=+30deg (angled left).
      */
     @Builder.Default
     private final Transform3d frontLeftCameraToRobot = new Transform3d(
-            new Translation3d(0.30, 0.25, 0.25), new Rotation3d(0, Math.toRadians(-15), Math.toRadians(30)));
+            new Translation3d(0.30, 0.25, 0.2286), new Rotation3d(0, Math.toRadians(-15), Math.toRadians(30)));
 
     /**
      * Transform from robot center to right-side camera optical center.
-     * Mounted on the right side of the robot, facing perpendicular to the right.
-     * Position: X=0.0m (centered fore-aft), Y=-0.30m right, Z=+0.25m up.
-     * Rotation: pitch=-15deg (tilted down), yaw=-90deg (facing right).
+     * Adjacent to the front-right camera, angled 120deg to the right.
+     * Position: X=+0.30m forward, Y=-0.25m right, Z=+0.2286m up (9in).
+     * Rotation: pitch=-15deg (tilted down), yaw=-120deg.
      */
     @Builder.Default
     private final Transform3d rightSideCameraToRobot = new Transform3d(
-            new Translation3d(0.0, -0.30, 0.25), new Rotation3d(0, Math.toRadians(-15), Math.toRadians(-90)));
+            new Translation3d(0.30, -0.25, 0.2286), new Rotation3d(0, Math.toRadians(-15), Math.toRadians(-120)));
 
     /**
      * Transform from robot center to left-side camera optical center.
-     * Mounted on the left side of the robot, facing perpendicular to the left.
-     * Position: X=0.0m (centered fore-aft), Y=+0.30m left, Z=+0.25m up.
-     * Rotation: pitch=-15deg (tilted down), yaw=+90deg (facing left).
+     * Adjacent to the front-left camera, angled 120deg to the left.
+     * Position: X=+0.30m forward, Y=+0.25m left, Z=+0.2286m up (9in).
+     * Rotation: pitch=-15deg (tilted down), yaw=+120deg.
      */
     @Builder.Default
     private final Transform3d leftSideCameraToRobot = new Transform3d(
-            new Translation3d(0.0, 0.30, 0.25), new Rotation3d(0, Math.toRadians(-15), Math.toRadians(90)));
+            new Translation3d(0.30, 0.25, 0.2286), new Rotation3d(0, Math.toRadians(-15), Math.toRadians(120)));
 
     /**
      * Whether to enable simulation features (VisionSystemSim)
