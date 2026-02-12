@@ -9,8 +9,8 @@ import org.photonvision.PhotonPoseEstimator.PoseStrategy;
 
 /**
  * Configuration context for the Vision subsystem using PhotonVision.
- * Supports three cameras (front-right, front-left, rear) for AprilTag detection
- * and localization, with FOV visualization in simulation.
+ * Supports four cameras (front-right, front-left, right-side, left-side)
+ * for AprilTag detection and localization, with FOV visualization in simulation.
  */
 @Data
 @Builder
@@ -29,10 +29,16 @@ public class VisionSubsystemContext {
     private final String frontLeftCameraName = "photonvision-front-left";
 
     /**
-     * Network table name for the rear camera
+     * Network table name for the right-side camera
      */
     @Builder.Default
-    private final String rearCameraName = "photonvision-rear";
+    private final String rightSideCameraName = "photonvision-right-side";
+
+    /**
+     * Network table name for the left-side camera
+     */
+    @Builder.Default
+    private final String leftSideCameraName = "photonvision-left-side";
 
     /**
      * Whether to enable verbose logging to SmartDashboard
@@ -49,32 +55,42 @@ public class VisionSubsystemContext {
     /**
      * Transform from robot center to front-right camera optical center.
      * Mounted on the front-right bumper corner, angled 30deg outward to the right.
-     * Position: X=+0.30m forward, Y=-0.25m right, Z=+0.25m up.
+     * Position: X=+0.30m forward, Y=-0.25m right, Z=+0.2286m up (9in).
      * Rotation: pitch=-15deg (tilted down), yaw=-30deg (angled right).
      */
     @Builder.Default
     private final Transform3d frontRightCameraToRobot = new Transform3d(
-            new Translation3d(0.30, -0.25, 0.25), new Rotation3d(0, Math.toRadians(-15), Math.toRadians(-30)));
+            new Translation3d(0.30, -0.25, 0.2286), new Rotation3d(0, Math.toRadians(-15), Math.toRadians(-30)));
 
     /**
      * Transform from robot center to front-left camera optical center.
      * Mounted on the front-left bumper corner, angled 30deg outward to the left.
-     * Position: X=+0.30m forward, Y=+0.25m left, Z=+0.25m up.
+     * Position: X=+0.30m forward, Y=+0.25m left, Z=+0.2286m up (9in).
      * Rotation: pitch=-15deg (tilted down), yaw=+30deg (angled left).
      */
     @Builder.Default
     private final Transform3d frontLeftCameraToRobot = new Transform3d(
-            new Translation3d(0.30, 0.25, 0.25), new Rotation3d(0, Math.toRadians(-15), Math.toRadians(30)));
+            new Translation3d(0.30, 0.25, 0.2286), new Rotation3d(0, Math.toRadians(-15), Math.toRadians(30)));
 
     /**
-     * Transform from robot center to rear camera optical center.
-     * Mounted centered on the rear of the robot, facing backward.
-     * Position: X=-0.30m backward, Y=0 centered, Z=+0.25m up.
-     * Rotation: pitch=-15deg (tilted down), yaw=180deg (facing backward).
+     * Transform from robot center to right-side camera optical center.
+     * Adjacent to the front-right camera, angled 120deg to the right.
+     * Position: X=+0.30m forward, Y=-0.25m right, Z=+0.2286m up (9in).
+     * Rotation: pitch=-15deg (tilted down), yaw=-120deg.
      */
     @Builder.Default
-    private final Transform3d rearCameraToRobot =
-            new Transform3d(new Translation3d(-0.30, 0.0, 0.25), new Rotation3d(0, Math.toRadians(-15), Math.PI));
+    private final Transform3d rightSideCameraToRobot = new Transform3d(
+            new Translation3d(0.30, -0.25, 0.2286), new Rotation3d(0, Math.toRadians(-15), Math.toRadians(-120)));
+
+    /**
+     * Transform from robot center to left-side camera optical center.
+     * Adjacent to the front-left camera, angled 120deg to the left.
+     * Position: X=+0.30m forward, Y=+0.25m left, Z=+0.2286m up (9in).
+     * Rotation: pitch=-15deg (tilted down), yaw=+120deg.
+     */
+    @Builder.Default
+    private final Transform3d leftSideCameraToRobot = new Transform3d(
+            new Translation3d(0.30, 0.25, 0.2286), new Rotation3d(0, Math.toRadians(-15), Math.toRadians(120)));
 
     /**
      * Whether to enable simulation features (VisionSystemSim)

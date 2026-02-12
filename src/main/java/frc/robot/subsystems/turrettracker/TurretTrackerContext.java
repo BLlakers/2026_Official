@@ -20,9 +20,26 @@ public class TurretTrackerContext {
 
     /**
      * Height of the turret above ground for 3D visualization (meters).
+     * 19 inches = 0.4826m.
      */
     @Builder.Default
-    private final double turretHeightMeters = 0.5;
+    private final double turretHeightMeters = 0.4826;
+
+    /**
+     * Height of the hub intake opening above ground (meters).
+     * 72 inches = 1.8288m. Used in shooting mode to compute elevation angle
+     * and 3D distance for motor speed derivation.
+     */
+    @Builder.Default
+    private final double shootingTargetHeightMeters = 1.8288;
+
+    /**
+     * Height of the passing target above ground (meters).
+     * Passing uses a lob trajectory, so elevation is computed as 0 (flat)
+     * rather than aiming down at the ground.
+     */
+    @Builder.Default
+    private final double passingTargetHeightMeters = 0.0;
 
     /**
      * Length of the aim vector line drawn in visualizations (meters).

@@ -5,7 +5,9 @@ import edu.wpi.first.apriltag.AprilTagFields;
 import edu.wpi.first.math.Matrix;
 import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
@@ -36,11 +38,11 @@ import org.photonvision.targeting.PhotonTrackedTarget;
 
 /**
  * Vision subsystem for AprilTag detection using PhotonVision.
- * Manages three cameras (front-right, front-left, rear), provides pose estimation,
- * supports simulation, and visualizes camera FOV cones.
+ * Manages four cameras (front-right, front-left, right-side, left-side),
+ * provides pose estimation, supports simulation, and visualizes camera FOV cones.
  *
  * Features:
- * - Triple camera support (front-right, front-left, rear)
+ * - Quad camera support (front-right, front-left, right-side, left-side)
  * - PhotonPoseEstimator integration for robot localization
  * - Dynamic standard deviation calculation
  * - Full simulation support with VisionSystemSim
@@ -63,24 +65,28 @@ public class VisionSubsystem extends SubsystemBase {
     private final VisionMeasurementConsumer visionMeasurementConsumer;
     private final PhotonCamera frontRightCamera;
     private final PhotonCamera frontLeftCamera;
-    private final PhotonCamera rearCamera;
+    private final PhotonCamera rightSideCamera;
+    private final PhotonCamera leftSideCamera;
 
     // Pose estimation
     private final AprilTagFieldLayout fieldLayout;
     private final PhotonPoseEstimator frontRightPoseEstimator;
     private final PhotonPoseEstimator frontLeftPoseEstimator;
-    private final PhotonPoseEstimator rearPoseEstimator;
+    private final PhotonPoseEstimator rightSidePoseEstimator;
+    private final PhotonPoseEstimator leftSidePoseEstimator;
 
     // Simulation (only created in simulation mode)
     private VisionSystemSim visionSim;
     private PhotonCameraSim frontRightCameraSim;
     private PhotonCameraSim frontLeftCameraSim;
-    private PhotonCameraSim rearCameraSim;
+    private PhotonCameraSim rightSideCameraSim;
+    private PhotonCameraSim leftSideCameraSim;
 
     // FOV visualization publishers (simulation only)
-    private StructArrayPublisher<Pose2d> frontRightFovPublisher;
-    private StructArrayPublisher<Pose2d> frontLeftFovPublisher;
-    private StructArrayPublisher<Pose2d> rearFovPublisher;
+    private StructArrayPublisher<Pose3d> frontRightFovPublisher;
+    private StructArrayPublisher<Pose3d> frontLeftFovPublisher;
+    private StructArrayPublisher<Pose3d> rightSideFovPublisher;
+    private StructArrayPublisher<Pose3d> leftSideFovPublisher;
     private Mechanism2d cameraLayoutMech;
 
     /**
@@ -102,7 +108,8 @@ public class VisionSubsystem extends SubsystemBase {
         // Initialize PhotonVision cameras
         this.frontRightCamera = new PhotonCamera(context.getFrontRightCameraName());
         this.frontLeftCamera = new PhotonCamera(context.getFrontLeftCameraName());
-        this.rearCamera = new PhotonCamera(context.getRearCameraName());
+        this.rightSideCamera = new PhotonCamera(context.getRightSideCameraName());
+        this.leftSideCamera = new PhotonCamera(context.getLeftSideCameraName());
 
         // Load AprilTag field layout from WPILib
         this.fieldLayout = AprilTagFieldLayout.loadField(AprilTagFields.kDefaultField);
@@ -112,8 +119,10 @@ public class VisionSubsystem extends SubsystemBase {
                 fieldLayout, context.getPoseEstimationStrategy(), context.getFrontRightCameraToRobot());
         this.frontLeftPoseEstimator = new PhotonPoseEstimator(
                 fieldLayout, context.getPoseEstimationStrategy(), context.getFrontLeftCameraToRobot());
-        this.rearPoseEstimator = new PhotonPoseEstimator(
-                fieldLayout, context.getPoseEstimationStrategy(), context.getRearCameraToRobot());
+        this.rightSidePoseEstimator = new PhotonPoseEstimator(
+                fieldLayout, context.getPoseEstimationStrategy(), context.getRightSideCameraToRobot());
+        this.leftSidePoseEstimator = new PhotonPoseEstimator(
+                fieldLayout, context.getPoseEstimationStrategy(), context.getLeftSideCameraToRobot());
 
         // Initialize simulation if enabled
         // NOTE: PhotonVision simulation is expensive (~96ms per loop) and causes "CommandScheduler
@@ -132,7 +141,8 @@ public class VisionSubsystem extends SubsystemBase {
         Telemetry.publish("Vision/Status", "Initialized", TelemetryLevel.MATCH);
         Telemetry.publish("Vision/FrontRightCamera/Connected", false, TelemetryLevel.MATCH);
         Telemetry.publish("Vision/FrontLeftCamera/Connected", false, TelemetryLevel.MATCH);
-        Telemetry.publish("Vision/RearCamera/Connected", false, TelemetryLevel.MATCH);
+        Telemetry.publish("Vision/RightSideCamera/Connected", false, TelemetryLevel.MATCH);
+        Telemetry.publish("Vision/LeftSideCamera/Connected", false, TelemetryLevel.MATCH);
     }
 
     /**
@@ -160,16 +170,25 @@ public class VisionSubsystem extends SubsystemBase {
         frontLeftCameraSim.enableRawStream(false);
         frontLeftCameraSim.enableProcessedStream(false);
 
-        // Configure rear camera simulation
-        SimCameraProperties rearProps = createSimCameraProperties();
-        rearCameraSim = new PhotonCameraSim(rearCamera, rearProps);
-        visionSim.addCamera(rearCameraSim, context.getRearCameraToRobot());
-        rearCameraSim.enableDrawWireframe(true);
+        // Configure right-side camera simulation
+        SimCameraProperties rightSideProps = createSimCameraProperties();
+        rightSideCameraSim = new PhotonCameraSim(rightSideCamera, rightSideProps);
+        visionSim.addCamera(rightSideCameraSim, context.getRightSideCameraToRobot());
+        rightSideCameraSim.enableDrawWireframe(true);
         // Disable video streaming to avoid CameraServer handle issues
-        rearCameraSim.enableRawStream(false);
-        rearCameraSim.enableProcessedStream(false);
+        rightSideCameraSim.enableRawStream(false);
+        rightSideCameraSim.enableProcessedStream(false);
 
-        Telemetry.publish("Vision/Simulation", "Active (3 cameras)", TelemetryLevel.LAB);
+        // Configure left-side camera simulation
+        SimCameraProperties leftSideProps = createSimCameraProperties();
+        leftSideCameraSim = new PhotonCameraSim(leftSideCamera, leftSideProps);
+        visionSim.addCamera(leftSideCameraSim, context.getLeftSideCameraToRobot());
+        leftSideCameraSim.enableDrawWireframe(true);
+        // Disable video streaming to avoid CameraServer handle issues
+        leftSideCameraSim.enableRawStream(false);
+        leftSideCameraSim.enableProcessedStream(false);
+
+        Telemetry.publish("Vision/Simulation", "Active (4 cameras)", TelemetryLevel.LAB);
     }
 
     /**
@@ -197,14 +216,16 @@ public class VisionSubsystem extends SubsystemBase {
     private void initializeFovVisualization() {
         NetworkTableInstance nti = NetworkTableInstance.getDefault();
 
-        frontRightFovPublisher = nti.getStructArrayTopic("Vision/FrontRight/FOVCone", Pose2d.struct)
+        frontRightFovPublisher = nti.getStructArrayTopic("Vision/FrontRight/FOVCone", Pose3d.struct)
                 .publish();
-        frontLeftFovPublisher = nti.getStructArrayTopic("Vision/FrontLeft/FOVCone", Pose2d.struct)
+        frontLeftFovPublisher = nti.getStructArrayTopic("Vision/FrontLeft/FOVCone", Pose3d.struct)
                 .publish();
-        rearFovPublisher =
-                nti.getStructArrayTopic("Vision/Rear/FOVCone", Pose2d.struct).publish();
+        rightSideFovPublisher = nti.getStructArrayTopic("Vision/RightSide/FOVCone", Pose3d.struct)
+                .publish();
+        leftSideFovPublisher = nti.getStructArrayTopic("Vision/LeftSide/FOVCone", Pose3d.struct)
+                .publish();
 
-        // Mechanism2d: top-down camera layout (robot center, 3 directional lines)
+        // Mechanism2d: top-down camera layout (robot center, 4 directional lines)
         double mechSize = 100.0;
         cameraLayoutMech = new Mechanism2d(mechSize, mechSize);
         MechanismRoot2d center = cameraLayoutMech.getRoot("robotCenter", mechSize / 2.0, mechSize / 2.0);
@@ -214,8 +235,10 @@ public class VisionSubsystem extends SubsystemBase {
         center.append(new MechanismLigament2d("frontRightCam", 30, 90 - 30, 2, new Color8Bit(Color.kOrange)));
         // Front-left at yaw=+30deg: mechanism angle = 90 + 30 = 120
         center.append(new MechanismLigament2d("frontLeftCam", 30, 90 + 30, 2, new Color8Bit(Color.kYellow)));
-        // Rear at yaw=180deg: mechanism angle = 90 + 180 = 270
-        center.append(new MechanismLigament2d("rearCam", 30, 270, 2, new Color8Bit(Color.kCyan)));
+        // Right-side at yaw=-120deg: mechanism angle = 90 + (-120) = -30
+        center.append(new MechanismLigament2d("rightSideCam", 30, -30, 2, new Color8Bit(Color.kCyan)));
+        // Left-side at yaw=+120deg: mechanism angle = 90 + 120 = 210
+        center.append(new MechanismLigament2d("leftSideCam", 30, 210, 2, new Color8Bit(Color.kMagenta)));
 
         Telemetry.putData("Vision/CameraLayout", cameraLayoutMech);
     }
@@ -227,11 +250,13 @@ public class VisionSubsystem extends SubsystemBase {
         Pose2d currentPose = drivetrain.getPose2dEstimator();
         frontRightPoseEstimator.setReferencePose(currentPose);
         frontLeftPoseEstimator.setReferencePose(currentPose);
-        rearPoseEstimator.setReferencePose(currentPose);
+        rightSidePoseEstimator.setReferencePose(currentPose);
+        leftSidePoseEstimator.setReferencePose(currentPose);
 
         processCamera(frontRightCamera, frontRightPoseEstimator, "FrontRight");
         processCamera(frontLeftCamera, frontLeftPoseEstimator, "FrontLeft");
-        processCamera(rearCamera, rearPoseEstimator, "Rear");
+        processCamera(rightSideCamera, rightSidePoseEstimator, "RightSide");
+        processCamera(leftSideCamera, leftSidePoseEstimator, "LeftSide");
     }
 
     /**
@@ -331,15 +356,18 @@ public class VisionSubsystem extends SubsystemBase {
 
         boolean frontRightConnected = isSimulation || frontRightCamera.isConnected();
         boolean frontLeftConnected = isSimulation || frontLeftCamera.isConnected();
-        boolean rearConnected = isSimulation || rearCamera.isConnected();
+        boolean rightSideConnected = isSimulation || rightSideCamera.isConnected();
+        boolean leftSideConnected = isSimulation || leftSideCamera.isConnected();
 
         Telemetry.publish("Vision/FrontRightCamera/Connected", frontRightConnected, TelemetryLevel.MATCH);
         Telemetry.publish("Vision/FrontLeftCamera/Connected", frontLeftConnected, TelemetryLevel.MATCH);
-        Telemetry.publish("Vision/RearCamera/Connected", rearConnected, TelemetryLevel.MATCH);
+        Telemetry.publish("Vision/RightSideCamera/Connected", rightSideConnected, TelemetryLevel.MATCH);
+        Telemetry.publish("Vision/LeftSideCamera/Connected", leftSideConnected, TelemetryLevel.MATCH);
 
         PhotonPipelineResult frontRightResult = frontRightCamera.getLatestResult();
         PhotonPipelineResult frontLeftResult = frontLeftCamera.getLatestResult();
-        PhotonPipelineResult rearResult = rearCamera.getLatestResult();
+        PhotonPipelineResult rightSideResult = rightSideCamera.getLatestResult();
+        PhotonPipelineResult leftSideResult = leftSideCamera.getLatestResult();
 
         if (frontRightConnected && frontRightResult.hasTargets()) {
             processAndLogTargets("FrontRight", frontRightResult);
@@ -355,15 +383,29 @@ public class VisionSubsystem extends SubsystemBase {
             Telemetry.publish("Vision/FrontLeftCamera/DetectedTags", "None", TelemetryLevel.LAB);
         }
 
-        if (rearConnected && rearResult.hasTargets()) {
-            processAndLogTargets("Rear", rearResult);
+        if (rightSideConnected && rightSideResult.hasTargets()) {
+            processAndLogTargets("RightSide", rightSideResult);
         } else {
-            Telemetry.publish("Vision/RearCamera/TargetCount", 0, TelemetryLevel.MATCH);
-            Telemetry.publish("Vision/RearCamera/DetectedTags", "None", TelemetryLevel.LAB);
+            Telemetry.publish("Vision/RightSideCamera/TargetCount", 0, TelemetryLevel.MATCH);
+            Telemetry.publish("Vision/RightSideCamera/DetectedTags", "None", TelemetryLevel.LAB);
+        }
+
+        if (leftSideConnected && leftSideResult.hasTargets()) {
+            processAndLogTargets("LeftSide", leftSideResult);
+        } else {
+            Telemetry.publish("Vision/LeftSideCamera/TargetCount", 0, TelemetryLevel.MATCH);
+            Telemetry.publish("Vision/LeftSideCamera/DetectedTags", "None", TelemetryLevel.LAB);
         }
 
         updateSystemStatus(
-                frontRightConnected, frontLeftConnected, rearConnected, frontRightResult, frontLeftResult, rearResult);
+                frontRightConnected,
+                frontLeftConnected,
+                rightSideConnected,
+                leftSideConnected,
+                frontRightResult,
+                frontLeftResult,
+                rightSideResult,
+                leftSideResult);
 
         updatePoseEstimation();
     }
@@ -382,8 +424,9 @@ public class VisionSubsystem extends SubsystemBase {
 
     /**
      * Computes field-relative FOV cone edges for each camera and publishes
-     * as Pose2d arrays for AdvantageScope 2D field overlay.
-     * Each FOV cone is a 3-point V shape: [left edge, camera position, right edge].
+     * as Pose3d arrays for AdvantageScope 3D field overlay at the camera's
+     * mounted height. Each FOV cone is a 3-point V shape:
+     * [left edge, camera position, right edge].
      */
     private void updateFovVisualization(Pose2d robotPose) {
         double rayLength = context.getFovVisualizationRayLength();
@@ -392,15 +435,17 @@ public class VisionSubsystem extends SubsystemBase {
         publishCameraFov(
                 frontRightFovPublisher, robotPose, context.getFrontRightCameraToRobot(), halfFovRad, rayLength);
         publishCameraFov(frontLeftFovPublisher, robotPose, context.getFrontLeftCameraToRobot(), halfFovRad, rayLength);
-        publishCameraFov(rearFovPublisher, robotPose, context.getRearCameraToRobot(), halfFovRad, rayLength);
+        publishCameraFov(rightSideFovPublisher, robotPose, context.getRightSideCameraToRobot(), halfFovRad, rayLength);
+        publishCameraFov(leftSideFovPublisher, robotPose, context.getLeftSideCameraToRobot(), halfFovRad, rayLength);
     }
 
     /**
-     * Publishes a single camera's FOV cone as a V-shaped Pose2d array.
-     * Projects the camera position and FOV edges onto the field coordinate system.
+     * Publishes a single camera's FOV cone as a V-shaped Pose3d array.
+     * Projects the camera position and FOV edges onto the field coordinate system
+     * at the camera's mounted Z height.
      */
     private void publishCameraFov(
-            StructArrayPublisher<Pose2d> publisher,
+            StructArrayPublisher<Pose3d> publisher,
             Pose2d robotPose,
             Transform3d cameraToRobot,
             double halfFovRad,
@@ -413,6 +458,7 @@ public class VisionSubsystem extends SubsystemBase {
         double sinH = Math.sin(robotHeading);
         double camX = robotPose.getX() + cameraToRobot.getX() * cosH - cameraToRobot.getY() * sinH;
         double camY = robotPose.getY() + cameraToRobot.getX() * sinH + cameraToRobot.getY() * cosH;
+        double camZ = cameraToRobot.getZ();
 
         // Camera heading in field coordinates (robot heading + camera yaw)
         double cameraYaw = cameraToRobot.getRotation().getZ();
@@ -427,11 +473,15 @@ public class VisionSubsystem extends SubsystemBase {
         double rightX = camX + rayLength * Math.cos(rightAngle);
         double rightY = camY + rayLength * Math.sin(rightAngle);
 
-        Pose2d leftEdge = new Pose2d(leftX, leftY, new Rotation2d(leftAngle));
-        Pose2d camPose = new Pose2d(camX, camY, new Rotation2d(camHeading));
-        Pose2d rightEdge = new Pose2d(rightX, rightY, new Rotation2d(rightAngle));
+        Rotation3d leftRot = new Rotation3d(0, 0, leftAngle);
+        Rotation3d camRot = new Rotation3d(0, 0, camHeading);
+        Rotation3d rightRot = new Rotation3d(0, 0, rightAngle);
 
-        publisher.set(new Pose2d[] {leftEdge, camPose, rightEdge});
+        Pose3d leftEdge = new Pose3d(leftX, leftY, camZ, leftRot);
+        Pose3d camPose = new Pose3d(camX, camY, camZ, camRot);
+        Pose3d rightEdge = new Pose3d(rightX, rightY, camZ, rightRot);
+
+        publisher.set(new Pose3d[] {leftEdge, camPose, rightEdge});
     }
 
     /**
@@ -473,35 +523,40 @@ public class VisionSubsystem extends SubsystemBase {
     }
 
     /**
-     * Updates overall system status telemetry for 3 cameras.
+     * Updates overall system status telemetry for 4 cameras.
      */
     private void updateSystemStatus(
             boolean frontRightConnected,
             boolean frontLeftConnected,
-            boolean rearConnected,
+            boolean rightSideConnected,
+            boolean leftSideConnected,
             PhotonPipelineResult frontRightResult,
             PhotonPipelineResult frontLeftResult,
-            PhotonPipelineResult rearResult) {
+            PhotonPipelineResult rightSideResult,
+            PhotonPipelineResult leftSideResult) {
 
         int connectedCount = 0;
         if (frontRightConnected) connectedCount++;
         if (frontLeftConnected) connectedCount++;
-        if (rearConnected) connectedCount++;
+        if (rightSideConnected) connectedCount++;
+        if (leftSideConnected) connectedCount++;
 
         String status;
         if (connectedCount == 0) {
             status = "No Cameras Connected";
-        } else if (connectedCount < 3) {
+        } else if (connectedCount < 4) {
             List<String> offline = new ArrayList<>();
             if (!frontRightConnected) offline.add("FrontRight");
             if (!frontLeftConnected) offline.add("FrontLeft");
-            if (!rearConnected) offline.add("Rear");
+            if (!rightSideConnected) offline.add("RightSide");
+            if (!leftSideConnected) offline.add("LeftSide");
             status = String.join(", ", offline) + " Offline";
         } else {
             List<String> trackingCams = new ArrayList<>();
             if (frontRightResult.hasTargets()) trackingCams.add("FR");
             if (frontLeftResult.hasTargets()) trackingCams.add("FL");
-            if (rearResult.hasTargets()) trackingCams.add("Rear");
+            if (rightSideResult.hasTargets()) trackingCams.add("RS");
+            if (leftSideResult.hasTargets()) trackingCams.add("LS");
 
             if (trackingCams.isEmpty()) {
                 status = "No Targets Detected";
@@ -519,8 +574,11 @@ public class VisionSubsystem extends SubsystemBase {
         if (frontLeftConnected && frontLeftResult.hasTargets()) {
             totalTags += frontLeftResult.getTargets().size();
         }
-        if (rearConnected && rearResult.hasTargets()) {
-            totalTags += rearResult.getTargets().size();
+        if (rightSideConnected && rightSideResult.hasTargets()) {
+            totalTags += rightSideResult.getTargets().size();
+        }
+        if (leftSideConnected && leftSideResult.hasTargets()) {
+            totalTags += leftSideResult.getTargets().size();
         }
         Telemetry.publish("Vision/TotalTagsDetected", totalTags, TelemetryLevel.MATCH);
     }
@@ -535,8 +593,12 @@ public class VisionSubsystem extends SubsystemBase {
         return frontLeftCamera.getLatestResult();
     }
 
-    public PhotonPipelineResult getRearCameraResult() {
-        return rearCamera.getLatestResult();
+    public PhotonPipelineResult getRightSideCameraResult() {
+        return rightSideCamera.getLatestResult();
+    }
+
+    public PhotonPipelineResult getLeftSideCameraResult() {
+        return leftSideCamera.getLatestResult();
     }
 
     public PhotonCamera getFrontRightCamera() {
@@ -547,8 +609,12 @@ public class VisionSubsystem extends SubsystemBase {
         return frontLeftCamera;
     }
 
-    public PhotonCamera getRearCamera() {
-        return rearCamera;
+    public PhotonCamera getRightSideCamera() {
+        return rightSideCamera;
+    }
+
+    public PhotonCamera getLeftSideCamera() {
+        return leftSideCamera;
     }
 
     public boolean isFrontRightCameraConnected() {
@@ -559,8 +625,12 @@ public class VisionSubsystem extends SubsystemBase {
         return frontLeftCamera.isConnected();
     }
 
-    public boolean isRearCameraConnected() {
-        return rearCamera.isConnected();
+    public boolean isRightSideCameraConnected() {
+        return rightSideCamera.isConnected();
+    }
+
+    public boolean isLeftSideCameraConnected() {
+        return leftSideCamera.isConnected();
     }
 
     public int getFrontRightTargetCount() {
@@ -573,8 +643,13 @@ public class VisionSubsystem extends SubsystemBase {
         return result.hasTargets() ? result.getTargets().size() : 0;
     }
 
-    public int getRearTargetCount() {
-        PhotonPipelineResult result = rearCamera.getLatestResult();
+    public int getRightSideTargetCount() {
+        PhotonPipelineResult result = rightSideCamera.getLatestResult();
+        return result.hasTargets() ? result.getTargets().size() : 0;
+    }
+
+    public int getLeftSideTargetCount() {
+        PhotonPipelineResult result = leftSideCamera.getLatestResult();
         return result.hasTargets() ? result.getTargets().size() : 0;
     }
 }
