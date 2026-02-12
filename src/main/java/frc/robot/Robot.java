@@ -31,7 +31,9 @@ public class Robot extends TimedRobot {
         // Configuration can be overridden via telemetry.properties in deploy directory
         Telemetry.initialize(TelemetryConfig.fromDeployDirectory());
 
-        m_robotContainer.getLedStrand().changeLed(128, 0, 0);
+        if (m_robotContainer.getLedStrand() != null) {
+            m_robotContainer.getLedStrand().changeLed(128, 0, 0);
+        }
         try {
             try (UsbCamera cam = CameraServer.startAutomaticCapture()) {
                 cam.setResolution(100, 100);

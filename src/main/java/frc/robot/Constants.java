@@ -12,6 +12,20 @@ import java.util.List;
 
 public final class Constants {
 
+    /**
+     * Feature flags to enable/disable subsystems during incremental robot bring-up.
+     * Flip these to true as hardware becomes available on the robot.
+     */
+    public static final class FeatureFlags {
+        public static final boolean ENABLE_FUEL = false;
+        public static final boolean ENABLE_TURRET_TRACKER = false;
+        public static final boolean ENABLE_LED_STRAND = false;
+
+        // These stay enabled for initial drivetrain testing
+        public static final boolean ENABLE_DRIVETRAIN = true;
+        public static final boolean ENABLE_VISION = true;
+    }
+
     public static final class DriverLabels {
         public static final String ASA = "Asa";
         public static final String BEN = "Ben";

@@ -28,20 +28,17 @@ import java.util.List;
 
 public class RobotContainer {
 
-    private final LedStrand ledStrand = new LedStrand();
+    private final LedStrand ledStrand;
 
     private final DrivetrainContext drivetrainContext = DrivetrainContext.defaults();
 
     private final Drivetrain driveTrain = new Drivetrain(drivetrainContext);
 
-    private final FuelSubsystem fuelSubsystem = new FuelSubsystem(FuelSubsystemContext.defaults());
+    private final FuelSubsystem fuelSubsystem;
 
-    private final VisionSubsystem visionSubsystem = new VisionSubsystem(
-            VisionSubsystemContext.builder().enablePhotonCameraSimStreams(true).build(),
-            driveTrain,
-            driveTrain::addVisionMeasurement);
+    private final VisionSubsystem visionSubsystem;
 
-    private final TurretTracker turretTracker = new TurretTracker(TurretTrackerContext.defaults(), driveTrain);
+    private final TurretTracker turretTracker;
 
     private final Command resetPoseAuto =
             Commands.runOnce(() -> this.driveTrain.resetOdometry(this.currentPath.get(0)), this.driveTrain);
@@ -70,10 +67,29 @@ public class RobotContainer {
     public static final PathConstraints SPEED_CONSTRAINTS = new PathConstraints(2, 1.5, 1.5 * Math.PI, 1 * Math.PI);
 
     public RobotContainer() {
+        // Conditionally construct subsystems based on feature flags
+        this.ledStrand = Constants.FeatureFlags.ENABLE_LED_STRAND ? new LedStrand() : null;
+
+        this.fuelSubsystem =
+                Constants.FeatureFlags.ENABLE_FUEL ? new FuelSubsystem(FuelSubsystemContext.defaults()) : null;
+
+        this.visionSubsystem = Constants.FeatureFlags.ENABLE_VISION
+                ? new VisionSubsystem(
+                        VisionSubsystemContext.builder()
+                                .enablePhotonCameraSimStreams(true)
+                                .build(),
+                        driveTrain,
+                        driveTrain::addVisionMeasurement)
+                : null;
+
+        this.turretTracker = Constants.FeatureFlags.ENABLE_TURRET_TRACKER
+                ? new TurretTracker(TurretTrackerContext.defaults(), driveTrain)
+                : null;
+
         this.driveTrain.setName("DriveTrain");
-        this.fuelSubsystem.setName("FuelSubsystem");
-        this.visionSubsystem.setName("VisionSubsystem");
-        this.turretTracker.setName("TurretTracker");
+        if (this.fuelSubsystem != null) this.fuelSubsystem.setName("FuelSubsystem");
+        if (this.visionSubsystem != null) this.visionSubsystem.setName("VisionSubsystem");
+        if (this.turretTracker != null) this.turretTracker.setName("TurretTracker");
 
         this.configureShuffleboard();
         this.configureBindings();
@@ -133,11 +149,13 @@ public class RobotContainer {
         NamedCommands.registerCommand("ToggleFieldRelative", this.driveTrain.getToggleFieldRelativeCommand());
         NamedCommands.registerCommand("StopDrive", this.driveTrain.getStopModulesCommand());
 
-        // Fuel subsystem commands
-        NamedCommands.registerCommand("FuelIntake", this.fuelSubsystem.getIntakeCommand());
-        NamedCommands.registerCommand("FuelLaunch", this.fuelSubsystem.getLaunchCommand());
-        NamedCommands.registerCommand("FuelSpinUp", this.fuelSubsystem.getSpinUpCommand());
-        NamedCommands.registerCommand("FuelStop", this.fuelSubsystem.getStopCommand());
+        // Fuel subsystem commands (only if fuel is enabled)
+        if (this.fuelSubsystem != null) {
+            NamedCommands.registerCommand("FuelIntake", this.fuelSubsystem.getIntakeCommand());
+            NamedCommands.registerCommand("FuelLaunch", this.fuelSubsystem.getLaunchCommand());
+            NamedCommands.registerCommand("FuelSpinUp", this.fuelSubsystem.getSpinUpCommand());
+            NamedCommands.registerCommand("FuelStop", this.fuelSubsystem.getStopCommand());
+        }
     }
 
     /**
@@ -178,15 +196,17 @@ public class RobotContainer {
         this.driverController.rightStick().onTrue(this.driveTrain.toggleWheelLockCommand()); // lock wheels
         this.driverController.b().onTrue(this.driveTrain.resetNavXSensorModule());
 
-        // Manipulator Controller - Fuel Subsystem commands
-        this.manipController.leftBumper().whileTrue(this.fuelSubsystem.getIntakeCommand());
-        this.manipController
-                .rightBumper()
-                .whileTrue(this.fuelSubsystem
-                        .getSpinUpCommand()
-                        .withTimeout(1.0)
-                        .andThen(this.fuelSubsystem.getLaunchCommand()));
-        this.manipController.x().whileTrue(this.fuelSubsystem.getEjectCommand());
+        // Manipulator Controller - Fuel Subsystem commands (only if fuel is enabled)
+        if (this.fuelSubsystem != null) {
+            this.manipController.leftBumper().whileTrue(this.fuelSubsystem.getIntakeCommand());
+            this.manipController
+                    .rightBumper()
+                    .whileTrue(this.fuelSubsystem
+                            .getSpinUpCommand()
+                            .withTimeout(1.0)
+                            .andThen(this.fuelSubsystem.getLaunchCommand()));
+            this.manipController.x().whileTrue(this.fuelSubsystem.getEjectCommand());
+        }
     }
 
     private void configureShuffleboard() {
@@ -195,13 +215,15 @@ public class RobotContainer {
         // Add subsystems
         Telemetry.putData(this.driveTrain);
         Telemetry.putData(this.driveTrain.getName() + "/Reset Pose 2D", this.driveTrain.getResetOdometryCommand());
-        Telemetry.putData(this.fuelSubsystem);
-        Telemetry.putData(this.visionSubsystem);
-        Telemetry.putData(this.turretTracker);
+        if (this.fuelSubsystem != null) Telemetry.putData(this.fuelSubsystem);
+        if (this.visionSubsystem != null) Telemetry.putData(this.visionSubsystem);
+        if (this.turretTracker != null) Telemetry.putData(this.turretTracker);
 
         // Vision alignment test command (for simulation testing)
-        VisionAlignmentTestCommand.create(this.driveTrain)
-                .ifPresent(cmd -> Telemetry.putData("Vision/AlignmentTest", cmd));
+        if (this.visionSubsystem != null) {
+            VisionAlignmentTestCommand.create(this.driveTrain)
+                    .ifPresent(cmd -> Telemetry.putData("Vision/AlignmentTest", cmd));
+        }
     }
 
     // loads New Auto auto file
