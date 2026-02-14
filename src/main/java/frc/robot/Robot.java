@@ -6,6 +6,7 @@ import edu.wpi.first.wpilibj.PowerDistribution;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
+import frc.robot.support.BuildInfo;
 import frc.robot.support.Telemetry;
 import frc.robot.support.TelemetryConfig;
 import frc.robot.support.TelemetryLevel;
@@ -13,7 +14,7 @@ import frc.robot.support.TelemetryLevel;
 public class Robot extends TimedRobot {
     private Command m_autonomousCommand;
     private RobotContainer m_robotContainer = new RobotContainer();
-    String codeVersion = "0.0";
+    String codeVersion = BuildInfo.VERSION;
     private PowerDistribution PDH = new PowerDistribution(20, PowerDistribution.ModuleType.kRev);
     public static boolean navxCalibrated = false;
     private boolean isConnected = false;

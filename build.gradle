@@ -141,6 +141,44 @@ deployArtifact.jarTask = jar
 wpi.java.configureExecutableTasks(jar)
 wpi.java.configureTestTasks(test)
 
+// ── Build Info: generate BuildInfo.java with git branch + short SHA ──
+def generatedDir = layout.buildDirectory.dir("generated/sources/buildinfo/frc/robot/support")
+
+tasks.register('generateBuildInfo') {
+    def outputDir = generatedDir
+    outputs.dir(outputDir)
+    // Always re-run so the SHA stays current
+    outputs.upToDateWhen { false }
+
+    doLast {
+        def branch = 'git rev-parse --abbrev-ref HEAD'.execute().text.trim() ?: 'unknown'
+        def commitSha = 'git rev-parse --short HEAD'.execute().text.trim() ?: 'unknown'
+        def dirty = !'git status --porcelain'.execute().text.trim().isEmpty()
+        def version = "${branch}@${commitSha}${dirty ? '-dirty' : ''}"
+
+        def dir = outputDir.get().asFile
+        dir.mkdirs()
+        new File(dir, "BuildInfo.java").text = """\
+package frc.robot.support;
+
+/**
+ * Auto-generated at build time. Do not edit.
+ */
+public final class BuildInfo {
+    public static final String BRANCH = "${branch}";
+    public static final String COMMIT_SHA = "${commitSha}";
+    public static final String VERSION = "${version}";
+    public static final boolean DIRTY = ${dirty};
+
+    private BuildInfo() {}
+}
+"""
+    }
+}
+
+sourceSets.main.java.srcDir layout.buildDirectory.dir("generated/sources/buildinfo")
+compileJava.dependsOn generateBuildInfo
+
 // Configure string concat to always inline compile
 tasks.withType(JavaCompile) {
     options.compilerArgs.add '-XDstringConcat=inline'
