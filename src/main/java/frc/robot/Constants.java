@@ -130,10 +130,10 @@ public final class Constants {
         public static final int ELEVATOR_DRIVE_CHANNEL = 11;
         public static final int CLIMB_DRIVE_CHANNEL = 12;
         public static final int ELEVATOR_FOLLOWER_DRIVE_CHANNEL = 15;
-        public static final int REAR_LEFT_TURN_ENCODER_DIO_CHANNEL = DIOChannel.ZERO.getChannel();
+        public static final int FRONT_RIGHT_TURN_ENCODER_DIO_CHANNEL = DIOChannel.ZERO.getChannel();
         public static final int FRONT_LEFT_TURN_ENCODER_DIO_CHANNEL = DIOChannel.ONE.getChannel();
-        public static final int FRONT_RIGHT_TURN_ENCODER_DIO_CHANNEL = DIOChannel.TWO.getChannel();
-        public static final int REAR_RIGHT_TURN_ENCODER_DIO_CHANNEL = DIOChannel.THREE.getChannel();
+        public static final int REAR_RIGHT_TURN_ENCODER_DIO_CHANNEL = DIOChannel.TWO.getChannel();
+        public static final int REAR_LEFT_TURN_ENCODER_DIO_CHANNEL = DIOChannel.THREE.getChannel();
         public static final int climbMagSwitchDIOC = DIOChannel.FOUR.getChannel();
         public static final int hangerLeftMagSwitchDIOC = DIOChannel.SEVEN.getChannel();
         public static final int hangerRightMagSwitchDIOC = DIOChannel.EIGHT.getChannel();
