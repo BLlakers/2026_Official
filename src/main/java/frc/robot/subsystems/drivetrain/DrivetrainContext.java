@@ -39,7 +39,7 @@ public class DrivetrainContext {
             .driveMotorId(Constants.Port.FRONT_LEFT_DRIVE_CHANNEL)
             .turningMotorId(Constants.Port.FRONT_LEFT_STEER_CHANNEL)
             .turnEncoderPWMChannel(Constants.Port.FRONT_LEFT_TURN_ENCODER_DIO_CHANNEL)
-            .turnOffset(Constants.RobotVersion2025.flTurnEncoderOffset)
+            .turnOffset(Constants.RobotVersion2026.flTurnEncoderOffset)
             .build();
 
     @Builder.Default
@@ -48,7 +48,7 @@ public class DrivetrainContext {
             .driveMotorId(Constants.Port.FRONT_RIGHT_DRIVE_CHANNEL)
             .turningMotorId(Constants.Port.FRONT_RIGHT_STEER_CHANNEL)
             .turnEncoderPWMChannel(Constants.Port.FRONT_RIGHT_TURN_ENCODER_DIO_CHANNEL)
-            .turnOffset(Constants.RobotVersion2025.frTurnEncoderOffset)
+            .turnOffset(Constants.RobotVersion2026.frTurnEncoderOffset)
             .build();
 
     @Builder.Default
@@ -57,7 +57,7 @@ public class DrivetrainContext {
             .driveMotorId(Constants.Port.REAR_LEFT_DRIVE_CHANNEL)
             .turningMotorId(Constants.Port.REAR_LEFT_TURN_CHANNEL)
             .turnEncoderPWMChannel(Constants.Port.REAR_LEFT_TURN_ENCODER_DIO_CHANNEL)
-            .turnOffset(Constants.RobotVersion2025.rlTurnEncoderOffset)
+            .turnOffset(Constants.RobotVersion2026.rlTurnEncoderOffset)
             .build();
 
     @Builder.Default
@@ -66,20 +66,20 @@ public class DrivetrainContext {
             .driveMotorId(Constants.Port.REAR_RIGHT_DRIVE_CHANNEL)
             .turningMotorId(Constants.Port.REAR_RIGHT_STEER_CHANNEL)
             .turnEncoderPWMChannel(Constants.Port.REAR_RIGHT_TURN_ENCODER_DIO_CHANNEL)
-            .turnOffset(Constants.RobotVersion2025.rrTurnEncoderOffset)
+            .turnOffset(Constants.RobotVersion2026.rrTurnEncoderOffset)
             .build();
 
     @Builder.Default
-    private double flTurnOffset = Constants.RobotVersion2025.flTurnEncoderOffset;
+    private double flTurnOffset = Constants.RobotVersion2026.flTurnEncoderOffset;
 
     @Builder.Default
-    private double frTurnOffset = Constants.RobotVersion2025.frTurnEncoderOffset;
+    private double frTurnOffset = Constants.RobotVersion2026.frTurnEncoderOffset;
 
     @Builder.Default
-    private double rlTurnOffset = Constants.RobotVersion2025.rlTurnEncoderOffset;
+    private double rlTurnOffset = Constants.RobotVersion2026.rlTurnEncoderOffset;
 
     @Builder.Default
-    private double rrTurnOffset = Constants.RobotVersion2025.rrTurnEncoderOffset;
+    private double rrTurnOffset = Constants.RobotVersion2026.rrTurnEncoderOffset;
 
     @Builder.Default
     private Matrix<N3, N1> stateStdDevs = VecBuilder.fill(0.05, 0.05, Units.degreesToRadians(5));

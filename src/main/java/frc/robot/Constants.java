@@ -184,6 +184,14 @@ public final class Constants {
         public static final double rrTurnEncoderOffset = 2.736 - .06098;
     }
 
+    // TODO: Calibrate turn encoder offsets — align wheels forward and read raw encoder values
+    public class RobotVersion2026 extends RobotVersionConstants {
+        public static final double flTurnEncoderOffset = 0.0;
+        public static final double frTurnEncoderOffset = 0.0;
+        public static final double rlTurnEncoderOffset = 0.0;
+        public static final double rrTurnEncoderOffset = 0.0;
+    }
+
     public static final class Poses {
         public static final Pose2d SeventeenLeft = new Pose2d(3.824, 2.904, new Rotation2d(Math.toRadians(60)));
         public static final Pose2d SeventeenRight = new Pose2d(4.19, 2.78, new Rotation2d(Math.toRadians(60)));
