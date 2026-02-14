@@ -119,18 +119,16 @@ public final class Constants {
     }
 
     public static class Port {
-        public static final int REAR_LEFT_TURN_CHANNEL = 1;
-        public static final int REAR_LEFT_DRIVE_CHANNEL = 2;
-        public static final int FRONT_LEFT_DRIVE_CHANNEL = 3;
-        public static final int FRONT_LEFT_STEER_CHANNEL = 4;
-        public static final int FRONT_RIGHT_STEER_CHANNEL = 5;
-        public static final int FRONT_RIGHT_DRIVE_CHANNEL = 6;
-        public static final int REAR_RIGHT_DRIVE_CHANNEL = 7;
+        public static final int REAR_LEFT_TURN_CHANNEL = 2;
+        public static final int REAR_LEFT_DRIVE_CHANNEL = 1;
+        public static final int FRONT_LEFT_DRIVE_CHANNEL = 7;
+        public static final int FRONT_LEFT_STEER_CHANNEL = 3;
+        public static final int FRONT_RIGHT_STEER_CHANNEL = 6;
+        public static final int FRONT_RIGHT_DRIVE_CHANNEL = 4;
+        public static final int REAR_RIGHT_DRIVE_CHANNEL = 5;
         public static final int REAR_RIGHT_STEER_CHANNEL = 8;
         public static final int ELEVATOR_DRIVE_CHANNEL = 11;
         public static final int CLIMB_DRIVE_CHANNEL = 12;
-        public static final int RIGHT_CORAL_DRIVE_CHANNEL = 13;
-        public static final int LEFT_CORAL_DRIVE_CHANNEL = 14;
         public static final int ELEVATOR_FOLLOWER_DRIVE_CHANNEL = 15;
         public static final int REAR_LEFT_TURN_ENCODER_DIO_CHANNEL = DIOChannel.ZERO.getChannel();
         public static final int FRONT_LEFT_TURN_ENCODER_DIO_CHANNEL = DIOChannel.ONE.getChannel();
