@@ -12,7 +12,7 @@ import com.revrobotics.spark.FeedbackSensor;
 import com.revrobotics.spark.SparkBase.PersistMode;
 import com.revrobotics.spark.SparkBase.ResetMode;
 import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
-import com.revrobotics.spark.config.SparkMaxConfig;
+import com.revrobotics.spark.config.SparkFlexConfig;
 import edu.wpi.first.math.controller.ProfiledPIDController;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
@@ -26,7 +26,7 @@ import frc.robot.Constants;
 import frc.robot.support.PIDSettings;
 import frc.robot.support.Telemetry;
 import frc.robot.support.TelemetryLevel;
-import frc.robot.support.sparkmax.TeamSparkMax;
+import frc.robot.support.sparkmax.TeamSpark;
 
 /**
  * This is the code to run a single swerve module. SwerveModules have a turning motor, a drive motor, and associated
@@ -58,9 +58,9 @@ public class SwerveModule extends SubsystemBase {
     private final SwerveModuleContext context;
     private final String telemetryPrefix;
 
-    private final TeamSparkMax driveMotor;
+    private final TeamSpark driveMotor;
 
-    private final TeamSparkMax turningMotor;
+    private final TeamSpark turningMotor;
 
     private final DutyCycleEncoder turningMotorEncoder;
 
@@ -103,12 +103,12 @@ public class SwerveModule extends SubsystemBase {
     }
 
     /**
-     * Prepares and configures a {@link SparkMaxConfig} to be applied to this swerve module's drive motor
+     * Prepares and configures a {@link SparkFlexConfig} to be applied to this swerve module's NEO Vortex drive motor
      *
-     * @return The SparkMaxConfig
+     * @return The SparkFlexConfig
      */
-    private SparkMaxConfig assembleDriveMotorConfig() {
-        SparkMaxConfig config = new SparkMaxConfig();
+    private SparkFlexConfig assembleDriveMotorConfig() {
+        SparkFlexConfig config = new SparkFlexConfig();
         config.inverted(true).idleMode(IdleMode.kBrake);
         config.encoder
                 .positionConversionFactor(POSITION_CONVERSION_FACTOR)

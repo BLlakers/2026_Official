@@ -3,7 +3,9 @@ package frc.robot.subsystems.drivetrain;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
 import frc.robot.Robot;
 import frc.robot.support.PIDSettings;
-import frc.robot.support.sparkmax.TeamSparkMax;
+import frc.robot.support.sparkmax.TeamSpark;
+import frc.robot.support.sparkmax.TeamSparkFlexImpl;
+import frc.robot.support.sparkmax.TeamSparkFlexSimImpl;
 import frc.robot.support.sparkmax.TeamSparkMaxImpl;
 import frc.robot.support.sparkmax.TeamSparkMaxSimImpl;
 import lombok.Builder;
@@ -43,13 +45,15 @@ public class SwerveModuleContext {
     // Used to scale the normalized angular error into motor power for the turning motor
     private final double rotationalProportionalGain = 1.6;
 
+    // Drive motor: NEO Vortex on SPARK Flex
     @Getter(lazy = true)
-    private final TeamSparkMax driveMotor = createMotor(driveMotorId, MotorType.kBrushless);
+    private final TeamSpark driveMotor = createDriveMotor(driveMotorId, MotorType.kBrushless);
 
+    // Turn motor: NEO on SPARK MAX (unchanged)
     @Getter(lazy = true)
-    private final TeamSparkMax turningMotor = createMotor(turningMotorId, MotorType.kBrushless);
+    private final TeamSpark turningMotor = createTurnMotor(turningMotorId, MotorType.kBrushless);
 
-    // 🆕 Simulation parameters
+    // Simulation parameters
     @Getter
     @Builder.Default
     private double driveGearRatio = 6.75;
@@ -67,16 +71,16 @@ public class SwerveModuleContext {
     private double turnInertia = 0.004; // kg·m²
 
     /**
-     * Private static utility to conditionally construct a TeamSparkMaxImpl or TeamSparkMaxSimImpl instance with the
-     * given canId and motor type, based on the state of {@link Robot#isReal()}
-     *
-     * @param canId
-     *            The id of the motor to instantiate
-     * @param type
-     *            The type of the motor to instantiate
-     * @return The instantiated TeamSparkMax instance
+     * Creates a SPARK Flex motor controller instance for drive motors (NEO Vortex).
      */
-    private static TeamSparkMax createMotor(int canId, MotorType type) {
+    private static TeamSpark createDriveMotor(int canId, MotorType type) {
+        return (Robot.isReal()) ? new TeamSparkFlexImpl(canId, type) : new TeamSparkFlexSimImpl(canId, type);
+    }
+
+    /**
+     * Creates a SPARK MAX motor controller instance for turn motors (NEO).
+     */
+    private static TeamSpark createTurnMotor(int canId, MotorType type) {
         return (Robot.isReal()) ? new TeamSparkMaxImpl(canId, type) : new TeamSparkMaxSimImpl(canId, type);
     }
 }

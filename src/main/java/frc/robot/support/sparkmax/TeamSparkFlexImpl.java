@@ -3,71 +3,72 @@ package frc.robot.support.sparkmax;
 import com.revrobotics.REVLibError;
 import com.revrobotics.RelativeEncoder;
 import com.revrobotics.spark.SparkBase;
+import com.revrobotics.spark.SparkFlex;
 import com.revrobotics.spark.SparkLowLevel;
-import com.revrobotics.spark.SparkMax;
 import com.revrobotics.spark.config.SparkBaseConfig;
 
-public class TeamSparkMaxImpl implements TeamSpark {
+public class TeamSparkFlexImpl implements TeamSpark {
 
-    protected final SparkMax sparkMax;
+    protected final SparkFlex sparkFlex;
 
-    public TeamSparkMaxImpl(int channel, SparkLowLevel.MotorType type) {
-        this.sparkMax = new SparkMax(channel, type);
+    public TeamSparkFlexImpl(int channel, SparkLowLevel.MotorType type) {
+        this.sparkFlex = new SparkFlex(channel, type);
     }
 
     @Override
     public REVLibError configure(
             SparkBaseConfig config, SparkBase.ResetMode resetMode, SparkBase.PersistMode persistMode) {
-        return this.sparkMax.configure(config, resetMode, persistMode);
+        return this.sparkFlex.configure(config, resetMode, persistMode);
     }
 
     @Override
     public void set(double speed) {
-        this.sparkMax.set(speed);
+        this.sparkFlex.set(speed);
     }
 
     @Override
     public void setVoltage(double voltage) {
-        this.sparkMax.setVoltage(voltage);
+        this.sparkFlex.setVoltage(voltage);
     }
 
     @Override
     public void setInverted(boolean inverted) {
-        this.sparkMax.setInverted(inverted);
+        this.sparkFlex.setInverted(inverted);
     }
 
     @Override
     public void stopMotor() {
-        this.sparkMax.stopMotor();
+        this.sparkFlex.stopMotor();
     }
 
     @Override
     public int getDeviceId() {
-        return this.sparkMax.getDeviceId();
+        return this.sparkFlex.getDeviceId();
     }
 
     @Override
     public RelativeEncoder getEncoder() {
-        return this.sparkMax.getEncoder();
+        return this.sparkFlex.getEncoder();
     }
 
     @Override
     public RelativeEncoder getAlternateEncoder() {
-        return this.sparkMax.getAlternateEncoder();
+        // SparkFlex uses getExternalEncoder() instead of getAlternateEncoder()
+        return this.sparkFlex.getExternalEncoder();
     }
 
     @Override
     public double getAppliedOutput() {
-        return this.sparkMax.getAppliedOutput();
+        return this.sparkFlex.getAppliedOutput();
     }
 
     @Override
     public double getPosition() {
-        return this.sparkMax.getEncoder().getPosition();
+        return this.sparkFlex.getEncoder().getPosition();
     }
 
     @Override
     public double getVelocity() {
-        return this.sparkMax.getEncoder().getVelocity();
+        return this.sparkFlex.getEncoder().getVelocity();
     }
 }
