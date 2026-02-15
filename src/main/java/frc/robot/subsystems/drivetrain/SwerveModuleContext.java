@@ -37,13 +37,16 @@ public class SwerveModuleContext {
     private final double turnOffset;
 
     @Getter
+    private final boolean inverted;
+
+    @Getter
     @Builder.Default
     private PIDSettings driveMotorPIDSettings = new PIDSettings(1, 0, 0);
 
     @Getter
     @Builder.Default
     // Used to scale the normalized angular error into motor power for the turning motor
-    private final double rotationalProportionalGain = 1.6;
+    private final double rotationalProportionalGain = 0.8;
 
     // Drive motor: NEO Vortex on SPARK Flex
     @Getter(lazy = true)

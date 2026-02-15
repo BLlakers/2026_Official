@@ -13,6 +13,7 @@ import com.revrobotics.spark.SparkBase.PersistMode;
 import com.revrobotics.spark.SparkBase.ResetMode;
 import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 import com.revrobotics.spark.config.SparkFlexConfig;
+import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.controller.ProfiledPIDController;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
@@ -42,6 +43,11 @@ public class SwerveModule extends SubsystemBase {
     private static final double VELOCITY_CONVERSION_FACTOR = POSITION_CONVERSION_FACTOR / 60;
 
     public static final double DRIVE_MAX_SPEED = Units.feetToMeters(12.5);
+
+    // Below this speed (m/s), we skip optimize() and stop both motors.
+    // Prevents turn motor shimmy caused by optimize() freely flipping the
+    // desired angle by PI when negating zero speed has no effect.
+    private static final double DESIRED_SPEED_DEADBAND = 0.01;
 
     // meters per second or 12.1 ft/s (max speed of SDS Mk3 with Neo motor)
     // TODO KMaxSpeed needs to go with enum
@@ -96,7 +102,7 @@ public class SwerveModule extends SubsystemBase {
         this.turningMotorEncoder.setAssumedFrequency(TURNING_MOTOR_ASSUMED_FREQUENCY);
 
         this.driveMotor.configure(
-                this.assembleDriveMotorConfig(), ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
+                this.assembleDriveMotorConfig(this.context.isInverted()), ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
 
         // Limit the PID Controller's input range between -pi and pi and set the input to be continuous.
         this.turningController.enableContinuousInput(-Math.PI, Math.PI);
@@ -107,9 +113,9 @@ public class SwerveModule extends SubsystemBase {
      *
      * @return The SparkFlexConfig
      */
-    private SparkFlexConfig assembleDriveMotorConfig() {
+    private SparkFlexConfig assembleDriveMotorConfig(boolean inverted) {
         SparkFlexConfig config = new SparkFlexConfig();
-        config.inverted(true).idleMode(IdleMode.kBrake);
+        config.inverted(inverted).idleMode(IdleMode.kBrake);
         config.encoder
                 .positionConversionFactor(POSITION_CONVERSION_FACTOR)
                 .velocityConversionFactor(VELOCITY_CONVERSION_FACTOR);
@@ -148,7 +154,20 @@ public class SwerveModule extends SubsystemBase {
      */
     public void setDesiredState(final SwerveModuleState desiredState) {
 
+        // When speed is near-zero, hold current wheel angle and stop both motors.
+        // This prevents optimize() from freely flipping the angle by PI
+        // (since negating zero speed is still zero), which causes turn motor shimmy.
+        if (Math.abs(desiredState.speedMetersPerSecond) < DESIRED_SPEED_DEADBAND) {
+            this.driveMotor.set(0);
+            this.turningMotor.set(0);
+            this.lastDesiredState = desiredState;
+            return;
+        }
+
         // Optimize the reference state to avoid spinning further than 90 degrees
+
+
+        double unoptimizedDesiredAngle = desiredState.angle.getRadians();
         desiredState.optimize(getModulePosition().angle);
 
         final double signedAngleDifference =
@@ -167,6 +186,7 @@ public class SwerveModule extends SubsystemBase {
                 driveMotorPercentPower,
                 turnMotorPercentPower,
                 signedAngleDifference,
+                unoptimizedDesiredAngle,
                 desiredState.angle.getRadians(),
                 this.getModulePosition().angle.getRadians());
 
@@ -211,12 +231,14 @@ public class SwerveModule extends SubsystemBase {
             double driveMotorPercentPower,
             double turnMotorPercentPower,
             double signedAngleDifference,
+            double unoptimizedDesiredAngle,
             double desiredAngle,
             double currentAngle) {
 
         Telemetry.publish(telemetryPrefix + "/Drive/OutputPercent", driveMotorPercentPower, TelemetryLevel.MATCH);
         Telemetry.publish(telemetryPrefix + "/Turn/OutputPercent", turnMotorPercentPower, TelemetryLevel.MATCH);
         Telemetry.publish(telemetryPrefix + "/Turn/AngleError", signedAngleDifference, TelemetryLevel.MATCH);
+        Telemetry.publish(telemetryPrefix + "/Turn/(U)DesiredAngle", unoptimizedDesiredAngle, TelemetryLevel.MATCH);
         Telemetry.publish(telemetryPrefix + "/Turn/DesiredAngle", desiredAngle, TelemetryLevel.MATCH);
         Telemetry.publish(telemetryPrefix + "/Turn/CurrentAngle", currentAngle, TelemetryLevel.MATCH);
     }
@@ -237,7 +259,7 @@ public class SwerveModule extends SubsystemBase {
      *         <li>signed double of the angle (rad) between the two points
      *         </ul>
      */
-    private double closestAngleCalculator(double currentAngle, double desiredAngle) {
+    private double closestAngleCalculator2025(double currentAngle, double desiredAngle) {
         double signedDiff = 0.0;
         // find the positive raw distance between the angles
         double rawDiff = currentAngle > desiredAngle ? currentAngle - desiredAngle : desiredAngle - currentAngle;
@@ -251,6 +273,10 @@ public class SwerveModule extends SubsystemBase {
             if (currentAngle > desiredAngle) signedDiff = signedDiff * -1;
         }
         return signedDiff;
+    }
+
+    private double closestAngleCalculator(double currentAngle, double desiredAngle) {
+        return MathUtil.angleModulus(desiredAngle - currentAngle);
     }
 
     /**
