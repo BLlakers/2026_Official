@@ -13,6 +13,7 @@ import com.revrobotics.spark.SparkBase.PersistMode;
 import com.revrobotics.spark.SparkBase.ResetMode;
 import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 import com.revrobotics.spark.config.SparkFlexConfig;
+import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.controller.ProfiledPIDController;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
@@ -69,9 +70,10 @@ public class SwerveModule extends SubsystemBase {
 
     private final DutyCycleEncoder turningMotorEncoder;
 
-    // Gains are for example purposes only - must be determined for your own robot!
+    // Turn PID gain: 2025 used (error / 2π) × 1.6 which is an effective P of ~0.25.
+    // P=1 was far too aggressive and caused turn motor overshoot/oscillation.
     private final ProfiledPIDController turningController = new ProfiledPIDController(
-            1, 0, 0, new TrapezoidProfile.Constraints(MAX_ANGULAR_VELOCITY, MODULE_MAX_ANGULAR_ACCELERATION));
+            0.25, 0, 0, new TrapezoidProfile.Constraints(MAX_ANGULAR_VELOCITY, MODULE_MAX_ANGULAR_ACCELERATION));
 
     // Retain our last desired state to support simulation
     private SwerveModuleState lastDesiredState = new SwerveModuleState();
@@ -181,15 +183,12 @@ public class SwerveModule extends SubsystemBase {
         desiredState.optimize(this.lastAngle);
         this.lastAngle = desiredState.angle;
 
-        // Use the ProfiledPIDController with continuous input [-π, π] for turn control.
-        // This replaces the manual proportional control + closestAngleCalculator, which
-        // was vulnerable to optimize() flip-flopping at the 90° decision boundary.
-        // The PID controller's continuous input mode always computes the shortest path
-        // around the circle, producing consistent motor output even when optimize()
-        // alternates between equivalent (angle, +speed) and (angle+π, -speed) representations.
-        double turnOutput = this.turningController.calculate(
-                currentAngle.getRadians(), desiredState.angle.getRadians());
-        this.turningMotor.set(turnOutput);
+        // Simple proportional turn control matching the proven 2025 approach:
+        // error / 2π normalizes to [-0.5, 0.5], then gain of 1.6 scales to motor output.
+        // MathUtil.angleModulus handles wraparound correctly (always shortest path).
+        double angleError = MathUtil.angleModulus(desiredState.angle.getRadians() - currentAngle.getRadians());
+        double turnOutput = (angleError / TOTAL_ROTATIONAL_RANGE) * 1.6;
+        this.turningMotor.set(-turnOutput);
 
         double driveMotorPercentPower = desiredState.speedMetersPerSecond / DRIVE_MAX_SPEED;
         this.driveMotor.set(driveMotorPercentPower);
@@ -197,7 +196,7 @@ public class SwerveModule extends SubsystemBase {
         this.publishTelemetry(
                 driveMotorPercentPower,
                 turnOutput,
-                this.turningController.getPositionError(),
+                angleError,
                 unoptimizedDesiredAngle,
                 desiredState.angle.getRadians(),
                 currentAngle.getRadians());
