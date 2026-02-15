@@ -13,7 +13,6 @@ import com.revrobotics.spark.SparkBase.PersistMode;
 import com.revrobotics.spark.SparkBase.ResetMode;
 import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 import com.revrobotics.spark.config.SparkFlexConfig;
-import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.controller.ProfiledPIDController;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
@@ -79,6 +78,11 @@ public class SwerveModule extends SubsystemBase {
 
     private double lastDrivePercent = 0.0;
     private double lastTurnPercent = 0.0;
+
+    // Tracks the last optimized angle so that optimize() makes consistent flip decisions.
+    // Without this, optimize() compares fresh kinematics angles against the noisy current
+    // encoder reading each cycle, causing flip-flop oscillation at the 90° decision boundary.
+    private Rotation2d lastAngle = new Rotation2d();
 
     /**
      * Constructs a SwerveModule with a drive motor, turning motor, drive encoder and turning encoder.
@@ -164,36 +168,44 @@ public class SwerveModule extends SubsystemBase {
             return;
         }
 
-        // Optimize the reference state to avoid spinning further than 90 degrees
-
+        // Read encoder once for consistency within this cycle.
+        // Previously the encoder was read separately for optimize() and for the angle error
+        // calculation, which could produce different values near wraparound boundaries.
+        Rotation2d currentAngle = getModulePosition().angle;
 
         double unoptimizedDesiredAngle = desiredState.angle.getRadians();
-        desiredState.optimize(getModulePosition().angle);
 
-        final double signedAngleDifference =
-                closestAngleCalculator(this.getModulePosition().angle.getRadians(), desiredState.angle.getRadians());
+        // Optimize against the last committed angle (not the current encoder reading).
+        // This prevents flip-flop oscillation when the wheel sits near the 90° decision
+        // boundary of optimize(). Once a representation is chosen, it stays consistent.
+        desiredState.optimize(this.lastAngle);
+        this.lastAngle = desiredState.angle;
 
-        // proportion error control
-        double rotateMotorPercentPower = signedAngleDifference / TOTAL_ROTATIONAL_RANGE;
-
-        double turnMotorPercentPower = this.context.getRotationalProportionalGain() * rotateMotorPercentPower;
-        this.turningMotor.set(turnMotorPercentPower);
+        // Use the ProfiledPIDController with continuous input [-π, π] for turn control.
+        // This replaces the manual proportional control + closestAngleCalculator, which
+        // was vulnerable to optimize() flip-flopping at the 90° decision boundary.
+        // The PID controller's continuous input mode always computes the shortest path
+        // around the circle, producing consistent motor output even when optimize()
+        // alternates between equivalent (angle, +speed) and (angle+π, -speed) representations.
+        double turnOutput = this.turningController.calculate(
+                currentAngle.getRadians(), desiredState.angle.getRadians());
+        this.turningMotor.set(turnOutput);
 
         double driveMotorPercentPower = desiredState.speedMetersPerSecond / DRIVE_MAX_SPEED;
         this.driveMotor.set(driveMotorPercentPower);
 
         this.publishTelemetry(
                 driveMotorPercentPower,
-                turnMotorPercentPower,
-                signedAngleDifference,
+                turnOutput,
+                this.turningController.getPositionError(),
                 unoptimizedDesiredAngle,
                 desiredState.angle.getRadians(),
-                this.getModulePosition().angle.getRadians());
+                currentAngle.getRadians());
 
         this.lastDesiredState = desiredState;
 
         this.lastDrivePercent = driveMotorPercentPower;
-        this.lastTurnPercent = turnMotorPercentPower;
+        this.lastTurnPercent = turnOutput;
     }
 
     public double getLastDrivePercent() {
@@ -241,42 +253,6 @@ public class SwerveModule extends SubsystemBase {
         Telemetry.publish(telemetryPrefix + "/Turn/(U)DesiredAngle", unoptimizedDesiredAngle, TelemetryLevel.MATCH);
         Telemetry.publish(telemetryPrefix + "/Turn/DesiredAngle", desiredAngle, TelemetryLevel.MATCH);
         Telemetry.publish(telemetryPrefix + "/Turn/CurrentAngle", currentAngle, TelemetryLevel.MATCH);
-    }
-
-    /**
-     * Calculates the closest angle and direction between two points on a circle.
-     *
-     * @param currentAngle
-     *            <ul>
-     *            <li>where you currently are
-     *            </ul>
-     * @param desiredAngle
-     *            <ul>
-     *            <li>where you want to end up
-     *            </ul>
-     * @return
-     *         <ul>
-     *         <li>signed double of the angle (rad) between the two points
-     *         </ul>
-     */
-    private double closestAngleCalculator2025(double currentAngle, double desiredAngle) {
-        double signedDiff = 0.0;
-        // find the positive raw distance between the angles
-        double rawDiff = currentAngle > desiredAngle ? currentAngle - desiredAngle : desiredAngle - currentAngle;
-        double modDiff = rawDiff % TOTAL_ROTATIONAL_RANGE; // constrain the difference to a full circle
-        if (modDiff > Math.PI) { // if the angle is greater than half a rotation, go backwards
-            signedDiff = (TOTAL_ROTATIONAL_RANGE - modDiff); // full circle minus the angle
-            if (desiredAngle > currentAngle)
-                signedDiff = signedDiff * -1; // get the direction that was lost calculating raw diff
-        } else {
-            signedDiff = modDiff;
-            if (currentAngle > desiredAngle) signedDiff = signedDiff * -1;
-        }
-        return signedDiff;
-    }
-
-    private double closestAngleCalculator(double currentAngle, double desiredAngle) {
-        return MathUtil.angleModulus(desiredAngle - currentAngle);
     }
 
     /**
