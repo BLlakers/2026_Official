@@ -108,7 +108,9 @@ public class SwerveModule extends SubsystemBase {
         this.turningMotorEncoder.setAssumedFrequency(TURNING_MOTOR_ASSUMED_FREQUENCY);
 
         this.driveMotor.configure(
-                this.assembleDriveMotorConfig(this.context.isInverted()), ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
+                this.assembleDriveMotorConfig(this.context.isInverted()),
+                ResetMode.kResetSafeParameters,
+                PersistMode.kPersistParameters);
 
         // Limit the PID Controller's input range between -pi and pi and set the input to be continuous.
         this.turningController.enableContinuousInput(-Math.PI, Math.PI);

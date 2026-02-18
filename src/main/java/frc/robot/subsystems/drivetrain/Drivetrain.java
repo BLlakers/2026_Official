@@ -510,8 +510,9 @@ public class Drivetrain extends SubsystemBase {
         // Compute and apply
         this.desiredStates = this.swerveDriveKinematics.toSwerveModuleStates(speeds);
 
-        // NOTE: This may be causing issues. It's a duplicate invocation. @see setModuleStates for the original and potentially correct invocation
-        //SwerveDriveKinematics.desaturateWheelSpeeds(this.desiredStates, SwerveModule.DRIVE_MAX_SPEED);
+        // NOTE: This may be causing issues. It's a duplicate invocation. @see setModuleStates for the original and
+        // potentially correct invocation
+        // SwerveDriveKinematics.desaturateWheelSpeeds(this.desiredStates, SwerveModule.DRIVE_MAX_SPEED);
 
         if (!this.wheelLock) {
             this.setModuleStates(this.desiredStates);
