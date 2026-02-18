@@ -187,7 +187,7 @@ public class SwerveModule extends SubsystemBase {
         // error / 2π normalizes to [-0.5, 0.5], then gain of 1.6 scales to motor output.
         // MathUtil.angleModulus handles wraparound correctly (always shortest path).
         double angleError = MathUtil.angleModulus(desiredState.angle.getRadians() - currentAngle.getRadians());
-        double turnOutput = (angleError / TOTAL_ROTATIONAL_RANGE) * 1.6;
+        double turnOutput = (angleError / TOTAL_ROTATIONAL_RANGE) * 3;
         this.turningMotor.set(-turnOutput);
 
         double driveMotorPercentPower = desiredState.speedMetersPerSecond / DRIVE_MAX_SPEED;

@@ -25,7 +25,7 @@ public class DrivetrainContext {
     }
 
     @Builder.Default
-    private double maxSpeed = Units.feetToMeters(12.5); // WP this seemed to work don't know why // 3.68;
+    private double maxSpeed = Units.feetToMeters(14.25); // WP this seemed to work don't know why // 3.68;
 
     @Builder.Default
     private PIDSettings lateralMovementPIDSettings = new PIDSettings(3, 0, 0);
