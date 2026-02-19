@@ -14,6 +14,8 @@ import frc.robot.commands.auto.VisionAlignmentTestCommand;
 import frc.robot.commands.swervedrive.ControllerDelegate;
 import frc.robot.commands.swervedrive.SwerveDriveCommand;
 import frc.robot.subsystems.LedStrand;
+import frc.robot.subsystems.climb.ClimbSubsystem;
+import frc.robot.subsystems.climb.ClimbSubsystemContext;
 import frc.robot.subsystems.drivetrain.Drivetrain;
 import frc.robot.subsystems.drivetrain.DrivetrainContext;
 import frc.robot.subsystems.fuel.FuelSubsystem;
@@ -33,6 +35,8 @@ public class RobotContainer {
     private final DrivetrainContext drivetrainContext = DrivetrainContext.defaults();
 
     private final Drivetrain driveTrain = new Drivetrain(drivetrainContext);
+
+    private final ClimbSubsystem climbSubsystem;
 
     private final FuelSubsystem fuelSubsystem;
 
@@ -70,6 +74,9 @@ public class RobotContainer {
         // Conditionally construct subsystems based on feature flags
         this.ledStrand = Constants.FeatureFlags.ENABLE_LED_STRAND ? new LedStrand() : null;
 
+        this.climbSubsystem =
+                Constants.FeatureFlags.ENABLE_CLIMB ? new ClimbSubsystem(ClimbSubsystemContext.defaults()) : null;
+
         this.fuelSubsystem =
                 Constants.FeatureFlags.ENABLE_FUEL ? new FuelSubsystem(FuelSubsystemContext.defaults()) : null;
 
@@ -87,6 +94,7 @@ public class RobotContainer {
                 : null;
 
         this.driveTrain.setName("DriveTrain");
+        if (this.climbSubsystem != null) this.climbSubsystem.setName("ClimbSubsystem");
         if (this.fuelSubsystem != null) this.fuelSubsystem.setName("FuelSubsystem");
         if (this.visionSubsystem != null) this.visionSubsystem.setName("VisionSubsystem");
         if (this.turretTracker != null) this.turretTracker.setName("TurretTracker");
@@ -123,6 +131,10 @@ public class RobotContainer {
         return driveTrain;
     }
 
+    public ClimbSubsystem getClimbSubsystem() {
+        return climbSubsystem;
+    }
+
     public FuelSubsystem getFuelSubsystem() {
         return fuelSubsystem;
     }
@@ -143,11 +155,38 @@ public class RobotContainer {
         // us trying to set pose for field2d
     }
 
+    /**
+     * Called by {@link Robot#teleopInit()} to schedule any subsystem init routines for teleop.
+     *
+     * <p>For the climb subsystem: first lowers the robot to the ground (in case it was lifted
+     * during auto), then re-homes the encoder so it is valid for the full teleop climb cycle.
+     * If the robot was never lifted, the lower command exits immediately and homing proceeds.
+     */
+    public void scheduleTeleopInit() {
+        if (this.climbSubsystem != null) {
+            this.climbSubsystem
+                    .getLowerToGroundCommand()
+                    .andThen(this.climbSubsystem.getHomingCommand())
+                    .schedule();
+        }
+    }
+
     private void registerCommands() {
         // Register commands for autonomous routines
         NamedCommands.registerCommand("ResetOdom", this.driveTrain.getResetOdometryCommand());
         NamedCommands.registerCommand("ToggleFieldRelative", this.driveTrain.getToggleFieldRelativeCommand());
         NamedCommands.registerCommand("StopDrive", this.driveTrain.getStopModulesCommand());
+
+        // Climb subsystem commands (only if climb is enabled)
+        if (this.climbSubsystem != null) {
+            // Auto command: lifts robot off the ground (no hook engagement required)
+            NamedCommands.registerCommand("ClimbAuto", this.climbSubsystem.getRetractToAutoHeightCommand());
+            // Utility commands usable in autos or named sequences
+            NamedCommands.registerCommand("ClimbHome", this.climbSubsystem.getHomingCommand());
+            NamedCommands.registerCommand("ClimbExtend", this.climbSubsystem.getExtendToHookPositionCommand());
+            NamedCommands.registerCommand("ClimbNextRung", this.climbSubsystem.getClimbNextRungCommand());
+            NamedCommands.registerCommand("ClimbStop", this.climbSubsystem.getStopCommand());
+        }
 
         // Fuel subsystem commands (only if fuel is enabled)
         if (this.fuelSubsystem != null) {
@@ -196,6 +235,20 @@ public class RobotContainer {
         this.driverController.rightStick().onTrue(this.driveTrain.toggleWheelLockCommand()); // lock wheels
         this.driverController.b().onTrue(this.driveTrain.resetNavXSensorModule());
 
+        // Manipulator Controller - Climb Subsystem commands (only if climb is enabled)
+        // TODO: Confirm all button assignments with drive team before first climb test.
+        //
+        // A button  → advance to next rung (position-based, auto-stops; interruptible by bumpers)
+        // B button  → extend telescope to hook position (position-based, auto-stops; interruptible)
+        // LB (held) → manual retract override (holds on release; interrupts any position command)
+        // RB (held) → manual extend override  (holds on release; interrupts any position command)
+        if (this.climbSubsystem != null) {
+            this.manipController.a().onTrue(this.climbSubsystem.getClimbNextRungCommand());
+            this.manipController.b().onTrue(this.climbSubsystem.getExtendToHookPositionCommand());
+            this.manipController.leftBumper().whileTrue(this.climbSubsystem.getManualRetractCommand());
+            this.manipController.rightBumper().whileTrue(this.climbSubsystem.getManualExtendCommand());
+        }
+
         // Manipulator Controller - Fuel Subsystem commands (only if fuel is enabled)
         if (this.fuelSubsystem != null) {
             this.manipController.leftBumper().whileTrue(this.fuelSubsystem.getIntakeCommand());
@@ -215,6 +268,7 @@ public class RobotContainer {
         // Add subsystems
         Telemetry.putData(this.driveTrain);
         Telemetry.putData(this.driveTrain.getName() + "/Reset Pose 2D", this.driveTrain.getResetOdometryCommand());
+        if (this.climbSubsystem != null) Telemetry.putData(this.climbSubsystem);
         if (this.fuelSubsystem != null) Telemetry.putData(this.fuelSubsystem);
         if (this.visionSubsystem != null) Telemetry.putData(this.visionSubsystem);
         if (this.turretTracker != null) Telemetry.putData(this.turretTracker);

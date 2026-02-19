@@ -75,6 +75,9 @@ public class Robot extends TimedRobot {
         if (m_autonomousCommand != null) {
             m_autonomousCommand.cancel();
         }
+
+        // Schedule teleop-init routines (e.g. climb homing) for any enabled subsystems
+        m_robotContainer.scheduleTeleopInit();
     }
 
     @Override

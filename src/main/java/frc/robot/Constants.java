@@ -24,6 +24,8 @@ public final class Constants {
         // These stay enabled for initial drivetrain testing
         public static final boolean ENABLE_DRIVETRAIN = true;
         public static final boolean ENABLE_VISION = true;
+
+        public static final boolean ENABLE_CLIMB = false;
     }
 
     public static final class DriverLabels {
@@ -144,6 +146,80 @@ public final class Constants {
     public static class Algae {
         public static final int intakeMotorChannel = 9;
         public static final int m_AlgaeMtrC = 10;
+    }
+
+    public static class ClimbConstants {
+        // Motor CAN ID — matches Port.CLIMB_DRIVE_CHANNEL
+        public static final int MOTOR_ID = Port.CLIMB_DRIVE_CHANNEL; // 12
+
+        // Mechanism geometry — confirm from CAD / physical measurement
+        /** Gear ratio between motor shaft and spool. Motor rotations = spool rotations × gearRatio. */
+        public static final double GEAR_RATIO = 20.0; // TODO: confirm from CAD
+
+        /** Circumference of the cord spool in meters (π × spool diameter). */
+        public static final double SPOOL_CIRCUMFERENCE_METERS = 0.05; // TODO: measure from spool
+
+        // Motor output speeds [-1.0, 1.0]
+        // Convention: positive = telescope extends DOWN, negative = telescope retracts UP (lifts robot)
+        /** Speed for retracting telescope upward (lifting robot). Should be negative. */
+        public static final double RETRACT_SPEED = -0.4; // TODO: tune
+
+        /** Speed for extending telescope downward (lowering arm toward rung). Should be positive. */
+        public static final double EXTEND_DOWN_SPEED = 0.3; // TODO: tune
+
+        /**
+         * Slow speed for homing (extends telescope down toward hardstop).
+         * Kept lower than EXTEND_DOWN_SPEED to avoid slamming the hardstop.
+         */
+        public static final double HOMING_SPEED = 0.15; // TODO: tune
+
+        // Current limits
+        public static final int MOTOR_CURRENT_LIMIT = 40; // amps
+
+        /**
+         * Current threshold (amps) that signals the telescope has hit its mechanical hardstop during
+         * homing. Tune empirically: run a slow homing routine, watch Climb/Motor/Current in
+         * Shuffleboard, note the spike when the arm hits the hardstop, then set this just below it.
+         */
+        public static final double HOMING_CURRENT_THRESHOLD_AMPS = 15.0; // TODO: tune empirically
+
+        // Encoder setpoints — motor rotations from zero (= fully extended down / hardstop)
+        // All lift setpoints are negative (retraction winds cord in, encoder goes negative from zero).
+
+        /** Encoder position at full extension downward (hardstop). Encoder is zeroed here after homing. */
+        public static final double EXTENDED_POSITION_ROTATIONS = 0.0;
+
+        /**
+         * Encoder position for auto climb — just enough retraction to lift the robot off the ground.
+         * Hooks do NOT need to engage. Followed by getLowerToGroundCommand() at teleop start.
+         * TODO: measure empirically.
+         */
+        public static final double AUTO_LIFT_ROTATIONS = -20.0;
+
+        /**
+         * Encoder position for rung 1 (27") — hooks fully engaged, robot lifted to first rung.
+         * TODO: measure during first climb tests.
+         */
+        public static final double RUNG_1_LIFT_ROTATIONS = -50.0;
+
+        /**
+         * Encoder position for rung 2 (45").
+         * TODO: measure during first climb tests.
+         */
+        public static final double RUNG_2_LIFT_ROTATIONS = -100.0;
+
+        /**
+         * Encoder position for rung 3 (63") — top rung, robot holds here until match end.
+         * TODO: measure during first climb tests.
+         */
+        public static final double RUNG_3_LIFT_ROTATIONS = -150.0;
+
+        /**
+         * Acceptable position error (rotations) when checking if a setpoint has been reached.
+         * Larger values complete commands sooner; smaller values are more precise.
+         * TODO: tune — start at 1.0 and tighten if position isn't accurate enough.
+         */
+        public static final double POSITION_TOLERANCE_ROTATIONS = 1.0;
     }
 
     public static class FuelConstants {
