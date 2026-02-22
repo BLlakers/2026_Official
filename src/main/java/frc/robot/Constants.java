@@ -17,7 +17,6 @@ public final class Constants {
      * Flip these to true as hardware becomes available on the robot.
      */
     public static final class FeatureFlags {
-        public static final boolean ENABLE_FUEL = false;
         public static final boolean ENABLE_TURRET_TRACKER = true;
         public static final boolean ENABLE_LED_STRAND = false;
 
@@ -304,23 +303,6 @@ public final class Constants {
          * TODO: measure from CAD / physical robot.
          */
         public static final double TELESCOPE_SIDE_OFFSET_METERS = 0.340;
-    }
-
-    public static class FuelConstants {
-        // Motor CAN IDs
-        public static final int FEEDER_MOTOR_ID = 13;
-        public static final int INTAKE_LAUNCHER_MOTOR_ID = 14;
-
-        // Voltage values for different operations
-        public static final double INTAKING_FEEDER_VOLTAGE = 6.0;
-        public static final double INTAKING_INTAKE_VOLTAGE = 6.0;
-        public static final double LAUNCHING_FEEDER_VOLTAGE = 12.0;
-        public static final double LAUNCHING_LAUNCHER_VOLTAGE = 12.0;
-        public static final double SPIN_UP_FEEDER_VOLTAGE = -3.0;
-
-        // Current limits (amps)
-        public static final int FEEDER_MOTOR_CURRENT_LIMIT = 30;
-        public static final int LAUNCHER_MOTOR_CURRENT_LIMIT = 40;
     }
 
     public abstract class RobotVersionConstants {

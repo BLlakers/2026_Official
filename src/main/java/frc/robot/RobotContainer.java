@@ -19,8 +19,6 @@ import frc.robot.subsystems.climb.ClimbSubsystem;
 import frc.robot.subsystems.climb.ClimbSubsystemContext;
 import frc.robot.subsystems.drivetrain.Drivetrain;
 import frc.robot.subsystems.drivetrain.DrivetrainContext;
-import frc.robot.subsystems.fuel.FuelSubsystem;
-import frc.robot.subsystems.fuel.FuelSubsystemContext;
 import frc.robot.subsystems.turrettracker.TurretTracker;
 import frc.robot.subsystems.turrettracker.TurretTrackerContext;
 import frc.robot.subsystems.vision.VisionSubsystem;
@@ -38,8 +36,6 @@ public class RobotContainer {
     private final Drivetrain driveTrain = new Drivetrain(drivetrainContext);
 
     private final ClimbSubsystem climbSubsystem;
-
-    private final FuelSubsystem fuelSubsystem;
 
     private final VisionSubsystem visionSubsystem;
 
@@ -79,9 +75,6 @@ public class RobotContainer {
                 ? new ClimbSubsystem(ClimbSubsystemContext.defaults(), this.driveTrain)
                 : null;
 
-        this.fuelSubsystem =
-                Constants.FeatureFlags.ENABLE_FUEL ? new FuelSubsystem(FuelSubsystemContext.defaults()) : null;
-
         this.visionSubsystem = Constants.FeatureFlags.ENABLE_VISION
                 ? new VisionSubsystem(
                         VisionSubsystemContext.builder()
@@ -97,7 +90,6 @@ public class RobotContainer {
 
         this.driveTrain.setName("DriveTrain");
         if (this.climbSubsystem != null) this.climbSubsystem.setName("ClimbSubsystem");
-        if (this.fuelSubsystem != null) this.fuelSubsystem.setName("FuelSubsystem");
         if (this.visionSubsystem != null) this.visionSubsystem.setName("VisionSubsystem");
         if (this.turretTracker != null) this.turretTracker.setName("TurretTracker");
 
@@ -135,10 +127,6 @@ public class RobotContainer {
 
     public ClimbSubsystem getClimbSubsystem() {
         return climbSubsystem;
-    }
-
-    public FuelSubsystem getFuelSubsystem() {
-        return fuelSubsystem;
     }
 
     public LedStrand getLedStrand() {
@@ -192,14 +180,6 @@ public class RobotContainer {
             NamedCommands.registerCommand("ClimbExtend", this.climbSubsystem.getExtendToBarCommand());
             NamedCommands.registerCommand("ClimbNextBar", this.climbSubsystem.getClimbNextBarCommand());
             NamedCommands.registerCommand("ClimbStop", this.climbSubsystem.getStopCommand());
-        }
-
-        // Fuel subsystem commands (only if fuel is enabled)
-        if (this.fuelSubsystem != null) {
-            NamedCommands.registerCommand("FuelIntake", this.fuelSubsystem.getIntakeCommand());
-            NamedCommands.registerCommand("FuelLaunch", this.fuelSubsystem.getLaunchCommand());
-            NamedCommands.registerCommand("FuelSpinUp", this.fuelSubsystem.getSpinUpCommand());
-            NamedCommands.registerCommand("FuelStop", this.fuelSubsystem.getStopCommand());
         }
     }
 
@@ -256,18 +236,6 @@ public class RobotContainer {
             this.manipController.leftBumper().whileTrue(this.climbSubsystem.getManualRetractCommand());
             this.manipController.rightBumper().whileTrue(this.climbSubsystem.getManualExtendCommand());
         }
-
-        // Manipulator Controller - Fuel Subsystem commands (only if fuel is enabled)
-        if (this.fuelSubsystem != null) {
-            this.manipController.leftBumper().whileTrue(this.fuelSubsystem.getIntakeCommand());
-            this.manipController
-                    .rightBumper()
-                    .whileTrue(this.fuelSubsystem
-                            .getSpinUpCommand()
-                            .withTimeout(1.0)
-                            .andThen(this.fuelSubsystem.getLaunchCommand()));
-            this.manipController.x().whileTrue(this.fuelSubsystem.getEjectCommand());
-        }
     }
 
     private void configureShuffleboard() {
@@ -277,7 +245,6 @@ public class RobotContainer {
         Telemetry.putData(this.driveTrain);
         Telemetry.putData(this.driveTrain.getName() + "/Reset Pose 2D", this.driveTrain.getResetOdometryCommand());
         if (this.climbSubsystem != null) Telemetry.putData(this.climbSubsystem);
-        if (this.fuelSubsystem != null) Telemetry.putData(this.fuelSubsystem);
         if (this.visionSubsystem != null) Telemetry.putData(this.visionSubsystem);
         if (this.turretTracker != null) Telemetry.putData(this.turretTracker);
 
