@@ -19,11 +19,7 @@ public final class Constants {
     public static final class FeatureFlags {
         public static final boolean ENABLE_TURRET_TRACKER = true;
         public static final boolean ENABLE_LED_STRAND = false;
-
-        // These stay enabled for initial drivetrain testing
-        public static final boolean ENABLE_DRIVETRAIN = true;
         public static final boolean ENABLE_VISION = true;
-
         public static final boolean ENABLE_CLIMB = true;
     }
 
@@ -38,60 +34,22 @@ public final class Constants {
         public static final Translation2d SMFrontLeftLocation = new Translation2d(0.285, 0.285);
         public static final Translation2d SMBackLeftLocation = new Translation2d(-0.285, 0.285);
         public static final Translation2d SMBackRightLocation = new Translation2d(-0.285, -0.285);
-
-        // Camera-to-robot transform (now configured in VisionSubsystemContext)
-        public static final Transform3d CAMERA_TO_ROBOT = new Transform3d(0, 0, 0, new Rotation3d(0, 0, 0));
     }
 
     public static class Conversion {
-        public static final double driveEncoderCtsperRev = 6.8;
         public static final double kWheelDiameterM = Inches.of(4).in(Meters);
         public static final double wheelRadius = kWheelDiameterM / 2.0;
         public static final double kWheelCircumference = Math.PI * kWheelDiameterM;
-        public static final double NeoEncoderCountsPerRev = 42;
-        public static final double NeoRevPerEncoderCounts = 1 / NeoEncoderCountsPerRev;
         public static final double NeoMaxSpeedRPM = 5820;
-        public static final double MagEncoderCountsPerRev = 4096;
-        public static final double MagRevPerEncoderCounts = 1 / MagEncoderCountsPerRev;
         public static final double DriveGearRatio = 8.14;
         public static final double TurnGearRatio = 12.8;
-        public static final double driveEncoderConversion = DriveGearRatio * kWheelCircumference;
     }
 
     public static class Controller {
         public static final int DRIVER_CONTROLLER_CHANNEL = 0;
         public static final int MANIPULATION_CONTROLLER_CHANNEL = 1;
         public static final int DEBUG_CONTROLLER_CHANNEL = 2;
-        public static final int buttonA = 1;
-        public static final int buttonB = 2;
-        public static final int buttonX = 3;
-        public static final int buttonY = 4;
-        public static final int buttonLeft = 5;
-        public static final int buttonRight = 6;
-        public static final int buttonOptions = 7;
-        public static final int buttonStart = 8;
-        public static final int buttonLS = 9;
-        public static final int buttonRS = 10;
         public static final double deadzone = 0.17;
-        public static final double RTdeadzone = .01;
-    }
-
-    public static class AprilTagID {
-        public static final int PracticeSpeakerCenter = 1;
-        public static final int BlueSpeakerCenter = 7;
-        public static final int RedSpeakerCenter = 4;
-
-        public static final int BlueStageCenter = 14;
-        public static final int RedStageCenter = 13;
-
-        public static final int BlueStageLeft = 15;
-        public static final int RedStageRight = 12;
-
-        public static final int RedStageLeft = 11;
-        public static final int BlueStageRight = 16;
-
-        public static final Pose2d BlueSpeakerCenterPose = new Pose2d(); // TODO
-        public static final Pose2d RedSpeakerCenterPose = new Pose2d(); // TODO
     }
 
     /**
@@ -115,8 +73,6 @@ public final class Constants {
         // All blue hub face tags (for iteration)
         public static final int[][] BLUE_FACES = {BLUE_WEST_TAGS, BLUE_EAST_TAGS, BLUE_NORTH_TAGS, BLUE_SOUTH_TAGS};
         public static final int[][] RED_FACES = {RED_WEST_TAGS, RED_EAST_TAGS, RED_NORTH_TAGS, RED_SOUTH_TAGS};
-
-        public static final double DEFAULT_TURRET_RANGE_DEGREES = 270.0;
     }
 
     public static class Port {
@@ -128,23 +84,12 @@ public final class Constants {
         public static final int FRONT_RIGHT_DRIVE_CHANNEL = 4;
         public static final int REAR_RIGHT_DRIVE_CHANNEL = 5;
         public static final int REAR_RIGHT_STEER_CHANNEL = 8;
-        public static final int ELEVATOR_DRIVE_CHANNEL = 11;
         public static final int CLIMB_DRIVE_CHANNEL = 12;
-        public static final int ELEVATOR_FOLLOWER_DRIVE_CHANNEL = 15;
         public static final int FRONT_RIGHT_TURN_ENCODER_DIO_CHANNEL = DIOChannel.ZERO.getChannel();
         public static final int FRONT_LEFT_TURN_ENCODER_DIO_CHANNEL = DIOChannel.ONE.getChannel();
         public static final int REAR_RIGHT_TURN_ENCODER_DIO_CHANNEL = DIOChannel.TWO.getChannel();
         public static final int REAR_LEFT_TURN_ENCODER_DIO_CHANNEL = DIOChannel.THREE.getChannel();
         public static final int climbMagSwitchDIOC = DIOChannel.FOUR.getChannel();
-        public static final int hangerLeftMagSwitchDIOC = DIOChannel.SEVEN.getChannel();
-        public static final int hangerRightMagSwitchDIOC = DIOChannel.EIGHT.getChannel();
-        public static final int PHChannel = 30; // REV Pneumatic Hub
-        public static final int PDHChannel = 20; // REV Power Distribution Hub
-    }
-
-    public static class Algae {
-        public static final int intakeMotorChannel = 9;
-        public static final int m_AlgaeMtrC = 10;
     }
 
     public static class ClimbConstants {
@@ -310,20 +255,6 @@ public final class Constants {
         public static final double frTurnEncoderOffset = 0;
         public static final double blTurnEncoderOffset = 0;
         public static final double brTurnEncoderOffset = 0;
-    }
-
-    public class RobotVersion2025 extends RobotVersionConstants {
-        public static final double flTurnEncoderOffset = 3.84 - .04 + Math.PI;
-        public static final double frTurnEncoderOffset = 1.7 + Math.PI - .03 + Math.PI;
-        public static final double rlTurnEncoderOffset = 3.284 + Math.PI;
-        public static final double rrTurnEncoderOffset = 4.49 + Math.PI;
-    }
-
-    public class RobotVersion2023 extends RobotVersionConstants {
-        public static final double flTurnEncoderOffset = 5.3038;
-        public static final double frTurnEncoderOffset = Math.PI / 2 - 0.1242 - .05759;
-        public static final double rlTurnEncoderOffset = 4.2 + 0.0385;
-        public static final double rrTurnEncoderOffset = 2.736 - .06098;
     }
 
     public class RobotVersion2026 extends RobotVersionConstants {
