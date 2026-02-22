@@ -25,7 +25,7 @@ public final class Constants {
         public static final boolean ENABLE_DRIVETRAIN = true;
         public static final boolean ENABLE_VISION = true;
 
-        public static final boolean ENABLE_CLIMB = false;
+        public static final boolean ENABLE_CLIMB = true;
     }
 
     public static final class DriverLabels {
@@ -154,65 +154,95 @@ public final class Constants {
 
         // Mechanism geometry — confirm from CAD / physical measurement
         /** Gear ratio between motor shaft and spool. Motor rotations = spool rotations × gearRatio. */
-        public static final double GEAR_RATIO = 20.0; // TODO: confirm from CAD
+        public static final double GEAR_RATIO = 5.0; // TODO: 25.0
 
         /** Circumference of the cord spool in meters (π × spool diameter). */
-        public static final double SPOOL_CIRCUMFERENCE_METERS = 0.05; // TODO: measure from spool
+        public static final double SPOOL_CIRCUMFERENCE_METERS = 0.0635; // 2.5"
 
         // Motor output speeds [-1.0, 1.0]
-        // Convention: positive = telescope extends DOWN, negative = telescope retracts UP (lifts robot)
-        /** Speed for retracting telescope upward (lifting robot). Should be negative. */
-        public static final double RETRACT_SPEED = -0.4; // TODO: tune
+        // Convention: positive = telescope extends UP, negative = telescope retracts (toward stored / through frame)
+        /** Speed for extending telescope upward (reaching for bar). Should be positive. */
+        public static final double EXTEND_UP_SPEED = 1.0; // TODO: tune
 
-        /** Speed for extending telescope downward (lowering arm toward rung). Should be positive. */
-        public static final double EXTEND_DOWN_SPEED = 0.3; // TODO: tune
+        /** Speed for retracting telescope (nesting stages / pulling through frame). Should be negative. */
+        public static final double RETRACT_SPEED = -1.0; // TODO: tune
 
         /**
-         * Slow speed for homing (extends telescope down toward hardstop).
-         * Kept lower than EXTEND_DOWN_SPEED to avoid slamming the hardstop.
+         * Slow speed for homing (retracts telescope toward stored/ground hardstop).
+         * Kept slower than RETRACT_SPEED to avoid excessive ground impact.
+         * Robot MUST be on the ground for homing — the ground provides the hardstop.
          */
-        public static final double HOMING_SPEED = 0.15; // TODO: tune
+        public static final double HOMING_SPEED = -0.15; // TODO: tune
 
         // Current limits
         public static final int MOTOR_CURRENT_LIMIT = 40; // amps
 
         /**
-         * Current threshold (amps) that signals the telescope has hit its mechanical hardstop during
-         * homing. Tune empirically: run a slow homing routine, watch Climb/Motor/Current in
-         * Shuffleboard, note the spike when the arm hits the hardstop, then set this just below it.
+         * Current threshold (amps) that signals the telescope has reached the ground-contact
+         * hardstop during homing. There is no internal mechanical hardstop between stages — the
+         * current spike occurs when the stages are nested and the ground prevents the assembly
+         * from traveling further through the frame.
+         *
+         * <p>Tune empirically: run a slow homing routine on a flat surface, watch
+         * {@code Climb/Motor/Current} in Shuffleboard, note the spike when the assembly
+         * bottoms out against the ground, then set this just below it.
          */
         public static final double HOMING_CURRENT_THRESHOLD_AMPS = 15.0; // TODO: tune empirically
 
-        // Encoder setpoints — motor rotations from zero (= fully extended down / hardstop)
-        // All lift setpoints are negative (retraction winds cord in, encoder goes negative from zero).
+        // -------------------------------------------------------------------------
+        // Encoder setpoints — motor rotations from zero (= stored / nested / on ground)
+        //
+        // Encoder convention:
+        //   0        = stored (stages nested, assembly at lowest frame position, on ground)
+        //   positive = second stage extended upward (reaching for bar)
+        //   negative = assembly traveled through frame bottom (hooks rising toward bar)
+        //
+        // The hardstop at zero only works on the ground. When hanging, the motor
+        // overcomes the first-stage spring and the encoder freely goes negative.
+        // -------------------------------------------------------------------------
 
-        /** Encoder position at full extension downward (hardstop). Encoder is zeroed here after homing. */
-        public static final double EXTENDED_POSITION_ROTATIONS = 0.0;
+        /** Encoder position at stored/nested state on the ground. Encoder is zeroed here after homing. */
+        public static final double STORED_POSITION_ROTATIONS = 0.0;
+
+        // --- Auto setpoints ---
 
         /**
-         * Encoder position for auto climb — just enough retraction to lift the robot off the ground.
-         * Hooks do NOT need to engage. Followed by getLowerToGroundCommand() at teleop start.
+         * Encoder position (positive) to extend to reach bar 1 during auto.
+         * Same as BAR_1_EXTEND_ROTATIONS — the top hook must reach bar 1.
          * TODO: measure empirically.
          */
-        public static final double AUTO_LIFT_ROTATIONS = -20.0;
+        public static final double AUTO_EXTEND_ROTATIONS = 50.0;
 
         /**
-         * Encoder position for rung 1 (27") — hooks fully engaged, robot lifted to first rung.
-         * TODO: measure during first climb tests.
+         * Encoder position for the auto lift — just enough retraction to lift the robot off the
+         * ground. This is a partial retraction (still positive or slightly negative) — hooks do
+         * NOT need to engage. Followed by getLowerToGroundCommand() at teleop start.
+         * TODO: measure empirically.
          */
-        public static final double RUNG_1_LIFT_ROTATIONS = -50.0;
+        public static final double AUTO_ENGAGE_ROTATIONS = 20.0;
 
-        /**
-         * Encoder position for rung 2 (45").
-         * TODO: measure during first climb tests.
-         */
-        public static final double RUNG_2_LIFT_ROTATIONS = -100.0;
+        // --- Teleop per-bar setpoints ---
+        // Each bar requires two setpoints: extend (reach the bar) and engage (retract until
+        // passive hooks catch). Extend values are positive; engage values are negative.
+        // Bar 1 extend is largest because the ground-to-bar-1 distance > bar-to-bar distance.
 
-        /**
-         * Encoder position for rung 3 (63") — top rung, robot holds here until match end.
-         * TODO: measure during first climb tests.
-         */
-        public static final double RUNG_3_LIFT_ROTATIONS = -150.0;
+        /** Encoder position (positive) — extend UP to reach bar 1 from ground. Longest reach. */
+        public static final double BAR_1_EXTEND_ROTATIONS = 50.0; // TODO: measure
+
+        /** Encoder position (negative) — retract through frame until hooks engage bar 1. */
+        public static final double BAR_1_ENGAGE_ROTATIONS = -20.5; // TODO: measure
+
+        /** Encoder position (positive) — extend UP to reach bar 2 from bar 1. Shorter than bar 1. */
+        public static final double BAR_2_EXTEND_ROTATIONS = 35.0; // TODO: measure
+
+        /** Encoder position (negative) — retract through frame until hooks engage bar 2. */
+        public static final double BAR_2_ENGAGE_ROTATIONS = -20.5; // TODO: measure
+
+        /** Encoder position (positive) — extend UP to reach bar 3 from bar 2. Similar to bar 2. */
+        public static final double BAR_3_EXTEND_ROTATIONS = 33.0; // TODO: measure
+
+        /** Encoder position (negative) — retract through frame until hooks engage bar 3. */
+        public static final double BAR_3_ENGAGE_ROTATIONS = -20.5; // TODO: measure
 
         /**
          * Acceptable position error (rotations) when checking if a setpoint has been reached.
@@ -220,6 +250,42 @@ public final class Constants {
          * TODO: tune — start at 1.0 and tighten if position isn't accurate enough.
          */
         public static final double POSITION_TOLERANCE_ROTATIONS = 1.0;
+
+        // -------------------------------------------------------------------------
+        // AdvantageScope Pose3d visualization constants
+        // -------------------------------------------------------------------------
+
+        /**
+         * Telescope visual length (meters) at full upward extension.
+         * Based on 15" lower stage + 13.25" upper stage = 28.25" = 0.718 m.
+         */
+        public static final double MAX_TELESCOPE_LENGTH = 0.718;
+
+        /** Minimum visual telescope length (meters) — stages fully nested = 16" = 0.4064 m. */
+        public static final double MIN_TELESCOPE_LENGTH = 0.4064;
+
+        /** Horizontal portion of the passive side hook L-shape (meters). */
+        public static final double SIDE_HOOK_HORIZONTAL_LENGTH = 0.100;
+
+        /**
+         * Height of the passive hook mount on the telescope assembly (meters above ground when stored).
+         * These hooks engage the bar when the assembly travels through the frame during retraction.
+         * TODO: measure from CAD / physical robot (expected 6" or 9" = 0.1524 or 0.2286 m).
+         */
+        public static final double HOOK_MOUNT_HEIGHT_METERS = 0.20; // placeholder
+
+        /**
+         * Lateral distance (meters) from robot center to each passive hook for visualization.
+         * TODO: measure from CAD / physical robot.
+         */
+        public static final double HOOK_OFFSET_METERS = 0.1000;
+
+        /**
+         * Lateral distance (meters) from the robot center to the telescope arm.
+         * Positive = left in robot frame (robot approaches the tower left-side-first).
+         * TODO: measure from CAD / physical robot.
+         */
+        public static final double TELESCOPE_SIDE_OFFSET_METERS = 0.340;
     }
 
     public static class FuelConstants {

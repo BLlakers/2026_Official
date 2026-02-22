@@ -10,6 +10,7 @@ import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
+import frc.robot.commands.auto.ClimbTestCommand;
 import frc.robot.commands.auto.VisionAlignmentTestCommand;
 import frc.robot.commands.swervedrive.ControllerDelegate;
 import frc.robot.commands.swervedrive.SwerveDriveCommand;
@@ -74,8 +75,9 @@ public class RobotContainer {
         // Conditionally construct subsystems based on feature flags
         this.ledStrand = Constants.FeatureFlags.ENABLE_LED_STRAND ? new LedStrand() : null;
 
-        this.climbSubsystem =
-                Constants.FeatureFlags.ENABLE_CLIMB ? new ClimbSubsystem(ClimbSubsystemContext.defaults()) : null;
+        this.climbSubsystem = Constants.FeatureFlags.ENABLE_CLIMB
+                ? new ClimbSubsystem(ClimbSubsystemContext.defaults(), this.driveTrain)
+                : null;
 
         this.fuelSubsystem =
                 Constants.FeatureFlags.ENABLE_FUEL ? new FuelSubsystem(FuelSubsystemContext.defaults()) : null;
@@ -161,6 +163,10 @@ public class RobotContainer {
      * <p>For the climb subsystem: first lowers the robot to the ground (in case it was lifted
      * during auto), then re-homes the encoder so it is valid for the full teleop climb cycle.
      * If the robot was never lifted, the lower command exits immediately and homing proceeds.
+     *
+     * <p><strong>The lower step is required, not just convenient</strong> — there is no internal
+     * hardstop between the telescope stages. Homing relies on ground contact to produce the
+     * current spike that zeroes the encoder.
      */
     public void scheduleTeleopInit() {
         if (this.climbSubsystem != null) {
@@ -179,12 +185,12 @@ public class RobotContainer {
 
         // Climb subsystem commands (only if climb is enabled)
         if (this.climbSubsystem != null) {
-            // Auto command: lifts robot off the ground (no hook engagement required)
+            // Auto command: extends to bar 1, then partial retract to lift off ground
             NamedCommands.registerCommand("ClimbAuto", this.climbSubsystem.getRetractToAutoHeightCommand());
             // Utility commands usable in autos or named sequences
             NamedCommands.registerCommand("ClimbHome", this.climbSubsystem.getHomingCommand());
-            NamedCommands.registerCommand("ClimbExtend", this.climbSubsystem.getExtendToHookPositionCommand());
-            NamedCommands.registerCommand("ClimbNextRung", this.climbSubsystem.getClimbNextRungCommand());
+            NamedCommands.registerCommand("ClimbExtend", this.climbSubsystem.getExtendToBarCommand());
+            NamedCommands.registerCommand("ClimbNextBar", this.climbSubsystem.getClimbNextBarCommand());
             NamedCommands.registerCommand("ClimbStop", this.climbSubsystem.getStopCommand());
         }
 
@@ -238,13 +244,13 @@ public class RobotContainer {
         // Manipulator Controller - Climb Subsystem commands (only if climb is enabled)
         // TODO: Confirm all button assignments with drive team before first climb test.
         //
-        // A button  → advance to next rung (position-based, auto-stops; interruptible by bumpers)
-        // B button  → extend telescope to hook position (position-based, auto-stops; interruptible)
+        // A button  → climb next bar (retract to engage hooks; auto-stops; interruptible by bumpers)
+        // B button  → extend telescope up to next bar (position-based, auto-stops; interruptible)
         // LB (held) → manual retract override (holds on release; interrupts any position command)
         // RB (held) → manual extend override  (holds on release; interrupts any position command)
         if (this.climbSubsystem != null) {
-            this.manipController.a().onTrue(this.climbSubsystem.getClimbNextRungCommand());
-            this.manipController.b().onTrue(this.climbSubsystem.getExtendToHookPositionCommand());
+            this.manipController.a().onTrue(this.climbSubsystem.getClimbNextBarCommand());
+            this.manipController.b().onTrue(this.climbSubsystem.getExtendToBarCommand());
             this.manipController.leftBumper().whileTrue(this.climbSubsystem.getManualRetractCommand());
             this.manipController.rightBumper().whileTrue(this.climbSubsystem.getManualExtendCommand());
         }
@@ -277,6 +283,11 @@ public class RobotContainer {
         if (this.visionSubsystem != null) {
             VisionAlignmentTestCommand.create(this.driveTrain)
                     .ifPresent(cmd -> Telemetry.putData("Vision/AlignmentTest", cmd));
+        }
+
+        // Climb test command (for simulation testing)
+        if (this.climbSubsystem != null) {
+            ClimbTestCommand.create(this.climbSubsystem).ifPresent(cmd -> Telemetry.putData("Climb/ClimbTest", cmd));
         }
     }
 

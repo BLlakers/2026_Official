@@ -1,16 +1,28 @@
 package frc.robot.subsystems.climb;
 
+import static edu.wpi.first.math.system.plant.LinearSystemId.createDCMotorSystem;
 import static java.util.Objects.requireNonNull;
 
 import com.revrobotics.RelativeEncoder;
+import com.revrobotics.sim.SparkMaxSim;
 import com.revrobotics.spark.SparkBase.PersistMode;
 import com.revrobotics.spark.SparkBase.ResetMode;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
 import com.revrobotics.spark.SparkMax;
 import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 import com.revrobotics.spark.config.SparkMaxConfig;
+import edu.wpi.first.math.VecBuilder;
+import edu.wpi.first.math.numbers.N1;
+import edu.wpi.first.math.numbers.N2;
+import edu.wpi.first.math.system.LinearSystem;
+import edu.wpi.first.math.system.plant.DCMotor;
+import edu.wpi.first.wpilibj.RobotBase;
+import edu.wpi.first.wpilibj.RobotController;
+import edu.wpi.first.wpilibj.Timer;
+import edu.wpi.first.wpilibj.simulation.DCMotorSim;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import frc.robot.subsystems.drivetrain.Drivetrain;
 import frc.robot.support.Telemetry;
 import frc.robot.support.TelemetryLevel;
 
@@ -18,38 +30,41 @@ import frc.robot.support.TelemetryLevel;
  * Climb subsystem for the 2-stage telescoping ratchet climb mechanism.
  *
  * <h2>Mechanism Overview</h2>
- * <p>A single NEO motor winds a cord on a spool to retract a telescoping arm, lifting the robot.
- * Two passive ratcheting hooks on each side of the arm catch rungs as the robot is lifted.
- * The telescope can extend <em>below</em> the robot frame when airborne, allowing it to reach
- * downward for the next rung.
+ * <p>A single NEO motor winds a cord on a spool to control a 2-stage telescope. The second stage
+ * extends <em>upward</em> out of the first stage, with a <strong>top hook/catch</strong> that grabs
+ * a bar above the robot. Retraction first nests the stages, then pulls the entire telescope assembly
+ * upward through the robot frame until <strong>passive ratcheting hooks</strong> (on the assembly)
+ * engage the bar. The first-stage spring provides higher resistance during the through-frame phase.
  *
  * <h2>Climb Cycle (teleop)</h2>
  * <ol>
- *   <li>Arm extends downward to hook position ({@link #getExtendToHookPositionCommand})</li>
- *   <li>Arm retracts — passive hooks catch rung, robot lifts ({@link #getClimbNextRungCommand})</li>
- *   <li>Repeat for each rung until rung 3 (top). Hold until match end.</li>
+ *   <li>Arm extends upward — top hook reaches the next bar ({@link #getExtendToBarCommand})</li>
+ *   <li>Arm retracts — stages nest, then assembly travels through frame, passive hooks catch the
+ *       bar, robot lifts ({@link #getClimbNextBarCommand})</li>
+ *   <li>Repeat for each bar until bar 3 (top). Hold until match end.</li>
  * </ol>
  *
  * <h2>Auto</h2>
- * <p>{@link #getRetractToAutoHeightCommand} lifts the robot just off the ground — hooks do not
- * need to engage. At teleop start, {@link #getLowerToGroundCommand} returns the robot to ground
- * so it can drive, followed by re-homing.
+ * <p>{@link #getRetractToAutoHeightCommand} extends the telescope to reach bar 1, then partially
+ * retracts to lift the robot off the ground (hooks do not need to engage). At teleop start,
+ * {@link #getLowerToGroundCommand} returns the robot to ground so it can drive, followed by
+ * re-homing.
  *
  * <h2>Encoder Convention</h2>
  * <ul>
- *   <li>Homing extends the telescope DOWN until it hits the mechanical hardstop (current spike).
- *       Encoder is zeroed at that point.</li>
- *   <li>Encoder ≈ 0 = telescope fully extended downward (hardstop)</li>
- *   <li>Encoder negative = telescope retracted (robot lifted)</li>
- *   <li>All lift setpoints ({@code rung1LiftRotations} etc.) are negative values.</li>
+ *   <li>Homing retracts the telescope until the first stage spring pushes back (current spike).
+ *   <li>Encoder = 0 = stored (stages nested, assembly at lowest frame position)</li>
+ *   <li>Encoder positive = second stage extending upward (reaching for bar)</li>
+ *   <li>Encoder negative = assembly traveling through frame bottom (hooks rising toward bar).
+ *       Only possible when hanging — the motor overcomes the first-stage spring.</li>
  * </ul>
  *
  * <h2>Build Team TODOs</h2>
  * <ul>
- *   <li>Confirm motor inversion — positive output should extend telescope <strong>down</strong></li>
+ *   <li>Confirm motor inversion — positive output should extend telescope <strong>upward</strong></li>
  *   <li>Tune {@code homingCurrentThresholdAmps} watching {@code Climb/Motor/Current} in Shuffleboard</li>
- *   <li>Measure {@code autoLiftRotations}, {@code rung1/2/3LiftRotations} during testing</li>
- *   <li>Confirm {@code extendedPositionRotations} and {@code positionToleranceRotations}</li>
+ *   <li>Measure {@code bar1/2/3ExtendRotations} and {@code bar1/2/3EngageRotations} during testing</li>
+ *   <li>Confirm {@code positionToleranceRotations}</li>
  * </ul>
  */
 public class ClimbSubsystem extends SubsystemBase {
@@ -60,11 +75,13 @@ public class ClimbSubsystem extends SubsystemBase {
     public enum State {
         /** Motor stopped, encoder position unknown — safe before homing. */
         IDLE,
-        /** Homing: slowly extending down to find the mechanical hardstop and zero the encoder. */
+        /** Homing: slowly retracting to find the ground-contact hardstop and zero the encoder. */
         HOMING,
-        /** Telescope fully extended downward; hooks are in position for the next rung. */
-        EXTENDED,
-        /** Actively winding cord in to lift the robot (hooks engaged on a rung). */
+        /** Telescope stored — stages nested, on the ground. Ready for first extend. */
+        STORED,
+        /** Telescope extending upward — second stage reaching for the next bar. */
+        EXTENDING,
+        /** Actively retracting to lift the robot (stages nesting, then assembly through frame). */
         RETRACTING,
         /** Retraction complete; robot is lifted. Motor braking holds position. */
         HOLDING,
@@ -74,35 +91,70 @@ public class ClimbSubsystem extends SubsystemBase {
     private final SparkMax winchMotor;
     private final RelativeEncoder encoder;
 
+    private final ClimbVisualizer visualizer;
+
     private State currentState = State.IDLE;
 
     /**
-     * Internal counter tracking how many rungs have been successfully climbed in the current teleop
-     * period. Resets to 0 on homing. Used by {@link #getClimbNextRungCommand()} to select the
-     * appropriate setpoint.
+     * Internal counter tracking how many bars have been successfully climbed in the current teleop
+     * period. Resets to 0 on homing. Used by {@link #getExtendToBarCommand()} and
+     * {@link #getClimbNextBarCommand()} to select the appropriate setpoints.
      */
-    private int currentRung = 0;
+    private int currentBar = 0;
 
     /** The encoder target currently being sought by a position command. Used for telemetry. */
     private double targetRotations = 0.0;
+
+    // -------------------------------------------------------------------------
+    // Simulation fields (only initialized when RobotBase.isSimulation())
+    // -------------------------------------------------------------------------
+
+    /** Motor dynamics engine for integrating position from applied voltage. */
+    private DCMotorSim winchMotorSim;
+
+    /** REV sim bridge — provides simulated motor current for homing detection. */
+    private SparkMaxSim winchSparkMaxSim;
+
+    /** Tracked encoder position in simulation (since the HAL bridge does not relay sim values). */
+    private double simPosition = 0.0;
+
+    /** Tracked motor current in simulation (since getOutputCurrent() returns 0 without sim). */
+    private double simCurrent = 0.0;
+
+    /** Timestamp of the last simulation tick, for computing dt. */
+    private double lastSimTime = 0.0;
 
     // -------------------------------------------------------------------------
     // Construction
     // -------------------------------------------------------------------------
 
     /**
-     * Instantiates a new ClimbSubsystem with default {@link ClimbSubsystemContext}.
+     * Instantiates a new ClimbSubsystem with default context and no drivetrain reference.
+     * AdvantageScope Pose3d publishing is disabled when no drivetrain is provided.
      */
     public ClimbSubsystem() {
-        this(ClimbSubsystemContext.defaults());
+        this(ClimbSubsystemContext.defaults(), null);
     }
 
     /**
-     * Instantiates a new ClimbSubsystem with the specified context.
+     * Instantiates a new ClimbSubsystem with the specified context and no drivetrain reference.
+     * AdvantageScope Pose3d publishing is disabled when no drivetrain is provided.
      *
      * @param context The ClimbSubsystemContext to apply to this instance
      */
     public ClimbSubsystem(final ClimbSubsystemContext context) {
+        this(context, null);
+    }
+
+    /**
+     * Instantiates a new ClimbSubsystem with the specified context and drivetrain reference.
+     * The drivetrain is used to obtain the robot's field-relative pose for AdvantageScope
+     * Pose3d visualization. Pass {@code null} to disable Pose3d publishing.
+     *
+     * @param context The ClimbSubsystemContext to apply to this instance
+     * @param drivetrain The robot drivetrain, used for field-relative Pose3d coordinates
+     */
+    public ClimbSubsystem(final ClimbSubsystemContext context, final Drivetrain drivetrain) {
         requireNonNull(context, "ClimbSubsystemContext cannot be null");
         this.context = context;
 
@@ -110,6 +162,20 @@ public class ClimbSubsystem extends SubsystemBase {
         this.encoder = this.winchMotor.getEncoder();
 
         configureMotor();
+
+        this.visualizer = new ClimbVisualizer(context, drivetrain);
+
+        // Initialize simulation physics when running in sim
+        if (RobotBase.isSimulation()) {
+            this.winchSparkMaxSim = new SparkMaxSim(winchMotor, DCMotor.getNEO(1));
+            // Build a state-space motor model: NEO motor, placeholder inertia, configured gear ratio.
+            // The inertia value (0.01 kg·m²) is a sim-only placeholder — it controls how quickly the
+            // motor accelerates in simulation but has no effect on real robot behavior.
+            LinearSystem<N2, N1, N2> plant = createDCMotorSystem(DCMotor.getNEO(1), 0.01, context.getGearRatio());
+            this.winchMotorSim = new DCMotorSim(plant, DCMotor.getNEO(1));
+            this.lastSimTime = Timer.getFPGATimestamp();
+        }
+
         initializeTelemetry();
     }
 
@@ -125,8 +191,30 @@ public class ClimbSubsystem extends SubsystemBase {
         config.smartCurrentLimit(this.context.getMotorCurrentLimit());
         config.idleMode(IdleMode.kBrake); // Brake mode holds arm position when motor is stopped
         // TODO: Set config.inverted(true/false) once motor direction is confirmed with build team.
-        //       Convention: positive output = telescope extends DOWN, negative = retracts UP.
+        //       Convention: positive output = telescope extends UPWARD, negative = retracts.
         this.winchMotor.configure(config, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
+    }
+
+    // -------------------------------------------------------------------------
+    // Sim-aware sensor helpers
+    // -------------------------------------------------------------------------
+
+    /**
+     * Returns the encoder position, routing through the simulation state when running in sim.
+     * In simulation the HAL bridge does not relay {@link SparkMaxSim} values back to the real
+     * {@link RelativeEncoder}, so we track position in {@link #simPosition} instead.
+     */
+    private double getEncoderPosition() {
+        return RobotBase.isSimulation() ? simPosition : encoder.getPosition();
+    }
+
+    /**
+     * Returns the motor output current, routing through the simulation state when running in sim.
+     * In simulation the HAL does not provide current data for a raw {@link SparkMax}, so we use
+     * the motor-model current computed by {@link SparkMaxSim} instead.
+     */
+    private double getMotorCurrent() {
+        return RobotBase.isSimulation() ? simCurrent : winchMotor.getOutputCurrent();
     }
 
     // -------------------------------------------------------------------------
@@ -155,22 +243,37 @@ public class ClimbSubsystem extends SubsystemBase {
         return currentState != State.IDLE && currentState != State.HOMING;
     }
 
-    /** Returns the number of rungs successfully climbed in this teleop period (0–3). */
-    public int getCurrentRung() {
-        return currentRung;
+    /** Returns the number of bars successfully climbed in this teleop period (0–3). */
+    public int getCurrentBar() {
+        return currentBar;
     }
 
     /** Returns true if the encoder is within tolerance of the given target. */
     private boolean atTarget(double targetRotations) {
-        return Math.abs(encoder.getPosition() - targetRotations) <= this.context.getPositionToleranceRotations();
+        return Math.abs(getEncoderPosition() - targetRotations) <= this.context.getPositionToleranceRotations();
     }
 
-    /** Returns the setpoint for the next rung in the sequence, or the last rung if already at top. */
-    private double nextRungSetpoint() {
-        return switch (currentRung) {
-            case 0 -> context.getRung1LiftRotations();
-            case 1 -> context.getRung2LiftRotations();
-            default -> context.getRung3LiftRotations(); // rung 2 or beyond → target rung 3
+    /**
+     * Returns the extend setpoint (positive) for the next bar in sequence.
+     * Bar 1 extend is largest (ground to bar 1 is the longest reach).
+     */
+    private double nextExtendSetpoint() {
+        return switch (currentBar) {
+            case 0 -> context.getBar1ExtendRotations();
+            case 1 -> context.getBar2ExtendRotations();
+            default -> context.getBar3ExtendRotations(); // bar 2 or beyond → target bar 3
+        };
+    }
+
+    /**
+     * Returns the engage setpoint (negative) for the next bar in sequence.
+     * The assembly must travel through the frame for passive hooks to catch the bar.
+     */
+    private double nextEngageSetpoint() {
+        return switch (currentBar) {
+            case 0 -> context.getBar1EngageRotations();
+            case 1 -> context.getBar2EngageRotations();
+            default -> context.getBar3EngageRotations();
         };
     }
 
@@ -178,15 +281,15 @@ public class ClimbSubsystem extends SubsystemBase {
     // Motor actions (private — exposed through command factories)
     // -------------------------------------------------------------------------
 
-    /** Winds cord in, retracting the telescope upward to lift the robot. */
+    /** Lets cord out, extending the telescope upward (positive motor output). */
+    private void extend() {
+        winchMotor.set(this.context.getExtendUpSpeed());
+    }
+
+    /** Winds cord in, retracting the telescope (nesting stages / pulling through frame). */
     private void retract() {
         setState(State.RETRACTING);
         winchMotor.set(this.context.getRetractSpeed());
-    }
-
-    /** Lets cord out, extending the telescope downward. */
-    private void extend() {
-        winchMotor.set(this.context.getExtendDownSpeed());
     }
 
     /** Stops the motor; brake mode holds current position. */
@@ -205,18 +308,26 @@ public class ClimbSubsystem extends SubsystemBase {
     // Homing helpers
     // -------------------------------------------------------------------------
 
-    /** Returns true when a current spike indicates the arm has hit its mechanical hardstop. */
+    /**
+     * Returns true when a current spike indicates the telescope has reached the ground-contact
+     * hardstop. There is no internal mechanical hardstop — the spike occurs when the stages are
+     * nested and the first stage spring resistance pushes back
+     */
     private boolean isAtHardstop() {
-        return winchMotor.getOutputCurrent() >= this.context.getHomingCurrentThresholdAmps();
+        return getMotorCurrent() >= this.context.getHomingCurrentThresholdAmps();
     }
 
-    /** Zeros the encoder and resets rung counter after a successful homing. */
+    /** Zeros the encoder and resets bar counter after a successful homing. */
     private void completeHoming() {
         winchMotor.set(0);
         encoder.setPosition(0.0);
-        currentRung = 0;
+        if (RobotBase.isSimulation()) {
+            simPosition = 0.0;
+            winchMotorSim.setState(VecBuilder.fill(0.0, 0.0));
+        }
+        currentBar = 0;
         targetRotations = 0.0;
-        setState(State.EXTENDED);
+        setState(State.STORED);
     }
 
     // -------------------------------------------------------------------------
@@ -224,14 +335,18 @@ public class ClimbSubsystem extends SubsystemBase {
     // -------------------------------------------------------------------------
 
     /**
-     * Homing command — slowly extends the telescope downward until the arm hits its mechanical
-     * hardstop (detected via motor current spike), then zeroes the encoder.
+     * Homing command — slowly retracts the telescope until the ground-contact hardstop is reached
+     * (detected via motor current spike), then zeroes the encoder.
      *
-     * <p>After homing: encoder = 0 = fully extended down (hardstop). Negative = retracted (lifted).
-     * Resets the internal rung counter to 0.
+     * <p>After homing: encoder = 0 = stored (stages nested, assembly at lowest frame position).
+     * Positive = extended upward; negative = assembly through frame.
+     * Resets the internal bar counter to 0.
+     *
+     * <p><strong>The robot MUST be on the ground for homing.</strong> There is no internal
+     * mechanical hardstop — the ground provides the reference. Do not call this while hanging.
      *
      * <p>This command is chained after {@link #getLowerToGroundCommand()} in
-     * {@code scheduleTeleopInit()} — do not call it directly if the robot may be elevated.
+     * {@code scheduleTeleopInit()} to guarantee the robot is on the ground.
      *
      * @return Command that homes the mechanism
      */
@@ -248,93 +363,85 @@ public class ClimbSubsystem extends SubsystemBase {
     }
 
     /**
-     * Lower-to-ground command — position-based: extends telescope down to
-     * {@code extendedPositionRotations} (the hardstop / fully-extended position).
+     * Lower-to-ground command — extends the telescope (lets cord out) to lower the robot back
+     * to the ground from a lifted position.
      *
-     * <p>Used at teleop start after an auto climb to return the robot to the ground so it can drive.
-     * If the robot is already at ground level the command completes immediately.
+     * <p>Target: {@code storedPositionRotations} (0.0). If the robot is already at ground level
+     * the command completes immediately.
+     *
+     * <p>Used at teleop start after an auto climb to return the robot to the ground so it can
+     * drive. <strong>Must precede homing</strong> — homing requires ground contact.
      *
      * @return Command that lowers the robot to ground
      */
     public Command getLowerToGroundCommand() {
         return this.run(() -> {
-                    targetRotations = context.getExtendedPositionRotations();
-                    if (!atTarget(context.getExtendedPositionRotations())) {
-                        setState(State.RETRACTING); // extending down, semantically "lowering"
+                    targetRotations = context.getStoredPositionRotations();
+                    if (!atTarget(context.getStoredPositionRotations())) {
                         extend();
                     } else {
                         hold();
                     }
                 })
-                .until(() -> atTarget(context.getExtendedPositionRotations()))
-                .andThen(this.runOnce(() -> setState(State.EXTENDED)))
+                .until(() -> atTarget(context.getStoredPositionRotations()))
+                .andThen(this.runOnce(() -> setState(State.STORED)))
                 .withName("Climb.LowerToGround");
     }
 
     /**
-     * Extend-to-hook-position command — position-based: extends the telescope downward to
-     * {@code extendedPositionRotations} so the passive hooks are in position for the next rung.
+     * Extend-to-bar command — extends the telescope upward so the top hook reaches the next bar.
      *
-     * <p>Auto-stops when at the target. Interruptible — manual extend/retract commands
-     * will cancel it automatically if pressed.
+     * <p>The extend target varies by bar (based on the internal bar counter):
+     * <ul>
+     *   <li>Bar 0 → bar 1: longest reach (ground-to-bar distance)</li>
+     *   <li>Bar 1 → bar 2: shorter (bar-to-bar distance)</li>
+     *   <li>Bar 2 → bar 3: similar to bar 2</li>
+     * </ul>
      *
-     * @return Command that extends the telescope to hook position
+     * <p>Auto-stops when at the target. Does <strong>not</strong> advance the bar counter —
+     * that happens in {@link #getClimbNextBarCommand()} after successful retraction.
+     *
+     * <p>Interruptible — manual extend/retract commands will cancel it automatically if pressed.
+     *
+     * @return Command that extends the telescope to the next bar
      */
-    public Command getExtendToHookPositionCommand() {
+    public Command getExtendToBarCommand() {
         return this.run(() -> {
-                    targetRotations = context.getExtendedPositionRotations();
-                    if (!atTarget(context.getExtendedPositionRotations())) {
+                    double setpoint = nextExtendSetpoint();
+                    targetRotations = setpoint;
+                    if (!atTarget(setpoint)) {
+                        setState(State.EXTENDING);
                         extend();
                     } else {
                         hold();
                     }
                 })
-                .until(() -> atTarget(context.getExtendedPositionRotations()))
-                .andThen(this.runOnce(() -> setState(State.EXTENDED)))
-                .withName("Climb.ExtendToHookPosition");
+                .until(() -> atTarget(nextExtendSetpoint()))
+                .andThen(this.runOnce(() -> setState(State.HOLDING)))
+                .withName("Climb.ExtendToBar");
     }
 
     /**
-     * Auto-lift command — position-based: retracts the telescope to {@code autoLiftRotations},
-     * just enough to lift the robot off the ground.
+     * Climb-next-bar command — the primary teleop climb command.
      *
-     * <p>The passive hooks do NOT need to engage — this is the auto climb requirement only.
-     * Must be followed by {@link #getLowerToGroundCommand()} at teleop start.
+     * <p>Retracts the telescope to the engage setpoint for the current bar. The retraction first
+     * nests the stages (encoder toward 0), then continues through the frame bottom (encoder goes
+     * negative) until the passive hooks engage the bar.
      *
-     * @return Command that lifts the robot for auto
-     */
-    public Command getRetractToAutoHeightCommand() {
-        return this.run(() -> {
-                    targetRotations = context.getAutoLiftRotations();
-                    if (!atTarget(context.getAutoLiftRotations())) {
-                        retract();
-                    } else {
-                        hold();
-                    }
-                })
-                .until(() -> atTarget(context.getAutoLiftRotations()))
-                .andThen(this.runOnce(this::hold))
-                .withName("Climb.RetractToAutoHeight");
-    }
-
-    /**
-     * Climb-next-rung command — the primary teleop climb command.
+     * <p>Auto-stops when at the target. The internal bar counter advances only on successful
+     * completion — if the driver interrupts (via manual override), the counter does not advance
+     * and the command can be re-triggered.
      *
-     * <p>Retracts the telescope to the next rung setpoint in sequence, engaging the ratcheting hooks
-     * and lifting the robot. Auto-stops when at the target. The internal rung counter advances only
-     * on successful completion — if the driver interrupts the command (via manual override), the
-     * counter does not advance and the command can be re-triggered.
-     *
-     * <p>Rung progression: 1 → 27", 2 → 45", 3 → 63". At rung 3 the robot holds until match end.
+     * <p>Bar progression: 1 → 2 → 3. At bar 3 the robot holds until match end.
      *
      * <p>Interruptible — {@link #getManualRetractCommand()} and {@link #getManualExtendCommand()}
      * will cancel this command automatically when pressed.
      *
-     * @return Command that climbs to the next rung in sequence
+     * @return Command that climbs to the next bar in sequence
      */
-    public Command getClimbNextRungCommand() {
+    public Command getClimbNextBarCommand() {
         return this.run(() -> {
-                    double setpoint = nextRungSetpoint();
+                    double setpoint = nextEngageSetpoint();
                     targetRotations = setpoint;
                     if (!atTarget(setpoint)) {
                         retract();
@@ -342,16 +449,53 @@ public class ClimbSubsystem extends SubsystemBase {
                         hold();
                     }
                 })
-                .until(() -> atTarget(nextRungSetpoint()))
+                .until(() -> atTarget(nextEngageSetpoint()))
                 .andThen(this.runOnce(() -> {
                     hold();
-                    if (currentRung < 3) currentRung++;
+                    if (currentBar < 3) currentBar++;
                 }))
-                .withName("Climb.NextRung");
+                .withName("Climb.NextBar");
     }
 
     /**
-     * Manual retract command — held-button override for retracting the telescope upward.
+     * Auto-lift command — two-step: extends the telescope to reach bar 1 ({@code autoExtendRotations}),
+     * then partially retracts ({@code autoEngageRotations}) to lift the robot off the ground.
+     *
+     * <p>The passive hooks do NOT need to engage — this is the auto climb requirement only.
+     * Must be followed by {@link #getLowerToGroundCommand()} at teleop start.
+     *
+     * @return Command that lifts the robot for auto
+     */
+    public Command getRetractToAutoHeightCommand() {
+        // Step 1: extend to reach bar 1
+        Command extendStep = this.run(() -> {
+                    targetRotations = context.getAutoExtendRotations();
+                    if (!atTarget(context.getAutoExtendRotations())) {
+                        setState(State.EXTENDING);
+                        extend();
+                    } else {
+                        hold();
+                    }
+                })
+                .until(() -> atTarget(context.getAutoExtendRotations()));
+
+        // Step 2: partially retract to lift off ground
+        Command retractStep = this.run(() -> {
+                    targetRotations = context.getAutoEngageRotations();
+                    if (!atTarget(context.getAutoEngageRotations())) {
+                        retract();
+                    } else {
+                        hold();
+                    }
+                })
+                .until(() -> atTarget(context.getAutoEngageRotations()))
+                .andThen(this.runOnce(this::hold));
+
+        return extendStep.andThen(retractStep).withName("Climb.AutoLift");
+    }
+
+    /**
+     * Manual retract command — held-button override for retracting the telescope.
      * Holds position on release. Interrupts any running position-based command.
      *
      * @return Command that manually retracts the climb arm
@@ -361,7 +505,7 @@ public class ClimbSubsystem extends SubsystemBase {
     }
 
     /**
-     * Manual extend command — held-button override for extending the telescope downward.
+     * Manual extend command — held-button override for extending the telescope upward.
      * Holds position on release. Interrupts any running position-based command.
      *
      * @return Command that manually extends the climb arm
@@ -369,7 +513,7 @@ public class ClimbSubsystem extends SubsystemBase {
     public Command getManualExtendCommand() {
         return this.runEnd(
                         () -> {
-                            setState(State.EXTENDED);
+                            setState(State.EXTENDING);
                             extend();
                         },
                         this::hold)
@@ -406,13 +550,17 @@ public class ClimbSubsystem extends SubsystemBase {
     }
 
     private void captureTelemetry(String prefix) {
+        double position = getEncoderPosition();
+        visualizer.update(position, isHomed());
         Telemetry.record(prefix + "/State", currentState.name(), TelemetryLevel.MATCH);
-        Telemetry.record(prefix + "/CurrentRung", currentRung, TelemetryLevel.MATCH);
-        Telemetry.record(prefix + "/Encoder/PositionRotations", encoder.getPosition(), TelemetryLevel.MATCH);
+        Telemetry.record(prefix + "/CurrentBar", currentBar, TelemetryLevel.MATCH);
+        Telemetry.publish(prefix + "/State", currentState.name(), TelemetryLevel.MATCH);
+        Telemetry.publish(prefix + "/CurrentBar", currentBar, TelemetryLevel.MATCH);
+        Telemetry.record(prefix + "/Encoder/PositionRotations", position, TelemetryLevel.MATCH);
         Telemetry.record(prefix + "/Encoder/TargetRotations", targetRotations, TelemetryLevel.MATCH);
         Telemetry.record(prefix + "/Encoder/AtTarget", atTarget(targetRotations) ? 1.0 : 0.0, TelemetryLevel.MATCH);
         Telemetry.record(prefix + "/Motor/OutputPercent", winchMotor.getAppliedOutput(), TelemetryLevel.MATCH);
-        Telemetry.record(prefix + "/Motor/Current", winchMotor.getOutputCurrent(), TelemetryLevel.LAB);
+        Telemetry.record(prefix + "/Motor/Current", getMotorCurrent(), TelemetryLevel.LAB);
         Telemetry.record(
                 prefix + "/Homing/CurrentThreshold", context.getHomingCurrentThresholdAmps(), TelemetryLevel.LAB);
     }
@@ -424,5 +572,66 @@ public class ClimbSubsystem extends SubsystemBase {
     @Override
     public void periodic() {
         // Telemetry is captured by the registered subsystem callback via Telemetry.periodic()
+    }
+
+    // -------------------------------------------------------------------------
+    // Simulation
+    // -------------------------------------------------------------------------
+
+    /**
+     * Advances the simulated winch motor physics each tick when running in simulation.
+     *
+     * <p>This method is called automatically by the {@link edu.wpi.first.wpilibj2.command.CommandScheduler}
+     * for every registered subsystem when {@link RobotBase#isSimulation()} is true.
+     *
+     * <h3>Physics model</h3>
+     * <ol>
+     *   <li>Read the duty-cycle output that commands have set via {@code winchMotor.set()}</li>
+     *   <li>Convert to voltage and feed into a {@link DCMotorSim} (NEO motor model)</li>
+     *   <li>Integrate position and velocity over dt</li>
+     *   <li>Write results to {@link #simPosition} and {@link #simCurrent} so that
+     *       {@link #getEncoderPosition()} and {@link #getMotorCurrent()} return correct values</li>
+     * </ol>
+     *
+     * <h3>Ground hardstop simulation</h3>
+     * <p>When the robot is on the ground (states: {@code HOMING}, {@code STORED}, {@code IDLE}),
+     * the encoder position is clamped at 0 — simulating the ground blocking further retraction.
+     * The motor stalls at this point, producing a current spike that triggers
+     * {@link #isAtHardstop()} and allows homing to complete.
+     *
+     * <p>When hanging from a bar (states: {@code EXTENDING}, {@code RETRACTING}, {@code HOLDING}),
+     * the ground stop is inactive and the encoder can freely go negative (assembly through frame).
+     */
+    @Override
+    public void simulationPeriodic() {
+        double now = Timer.getFPGATimestamp();
+        double dt = now - lastSimTime;
+        lastSimTime = now;
+
+        // Applied motor output as voltage (duty cycle × battery voltage)
+        double voltage = winchSparkMaxSim.getAppliedOutput() * RobotController.getBatteryVoltage();
+
+        // Ground hardstop is active when the robot is on the ground (not hanging from a bar).
+        // In these states, position cannot go below 0 — the ground blocks retraction.
+        boolean groundStopActive =
+                currentState == State.HOMING || currentState == State.STORED || currentState == State.IDLE;
+        double currentPos = winchMotorSim.getAngularPositionRotations();
+
+        if (groundStopActive && currentPos <= 0.0 && voltage < 0.0) {
+            // At ground — clamp position at 0, velocity at 0. The motor stalls against the ground,
+            // producing a high current that triggers homing detection.
+            winchMotorSim.setState(VecBuilder.fill(0.0, 0.0));
+            winchSparkMaxSim.iterate(0.0, RobotController.getBatteryVoltage(), dt);
+            simPosition = 0.0;
+        } else {
+            // Free motion — feed voltage into the motor model and advance physics
+            winchMotorSim.setInputVoltage(voltage);
+            winchMotorSim.update(dt);
+            winchSparkMaxSim.iterate(winchMotorSim.getAngularVelocityRPM(), RobotController.getBatteryVoltage(), dt);
+            simPosition = winchMotorSim.getAngularPositionRotations();
+        }
+
+        // Update simulated current for homing detection via isAtHardstop()
+        simCurrent = winchSparkMaxSim.getMotorCurrent();
     }
 }
