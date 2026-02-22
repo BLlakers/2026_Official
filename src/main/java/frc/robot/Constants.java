@@ -18,7 +18,7 @@ public final class Constants {
      */
     public static final class FeatureFlags {
         public static final boolean ENABLE_FUEL = false;
-        public static final boolean ENABLE_TURRET_TRACKER = false;
+        public static final boolean ENABLE_TURRET_TRACKER = true;
         public static final boolean ENABLE_LED_STRAND = false;
 
         // These stay enabled for initial drivetrain testing
@@ -261,18 +261,36 @@ public final class Constants {
          */
         public static final double MAX_TELESCOPE_LENGTH = 0.718;
 
-        /** Minimum visual telescope length (meters) — stages fully nested = 16" = 0.4064 m. */
-        public static final double MIN_TELESCOPE_LENGTH = 0.4064;
+        /**
+         * Minimum visual telescope arm length (meters), used in both the stored position and the
+         * through-frame retraction regime.
+         *
+         * <p>Derived so that the telescope tip reaches {@code HOOK_MOUNT_HEIGHT_METERS} exactly when
+         * the encoder is at {@code BAR_1_ENGAGE_ROTATIONS}:
+         *
+         * <pre>
+         *   assemblyShiftAtEngage = |BAR_1_ENGAGE_ROTATIONS| × SPOOL_CIRCUMFERENCE / GEAR_RATIO
+         *                         = 20.5 × 0.0635 / 5.0 = 0.26035 m
+         *   MIN_TELESCOPE_LENGTH  = HOOK_MOUNT_HEIGHT − 0.05 + assemblyShiftAtEngage
+         *                         = 0.2667 − 0.05 + 0.26035 = 0.4771 m
+         * </pre>
+         *
+         * <p>Note: at encoder = 0 (stored), the telescope top renders at 0.05 + 0.4771 ≈ 20.75",
+         * which is an acceptable visualization approximation. This constant does not affect motor
+         * behaviour.
+         */
+        public static final double MIN_TELESCOPE_LENGTH = 0.4771;
 
         /** Horizontal portion of the passive side hook L-shape (meters). */
         public static final double SIDE_HOOK_HORIZONTAL_LENGTH = 0.100;
 
         /**
-         * Height of the passive hook mount on the telescope assembly (meters above ground when stored).
-         * These hooks engage the bar when the assembly travels through the frame during retraction.
-         * TODO: measure from CAD / physical robot (expected 6" or 9" = 0.1524 or 0.2286 m).
+         * Height of the passive hook tip above the ground (meters) when the robot is on the floor.
+         * 10.5 inches = 10.5 × 0.0254 = 0.2667 m.
+         * At full engage (encoder = BAR_1_ENGAGE_ROTATIONS) the telescope tip descends to this
+         * same height, aligning all three hooks visually.
          */
-        public static final double HOOK_MOUNT_HEIGHT_METERS = 0.20; // placeholder
+        public static final double HOOK_MOUNT_HEIGHT_METERS = 0.2667;
 
         /**
          * Lateral distance (meters) from robot center to each passive hook for visualization.

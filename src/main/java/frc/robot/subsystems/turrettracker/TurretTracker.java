@@ -6,16 +6,8 @@ import edu.wpi.first.apriltag.AprilTagFieldLayout;
 import edu.wpi.first.apriltag.AprilTagFields;
 import edu.wpi.first.math.geometry.*;
 import edu.wpi.first.math.util.Units;
-import edu.wpi.first.networktables.NetworkTableInstance;
-import edu.wpi.first.networktables.StructArrayPublisher;
-import edu.wpi.first.networktables.StructPublisher;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
-import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
-import edu.wpi.first.wpilibj.smartdashboard.MechanismLigament2d;
-import edu.wpi.first.wpilibj.smartdashboard.MechanismRoot2d;
-import edu.wpi.first.wpilibj.util.Color;
-import edu.wpi.first.wpilibj.util.Color8Bit;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants;
 import frc.robot.subsystems.drivetrain.Drivetrain;
@@ -42,8 +34,7 @@ import lombok.Getter;
  *
  * <p>Visualization:
  * <ul>
- *   <li>Mechanism2d: 2D overhead turret dial showing aim angle and range limits</li>
- *   <li>AdvantageScope: Pose2d[] aim line from robot to active target</li>
+ *   <li>AdvantageScope: Pose3d aim pose, target pose, and aim line via {@link TurretTrackerVisualizer}</li>
  *   <li>NetworkTables: Live angle, distance, mode, and status values</li>
  * </ul>
  */
@@ -53,6 +44,7 @@ public class TurretTracker extends SubsystemBase {
 
     private final TurretTrackerContext context;
     private final Drivetrain drivetrain;
+    private final TurretTrackerVisualizer visualizer;
 
     // Hub center positions (computed at construction from field layout)
     private final Translation2d blueHubCenter;
@@ -94,18 +86,10 @@ public class TurretTracker extends SubsystemBase {
     @Getter
     private Translation2d activeTarget = new Translation2d();
 
-    // Visualization: Mechanism2d
-    private final Mechanism2d mechanism2d;
-    private final MechanismLigament2d turretArm;
-
-    // Visualization: AdvantageScope via StructPublisher
-    private final StructPublisher<Pose3d> aimPose3dPublisher;
-    private final StructPublisher<Pose3d> targetPose3dPublisher;
-    private final StructArrayPublisher<Pose3d> aimLinePublisher;
-
     public TurretTracker(final TurretTrackerContext context, final Drivetrain drivetrain) {
         this.context = requireNonNull(context, "TurretTrackerContext cannot be null");
         this.drivetrain = requireNonNull(drivetrain, "Drivetrain cannot be null");
+        this.visualizer = new TurretTrackerVisualizer(context);
 
         AprilTagFieldLayout fieldLayout = AprilTagFieldLayout.loadField(AprilTagFields.kDefaultField);
         this.fieldLengthMeters = fieldLayout.getFieldLength();
@@ -115,34 +99,8 @@ public class TurretTracker extends SubsystemBase {
         this.blueHubCenter = computeHubCenter(fieldLayout, Constants.Hub.BLUE_FACES);
         this.redHubCenter = computeHubCenter(fieldLayout, Constants.Hub.RED_FACES);
 
-        // Initialize Mechanism2d visualization
-        double size = context.getMechanism2dSize();
-        this.mechanism2d = new Mechanism2d(size, size);
-        MechanismRoot2d root = mechanism2d.getRoot("turret", size / 2.0, size / 2.0);
-
-        // Turret aim arm
-        this.turretArm = root.append(
-                new MechanismLigament2d("arm", context.getMechanismArmLength(), 90, 6, new Color8Bit(Color.kGreen)));
-
-        // Range limit indicators (thin, faint lines)
-        double halfRange = context.getTurretRangeOfMotionDegrees() / 2.0;
-        root.append(new MechanismLigament2d(
-                "limitCW", context.getMechanismArmLength() * 0.7, 90 - halfRange, 2, new Color8Bit(Color.kGray)));
-        root.append(new MechanismLigament2d(
-                "limitCCW", context.getMechanismArmLength() * 0.7, 90 + halfRange, 2, new Color8Bit(Color.kGray)));
-
-        // Initialize NT publishers for AdvantageScope
-        NetworkTableInstance nti = NetworkTableInstance.getDefault();
-        this.aimPose3dPublisher =
-                nti.getStructTopic("TurretTracker/AimPose3d", Pose3d.struct).publish();
-        this.targetPose3dPublisher =
-                nti.getStructTopic("TurretTracker/TargetPose3d", Pose3d.struct).publish();
-        this.aimLinePublisher =
-                nti.getStructArrayTopic("TurretTracker/AimLine", Pose3d.struct).publish();
-
         // Register telemetry
         Telemetry.registerSubsystem(TELEMETRY_PREFIX, this::captureTelemetry);
-        Telemetry.putData("TurretTracker/Mechanism", mechanism2d);
 
         Telemetry.publish("TurretTracker/Status", "Initialized", TelemetryLevel.MATCH);
         Telemetry.publish(
@@ -238,9 +196,8 @@ public class TurretTracker extends SubsystemBase {
             turretAngleDegrees = Math.copySign(halfRange, rawAngleDegrees);
         }
 
-        // Update all visualizations
-        updateMechanism2d();
-        updateAdvantageScope(robotPose, activeTarget);
+        // Update AdvantageScope visualization
+        visualizer.update(robotPose, activeTarget, turretAngleDegrees, elevationAngleDegrees, trackingMode);
     }
 
     private Translation2d resolveHubCenter() {
@@ -309,65 +266,6 @@ public class TurretTracker extends SubsystemBase {
         }
 
         return new Translation2d(passX, passY);
-    }
-
-    private void updateMechanism2d() {
-        // Mechanism2d: 0 deg = right (east), 90 deg = up (north/forward)
-        // turretAngleDegrees: 0 deg = robot forward, positive = CCW
-        // So mechanism angle = 90 + turretAngleDegrees
-        turretArm.setAngle(90.0 + turretAngleDegrees);
-
-        // Color: green = shooting & in range, yellow = passing & in range, red = out of range
-        Color8Bit armColor;
-        if (!targetInRange) {
-            armColor = new Color8Bit(Color.kRed);
-        } else if (trackingMode == TrackingMode.PASSING) {
-            armColor = new Color8Bit(Color.kDarkTurquoise);
-        } else {
-            armColor = new Color8Bit(Color.kGreen);
-        }
-        turretArm.setColor(armColor);
-    }
-
-    private void updateAdvantageScope(Pose2d robotPose, Translation2d hubCenter) {
-        // Field-relative aim direction
-        double aimFieldAngleRad = robotPose.getRotation().getRadians() + Units.degreesToRadians(turretAngleDegrees);
-
-        // Aim pose at robot position, pointed toward active target with elevation pitch
-        double elevPitchRad = Units.degreesToRadians(elevationAngleDegrees);
-        Pose3d aimPose = new Pose3d(
-                robotPose.getX(),
-                robotPose.getY(),
-                context.getTurretHeightMeters(),
-                new Rotation3d(0, -elevPitchRad, aimFieldAngleRad));
-        aimPose3dPublisher.set(aimPose);
-
-        // Active target as a Pose3d at the actual target height
-        double activeTargetZ = (trackingMode == TrackingMode.SHOOTING)
-                ? context.getShootingTargetHeightMeters()
-                : context.getPassingTargetHeightMeters();
-        Pose3d targetPose = new Pose3d(hubCenter.getX(), hubCenter.getY(), activeTargetZ, new Rotation3d());
-        targetPose3dPublisher.set(targetPose);
-
-        // Aim line: array of 2 Pose3d from turret to aim vector endpoint.
-        // In shooting mode the line pitches upward toward the hub intake height;
-        // in passing mode it stays flat (elevation = 0).
-        double turretZ = context.getTurretHeightMeters();
-        double elevationRad = Units.degreesToRadians(elevationAngleDegrees);
-        double aimLength = context.getAimVectorLengthMeters();
-
-        // Horizontal projection of the aim vector (shortened by pitch)
-        double horizontalLength = aimLength * Math.cos(elevationRad);
-        double endX = robotPose.getX() + horizontalLength * Math.cos(aimFieldAngleRad);
-        double endY = robotPose.getY() + horizontalLength * Math.sin(aimFieldAngleRad);
-        double endZ = turretZ + aimLength * Math.sin(elevationRad);
-
-        // Rotation3d: roll=0, pitch=-elevation (WPILib pitch is nose-down positive), yaw=aim heading
-        Rotation3d aimRot = new Rotation3d(0, -elevationRad, aimFieldAngleRad);
-        Pose3d[] aimLine = new Pose3d[] {
-            new Pose3d(robotPose.getX(), robotPose.getY(), turretZ, aimRot), new Pose3d(endX, endY, endZ, aimRot),
-        };
-        aimLinePublisher.set(aimLine);
     }
 
     private void captureTelemetry(String prefix) {

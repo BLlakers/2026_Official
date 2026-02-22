@@ -244,13 +244,15 @@ public class RobotContainer {
         // Manipulator Controller - Climb Subsystem commands (only if climb is enabled)
         // TODO: Confirm all button assignments with drive team before first climb test.
         //
-        // A button  → climb next bar (retract to engage hooks; auto-stops; interruptible by bumpers)
-        // B button  → extend telescope up to next bar (position-based, auto-stops; interruptible)
-        // LB (held) → manual retract override (holds on release; interrupts any position command)
-        // RB (held) → manual extend override  (holds on release; interrupts any position command)
+        // A button    → climb next bar (retract to engage hooks; auto-stops; interruptible by bumpers)
+        // B button    → extend telescope up to next bar (position-based, auto-stops; interruptible)
+        // Back button → manual re-home (use if climb drifted or auto-home didn't complete cleanly)
+        // LB (held)   → manual retract override (holds on release; interrupts any position command)
+        // RB (held)   → manual extend override  (holds on release; interrupts any position command)
         if (this.climbSubsystem != null) {
             this.manipController.a().onTrue(this.climbSubsystem.getClimbNextBarCommand());
             this.manipController.b().onTrue(this.climbSubsystem.getExtendToBarCommand());
+            this.manipController.back().onTrue(this.climbSubsystem.getHomingCommand());
             this.manipController.leftBumper().whileTrue(this.climbSubsystem.getManualRetractCommand());
             this.manipController.rightBumper().whileTrue(this.climbSubsystem.getManualExtendCommand());
         }

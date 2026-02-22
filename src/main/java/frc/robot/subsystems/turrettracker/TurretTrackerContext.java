@@ -48,18 +48,6 @@ public class TurretTrackerContext {
     private final double aimVectorLengthMeters = 3.0;
 
     /**
-     * Mechanism2d canvas size in pixels (square).
-     */
-    @Builder.Default
-    private final double mechanism2dSize = 100.0;
-
-    /**
-     * Mechanism2d turret arm length in pixels.
-     */
-    @Builder.Default
-    private final double mechanismArmLength = 40.0;
-
-    /**
      * Creates a default configuration.
      */
     public static TurretTrackerContext defaults() {

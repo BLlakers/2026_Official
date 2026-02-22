@@ -130,8 +130,7 @@ public class ClimbVisualizer {
         //   linearTravel = |encoderRotations| × spoolCircumference / gearRatio
         double assemblyShiftZ = 0.0;
         if (isHomed && encoderPosition < 0.0 && context.getGearRatio() > 0.0) {
-            assemblyShiftZ =
-                    Math.abs(encoderPosition) * context.getSpoolCircumferenceMeters() / context.getGearRatio();
+            assemblyShiftZ = Math.abs(encoderPosition) * context.getSpoolCircumferenceMeters() / context.getGearRatio();
         }
 
         // Telescope base starts at a small offset above ground, shifted up when through-frame

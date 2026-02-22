@@ -5,20 +5,10 @@ import edu.wpi.first.apriltag.AprilTagFields;
 import edu.wpi.first.math.Matrix;
 import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.geometry.Pose2d;
-import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.math.geometry.Rotation3d;
-import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
-import edu.wpi.first.networktables.NetworkTableInstance;
-import edu.wpi.first.networktables.StructArrayPublisher;
 import edu.wpi.first.wpilibj.RobotBase;
-import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
-import edu.wpi.first.wpilibj.smartdashboard.MechanismLigament2d;
-import edu.wpi.first.wpilibj.smartdashboard.MechanismRoot2d;
-import edu.wpi.first.wpilibj.util.Color;
-import edu.wpi.first.wpilibj.util.Color8Bit;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.subsystems.drivetrain.Drivetrain;
 import frc.robot.support.Telemetry;
@@ -47,7 +37,7 @@ import org.photonvision.targeting.PhotonTrackedTarget;
  * - Dynamic standard deviation calculation
  * - Full simulation support with VisionSystemSim
  * - Rejection logic for poor vision estimates
- * - FOV cone visualization for AdvantageScope and Mechanism2d
+ * - FOV cone visualization for AdvantageScope via {@link VisionVisualizer}
  */
 public class VisionSubsystem extends SubsystemBase {
 
@@ -63,6 +53,7 @@ public class VisionSubsystem extends SubsystemBase {
     private final VisionSubsystemContext context;
     private final Drivetrain drivetrain;
     private final VisionMeasurementConsumer visionMeasurementConsumer;
+    private final VisionVisualizer visualizer;
     private final PhotonCamera frontRightCamera;
     private final PhotonCamera frontLeftCamera;
     private final PhotonCamera rightSideCamera;
@@ -82,13 +73,6 @@ public class VisionSubsystem extends SubsystemBase {
     private PhotonCameraSim rightSideCameraSim;
     private PhotonCameraSim leftSideCameraSim;
 
-    // FOV visualization publishers (simulation only)
-    private StructArrayPublisher<Pose3d> frontRightFovPublisher;
-    private StructArrayPublisher<Pose3d> frontLeftFovPublisher;
-    private StructArrayPublisher<Pose3d> rightSideFovPublisher;
-    private StructArrayPublisher<Pose3d> leftSideFovPublisher;
-    private Mechanism2d cameraLayoutMech;
-
     /**
      * Creates a new VisionSubsystem with the provided configuration.
      *
@@ -104,6 +88,7 @@ public class VisionSubsystem extends SubsystemBase {
         this.drivetrain = Objects.requireNonNull(drivetrain, "Drivetrain cannot be null");
         this.visionMeasurementConsumer =
                 Objects.requireNonNull(visionMeasurementConsumer, "VisionMeasurementConsumer cannot be null");
+        this.visualizer = new VisionVisualizer(context);
 
         // Initialize PhotonVision cameras
         this.frontRightCamera = new PhotonCamera(context.getFrontRightCameraName());
@@ -130,11 +115,6 @@ public class VisionSubsystem extends SubsystemBase {
         // To disable, set enableSimulation=false in VisionSubsystemContext.
         if (RobotBase.isSimulation() && context.isEnableSimulation()) {
             initializeSimulation();
-        }
-
-        // Initialize FOV visualization if enabled
-        if (RobotBase.isSimulation() && context.isEnableFovVisualization()) {
-            initializeFovVisualization();
         }
 
         // Set up initial telemetry values
@@ -206,41 +186,6 @@ public class VisionSubsystem extends SubsystemBase {
         props.setAvgLatencyMs(context.getCameraAvgLatencyMs());
         props.setLatencyStdDevMs(context.getCameraLatencyStddevMs());
         return props;
-    }
-
-    /**
-     * Initializes FOV cone visualization for AdvantageScope and Mechanism2d.
-     * Creates NT publishers for Pose2d arrays (rendered as lines on 2D field)
-     * and a Mechanism2d showing the top-down camera layout.
-     */
-    private void initializeFovVisualization() {
-        NetworkTableInstance nti = NetworkTableInstance.getDefault();
-
-        frontRightFovPublisher = nti.getStructArrayTopic("Vision/FrontRight/FOVCone", Pose3d.struct)
-                .publish();
-        frontLeftFovPublisher = nti.getStructArrayTopic("Vision/FrontLeft/FOVCone", Pose3d.struct)
-                .publish();
-        rightSideFovPublisher = nti.getStructArrayTopic("Vision/RightSide/FOVCone", Pose3d.struct)
-                .publish();
-        leftSideFovPublisher = nti.getStructArrayTopic("Vision/LeftSide/FOVCone", Pose3d.struct)
-                .publish();
-
-        // Mechanism2d: top-down camera layout (robot center, 4 directional lines)
-        double mechSize = 100.0;
-        cameraLayoutMech = new Mechanism2d(mechSize, mechSize);
-        MechanismRoot2d center = cameraLayoutMech.getRoot("robotCenter", mechSize / 2.0, mechSize / 2.0);
-
-        // Mechanism2d angles: 0=right, 90=up (forward). Camera yaw is relative to forward.
-        // Front-right at yaw=-30deg: mechanism angle = 90 + (-30) = 60
-        center.append(new MechanismLigament2d("frontRightCam", 30, 90 - 30, 2, new Color8Bit(Color.kOrange)));
-        // Front-left at yaw=+30deg: mechanism angle = 90 + 30 = 120
-        center.append(new MechanismLigament2d("frontLeftCam", 30, 90 + 30, 2, new Color8Bit(Color.kYellow)));
-        // Right-side at yaw=-120deg: mechanism angle = 90 + (-120) = -30
-        center.append(new MechanismLigament2d("rightSideCam", 30, -30, 2, new Color8Bit(Color.kCyan)));
-        // Left-side at yaw=+120deg: mechanism angle = 90 + 120 = 210
-        center.append(new MechanismLigament2d("leftSideCam", 30, 210, 2, new Color8Bit(Color.kMagenta)));
-
-        Telemetry.putData("Vision/CameraLayout", cameraLayoutMech);
     }
 
     /**
@@ -415,73 +360,8 @@ public class VisionSubsystem extends SubsystemBase {
         if (visionSim != null) {
             Pose2d robotPose = drivetrain.getPose2dEstimator();
             visionSim.update(robotPose);
-
-            if (context.isEnableFovVisualization()) {
-                updateFovVisualization(robotPose);
-            }
+            visualizer.update(robotPose);
         }
-    }
-
-    /**
-     * Computes field-relative FOV cone edges for each camera and publishes
-     * as Pose3d arrays for AdvantageScope 3D field overlay at the camera's
-     * mounted height. Each FOV cone is a 3-point V shape:
-     * [left edge, camera position, right edge].
-     */
-    private void updateFovVisualization(Pose2d robotPose) {
-        double rayLength = context.getFovVisualizationRayLength();
-        double halfFovRad = Math.toRadians(context.getCameraFovDegrees() / 2.0);
-
-        publishCameraFov(
-                frontRightFovPublisher, robotPose, context.getFrontRightCameraToRobot(), halfFovRad, rayLength);
-        publishCameraFov(frontLeftFovPublisher, robotPose, context.getFrontLeftCameraToRobot(), halfFovRad, rayLength);
-        publishCameraFov(rightSideFovPublisher, robotPose, context.getRightSideCameraToRobot(), halfFovRad, rayLength);
-        publishCameraFov(leftSideFovPublisher, robotPose, context.getLeftSideCameraToRobot(), halfFovRad, rayLength);
-    }
-
-    /**
-     * Publishes a single camera's FOV cone as a V-shaped Pose3d array.
-     * Projects the camera position and FOV edges onto the field coordinate system
-     * at the camera's mounted Z height.
-     */
-    private void publishCameraFov(
-            StructArrayPublisher<Pose3d> publisher,
-            Pose2d robotPose,
-            Transform3d cameraToRobot,
-            double halfFovRad,
-            double rayLength) {
-        if (publisher == null) return;
-
-        // Camera position in field coordinates (rotate robot-relative offset by robot heading)
-        double robotHeading = robotPose.getRotation().getRadians();
-        double cosH = Math.cos(robotHeading);
-        double sinH = Math.sin(robotHeading);
-        double camX = robotPose.getX() + cameraToRobot.getX() * cosH - cameraToRobot.getY() * sinH;
-        double camY = robotPose.getY() + cameraToRobot.getX() * sinH + cameraToRobot.getY() * cosH;
-        double camZ = cameraToRobot.getZ();
-
-        // Camera heading in field coordinates (robot heading + camera yaw)
-        double cameraYaw = cameraToRobot.getRotation().getZ();
-        double camHeading = robotHeading + cameraYaw;
-
-        // Left and right edges of FOV
-        double leftAngle = camHeading + halfFovRad;
-        double leftX = camX + rayLength * Math.cos(leftAngle);
-        double leftY = camY + rayLength * Math.sin(leftAngle);
-
-        double rightAngle = camHeading - halfFovRad;
-        double rightX = camX + rayLength * Math.cos(rightAngle);
-        double rightY = camY + rayLength * Math.sin(rightAngle);
-
-        Rotation3d leftRot = new Rotation3d(0, 0, leftAngle);
-        Rotation3d camRot = new Rotation3d(0, 0, camHeading);
-        Rotation3d rightRot = new Rotation3d(0, 0, rightAngle);
-
-        Pose3d leftEdge = new Pose3d(leftX, leftY, camZ, leftRot);
-        Pose3d camPose = new Pose3d(camX, camY, camZ, camRot);
-        Pose3d rightEdge = new Pose3d(rightX, rightY, camZ, rightRot);
-
-        publisher.set(new Pose3d[] {leftEdge, camPose, rightEdge});
     }
 
     /**

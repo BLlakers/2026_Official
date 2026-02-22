@@ -80,7 +80,7 @@ public class VisionSubsystemContext {
      */
     @Builder.Default
     private final Transform3d rightSideCameraToRobot = new Transform3d(
-            new Translation3d(0.30, -0.25, 0.2286), new Rotation3d(0, Math.toRadians(-15), Math.toRadians(-120)));
+            new Translation3d(0.30, -0.25, 0.2286), new Rotation3d(0, Math.toRadians(-15), Math.toRadians(-135)));
 
     /**
      * Transform from robot center to left-side camera optical center.
@@ -90,7 +90,7 @@ public class VisionSubsystemContext {
      */
     @Builder.Default
     private final Transform3d leftSideCameraToRobot = new Transform3d(
-            new Translation3d(0.30, 0.25, 0.2286), new Rotation3d(0, Math.toRadians(-15), Math.toRadians(120)));
+            new Translation3d(0.30, 0.25, 0.2286), new Rotation3d(0, Math.toRadians(-15), Math.toRadians(135)));
 
     /**
      * Whether to enable simulation features (VisionSystemSim)
