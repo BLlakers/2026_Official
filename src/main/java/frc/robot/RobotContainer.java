@@ -19,6 +19,8 @@ import frc.robot.subsystems.climb.ClimbSubsystem;
 import frc.robot.subsystems.climb.ClimbSubsystemContext;
 import frc.robot.subsystems.drivetrain.Drivetrain;
 import frc.robot.subsystems.drivetrain.DrivetrainContext;
+import frc.robot.subsystems.hopper.HopperSubsystem;
+import frc.robot.subsystems.hopper.HopperSubsystemContext;
 import frc.robot.subsystems.turrettracker.TurretTracker;
 import frc.robot.subsystems.turrettracker.TurretTrackerContext;
 import frc.robot.subsystems.vision.VisionSubsystem;
@@ -36,6 +38,8 @@ public class RobotContainer {
     private final Drivetrain driveTrain = new Drivetrain(drivetrainContext);
 
     private final ClimbSubsystem climbSubsystem;
+
+    private final HopperSubsystem hopperSubsystem;
 
     private final VisionSubsystem visionSubsystem;
 
@@ -75,6 +79,9 @@ public class RobotContainer {
                 ? new ClimbSubsystem(ClimbSubsystemContext.defaults(), this.driveTrain)
                 : null;
 
+        this.hopperSubsystem =
+                Constants.FeatureFlags.ENABLE_HOPPER ? new HopperSubsystem(HopperSubsystemContext.defaults()) : null;
+
         this.visionSubsystem = Constants.FeatureFlags.ENABLE_VISION
                 ? new VisionSubsystem(
                         VisionSubsystemContext.builder()
@@ -90,6 +97,7 @@ public class RobotContainer {
 
         this.driveTrain.setName("DriveTrain");
         if (this.climbSubsystem != null) this.climbSubsystem.setName("ClimbSubsystem");
+        if (this.hopperSubsystem != null) this.hopperSubsystem.setName("HopperSubsystem");
         if (this.visionSubsystem != null) this.visionSubsystem.setName("VisionSubsystem");
         if (this.turretTracker != null) this.turretTracker.setName("TurretTracker");
 
@@ -127,6 +135,10 @@ public class RobotContainer {
 
     public ClimbSubsystem getClimbSubsystem() {
         return climbSubsystem;
+    }
+
+    public HopperSubsystem getHopperSubsystem() {
+        return hopperSubsystem;
     }
 
     public LedStrand getLedStrand() {
@@ -180,6 +192,15 @@ public class RobotContainer {
             NamedCommands.registerCommand("ClimbExtend", this.climbSubsystem.getExtendToBarCommand());
             NamedCommands.registerCommand("ClimbNextBar", this.climbSubsystem.getClimbNextBarCommand());
             NamedCommands.registerCommand("ClimbStop", this.climbSubsystem.getStopCommand());
+        }
+
+        // Hopper subsystem commands (only if hopper is enabled)
+        if (this.hopperSubsystem != null) {
+            NamedCommands.registerCommand("HopperHome", this.hopperSubsystem.getHomingCommand());
+            NamedCommands.registerCommand("HopperRaise", this.hopperSubsystem.getRaiseCommand());
+            NamedCommands.registerCommand("HopperLower", this.hopperSubsystem.getLowerCommand());
+            NamedCommands.registerCommand("HopperIntake", this.hopperSubsystem.getIntakeCommand());
+            NamedCommands.registerCommand("HopperStop", this.hopperSubsystem.getStopCommand());
         }
     }
 
@@ -236,6 +257,22 @@ public class RobotContainer {
             this.manipController.leftBumper().whileTrue(this.climbSubsystem.getManualRetractCommand());
             this.manipController.rightBumper().whileTrue(this.climbSubsystem.getManualExtendCommand());
         }
+
+        // Driver Controller + Manipulator Controller - Hopper commands (only if hopper is enabled)
+        // TODO: Confirm all button assignments with drive team before first hopper test.
+        //
+        // Driver RB (held)   → intake rollers spin in to collect balls
+        // Driver LB (held)   → intake rollers reverse to eject
+        // Manip Y button     → raise hopper to stowed position (for climb)
+        // Manip X button     → lower hopper to match position
+        // Manip Start button → re-home the hopper lift (lowers to bumper contact, zeros encoders)
+        if (this.hopperSubsystem != null) {
+            this.driverController.rightBumper().whileTrue(this.hopperSubsystem.getIntakeCommand());
+            this.driverController.leftBumper().whileTrue(this.hopperSubsystem.getReverseCommand());
+            this.manipController.y().onTrue(this.hopperSubsystem.getRaiseCommand());
+            this.manipController.x().onTrue(this.hopperSubsystem.getLowerCommand());
+            this.manipController.start().onTrue(this.hopperSubsystem.getHomingCommand());
+        }
     }
 
     private void configureShuffleboard() {
@@ -245,6 +282,7 @@ public class RobotContainer {
         Telemetry.putData(this.driveTrain);
         Telemetry.putData(this.driveTrain.getName() + "/Reset Pose 2D", this.driveTrain.getResetOdometryCommand());
         if (this.climbSubsystem != null) Telemetry.putData(this.climbSubsystem);
+        if (this.hopperSubsystem != null) Telemetry.putData(this.hopperSubsystem);
         if (this.visionSubsystem != null) Telemetry.putData(this.visionSubsystem);
         if (this.turretTracker != null) Telemetry.putData(this.turretTracker);
 

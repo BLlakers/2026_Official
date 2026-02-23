@@ -21,6 +21,7 @@ public final class Constants {
         public static final boolean ENABLE_LED_STRAND = false;
         public static final boolean ENABLE_VISION = true;
         public static final boolean ENABLE_CLIMB = true;
+        public static final boolean ENABLE_HOPPER = false;
     }
 
     public static final class DriverLabels {
@@ -248,6 +249,107 @@ public final class Constants {
          * TODO: measure from CAD / physical robot.
          */
         public static final double TELESCOPE_SIDE_OFFSET_METERS = 0.340;
+    }
+
+    /**
+     * Constants for the Hopper subsystem.
+     *
+     * <p>The hopper collects fuel balls via a roller chain and captures them in an on-robot fabric
+     * bag. A 2-motor lift (25:1 NEO) raises or lowers the entire hopper assembly to satisfy the
+     * frame-perimeter size rule. A single NEO Vortex (1:1) drives the intake rollers.
+     *
+     * <p>Encoder zero = hopper fully lowered (bumper contact). Positive = hopper raised.
+     * All speeds and setpoints are TODO until physical testing.
+     */
+    public static class HopperConstants {
+
+        // -------------------------------------------------------------------------
+        // CAN IDs — confirm with build team before first power-on
+        // -------------------------------------------------------------------------
+
+        /** CAN ID for the roller NEO Vortex (SparkFlex). */
+        public static final int ROLLER_MOTOR_ID = 13;
+
+        /** CAN ID for lift motor 1 (NEO / SparkMax — right side). */
+        public static final int LIFT_MOTOR_1_ID = 14;
+
+        /** CAN ID for lift motor 2 (NEO / SparkMax — left side, likely inverted). */
+        public static final int LIFT_MOTOR_2_ID = 15;
+
+        // -------------------------------------------------------------------------
+        // Current limits
+        // -------------------------------------------------------------------------
+
+        public static final int ROLLER_CURRENT_LIMIT = 40; // amps
+        public static final int LIFT_CURRENT_LIMIT = 40; // amps
+
+        // -------------------------------------------------------------------------
+        // Gear ratio
+        // -------------------------------------------------------------------------
+
+        /** Gear reduction between NEO shaft and lift output. 25:1. */
+        public static final double LIFT_GEAR_RATIO = 25.0;
+
+        // -------------------------------------------------------------------------
+        // Roller speeds [-1.0, 1.0]
+        // -------------------------------------------------------------------------
+
+        /** Intake speed — rollers spin inward to collect balls. Positive. */
+        public static final double INTAKE_SPEED = 1.0; // TODO: tune
+
+        /** Reverse speed — rollers spin outward to eject. Negative. */
+        public static final double REVERSE_SPEED = -0.5; // TODO: tune
+
+        // -------------------------------------------------------------------------
+        // Lift speeds [-1.0, 1.0]
+        // Convention: positive = raise hopper, negative = lower hopper
+        // -------------------------------------------------------------------------
+
+        /** Speed for raising hopper to stowed position. Positive. */
+        public static final double RAISE_SPEED = 0.4; // TODO: tune
+
+        /**
+         * Speed for lowering hopper to match position.
+         * Negative; kept slower than raise since gravity assists.
+         */
+        public static final double LOWER_SPEED = -0.3; // TODO: tune
+
+        /**
+         * Speed for homing — slow downward creep until bumper contact is detected via current.
+         * Negative. Kept slow to avoid hard impact.
+         */
+        public static final double HOMING_SPEED = -0.15; // TODO: tune
+
+        // -------------------------------------------------------------------------
+        // Homing — bumper-contact current detection
+        // -------------------------------------------------------------------------
+
+        /**
+         * Current threshold (amps) that signals the hopper has reached the bumper hardstop.
+         * Homing stops when EITHER lift motor exceeds this threshold.
+         *
+         * <p>Tune empirically: run homing on a flat surface, watch
+         * {@code Hopper/Lift/Motor1/Current} and {@code Hopper/Lift/Motor2/Current},
+         * note the spike when the assembly contacts the bumpers, then set just below it.
+         */
+        public static final double HOMING_CURRENT_THRESHOLD_AMPS = 20.0; // TODO: tune empirically
+
+        // -------------------------------------------------------------------------
+        // Encoder setpoints (lift motor rotations from homed zero)
+        // Zero = fully lowered (bumper contact). Positive = hopper raised.
+        // -------------------------------------------------------------------------
+
+        /** Encoder position at fully-lowered (normal match) position. Zeroed by homing. */
+        public static final double LOWERED_POSITION_ROTATIONS = 0.0;
+
+        /** Encoder position at fully-raised (stowed for climb) position. TODO: measure. */
+        public static final double RAISED_POSITION_ROTATIONS = 50.0; // TODO: measure empirically
+
+        /**
+         * Acceptable position error (rotations) for setpoint commands.
+         * TODO: tighten after physical testing.
+         */
+        public static final double POSITION_TOLERANCE_ROTATIONS = 1.0;
     }
 
     public abstract class RobotVersionConstants {
