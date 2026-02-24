@@ -4,9 +4,10 @@ import static edu.wpi.first.units.Units.Inches;
 import static edu.wpi.first.units.Units.Meters;
 
 import com.pathplanner.lib.util.FlippingUtil;
-import edu.wpi.first.math.geometry.*;
+import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.geometry.Translation2d;
 import frc.robot.support.DIOChannel;
-import frc.robot.support.RobotVersion;
 import java.util.Arrays;
 import java.util.List;
 
@@ -21,7 +22,7 @@ public final class Constants {
         public static final boolean ENABLE_LED_STRAND = false;
         public static final boolean ENABLE_VISION = false;
         public static final boolean ENABLE_CLIMB = false;
-        public static final boolean ENABLE_HOPPER = false;
+        public static final boolean ENABLE_INTAKE = false;
     }
 
     public static final class DriverLabels {
@@ -88,7 +89,7 @@ public final class Constants {
 
         public static final int BACK_LEFT_DRIVE_CHANNEL = 7;
         public static final int BACK_LEFT_TURN_CHANNEL = 8;
-        
+
         public static final int CLIMB_DRIVE_CHANNEL = 12;
 
         public static final int FRONT_LEFT_TURN_ENCODER_DIO_CHANNEL = DIOChannel.ZERO.getChannel();
@@ -258,16 +259,16 @@ public final class Constants {
     }
 
     /**
-     * Constants for the Hopper subsystem.
+     * Constants for the Intake subsystem.
      *
-     * <p>The hopper collects fuel balls via a roller chain and captures them in an on-robot fabric
-     * bag. A 2-motor lift (25:1 NEO) raises or lowers the entire hopper assembly to satisfy the
+     * <p>The intake collects fuel balls via a roller chain and captures them in an on-robot fabric
+     * bag. A 2-motor lift (25:1 NEO) raises or lowers the entire intake assembly to satisfy the
      * frame-perimeter size rule. A single NEO Vortex (1:1) drives the intake rollers.
      *
-     * <p>Encoder zero = hopper fully lowered (bumper contact). Positive = hopper raised.
+     * <p>Encoder zero = intake fully lowered (bumper contact). Positive = intake raised.
      * All speeds and setpoints are TODO until physical testing.
      */
-    public static class HopperConstants {
+    public static class IntakeConstants {
 
         // -------------------------------------------------------------------------
         // CAN IDs — confirm with build team before first power-on
@@ -308,14 +309,14 @@ public final class Constants {
 
         // -------------------------------------------------------------------------
         // Lift speeds [-1.0, 1.0]
-        // Convention: positive = raise hopper, negative = lower hopper
+        // Convention: positive = raise intake, negative = lower intake
         // -------------------------------------------------------------------------
 
-        /** Speed for raising hopper to stowed position. Positive. */
+        /** Speed for raising intake to stowed position. Positive. */
         public static final double RAISE_SPEED = 0.4; // TODO: tune
 
         /**
-         * Speed for lowering hopper to match position.
+         * Speed for lowering intake to match position.
          * Negative; kept slower than raise since gravity assists.
          */
         public static final double LOWER_SPEED = -0.3; // TODO: tune
@@ -331,18 +332,18 @@ public final class Constants {
         // -------------------------------------------------------------------------
 
         /**
-         * Current threshold (amps) that signals the hopper has reached the bumper hardstop.
+         * Current threshold (amps) that signals the intake has reached the bumper hardstop.
          * Homing stops when EITHER lift motor exceeds this threshold.
          *
          * <p>Tune empirically: run homing on a flat surface, watch
-         * {@code Hopper/Lift/Motor1/Current} and {@code Hopper/Lift/Motor2/Current},
+         * {@code Intake/Lift/Motor1/Current} and {@code Intake/Lift/Motor2/Current},
          * note the spike when the assembly contacts the bumpers, then set just below it.
          */
         public static final double HOMING_CURRENT_THRESHOLD_AMPS = 20.0; // TODO: tune empirically
 
         // -------------------------------------------------------------------------
         // Encoder setpoints (lift motor rotations from homed zero)
-        // Zero = fully lowered (bumper contact). Positive = hopper raised.
+        // Zero = fully lowered (bumper contact). Positive = intake raised.
         // -------------------------------------------------------------------------
 
         /** Encoder position at fully-lowered (normal match) position. Zeroed by homing. */
@@ -358,14 +359,7 @@ public final class Constants {
         public static final double POSITION_TOLERANCE_ROTATIONS = 1.0;
     }
 
-    public abstract class RobotVersionConstants {
-        public static final double flTurnEncoderOffset = 0;
-        public static final double frTurnEncoderOffset = 0;
-        public static final double blTurnEncoderOffset = 0;
-        public static final double brTurnEncoderOffset = 0;
-    }
-
-    public class RobotVersion2026 extends RobotVersionConstants {
+    public class TurnEncoderOffsets {
         public static final double flTurnEncoderOffset = 4.815;
         public static final double frTurnEncoderOffset = 1.699;
         public static final double blTurnEncoderOffset = 6.056;
@@ -426,6 +420,4 @@ public final class Constants {
                 TwentyTwoLeft,
                 TwentyTwoRightChanged);
     }
-
-    public static final RobotVersion defaultRobotVersion = RobotVersion.v2026;
 }

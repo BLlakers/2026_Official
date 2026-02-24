@@ -1,4 +1,4 @@
-package frc.robot.subsystems.hopper;
+package frc.robot.subsystems.intake;
 
 import static edu.wpi.first.math.system.plant.LinearSystemId.createDCMotorSystem;
 import static java.util.Objects.requireNonNull;
@@ -29,7 +29,7 @@ import frc.robot.support.Telemetry;
 import frc.robot.support.TelemetryLevel;
 
 /**
- * Hopper subsystem for collecting fuel balls off the ground.
+ * Intake subsystem for collecting fuel balls off the ground.
  *
  * <h2>Mechanism Overview</h2>
  * <p>A single NEO Vortex (1:1) drives an intake roller chain that lifts balls and delivers them
@@ -53,18 +53,18 @@ import frc.robot.support.TelemetryLevel;
  *
  * <h2>Build Team TODOs</h2>
  * <ul>
- *   <li>Confirm lift motor inversion — see {@link HopperSubsystemContext#isLiftMotor1Inverted()}
- *       and {@link HopperSubsystemContext#isLiftMotor2Inverted()}</li>
+ *   <li>Confirm lift motor inversion — see {@link IntakeSubsystemContext#isLiftMotor1Inverted()}
+ *       and {@link IntakeSubsystemContext#isLiftMotor2Inverted()}</li>
  *   <li>Confirm roller motor direction — positive output should intake balls inward</li>
  *   <li>Tune {@code homingCurrentThresholdAmps} by watching
- *       {@code Hopper/Lift/Motor1/Current} and {@code Hopper/Lift/Motor2/Current}</li>
+ *       {@code Intake/Lift/Motor1/Current} and {@code Intake/Lift/Motor2/Current}</li>
  *   <li>Measure {@code raisedPositionRotations} on physical robot</li>
  *   <li>Tune all speed constants</li>
  * </ul>
  */
-public class HopperSubsystem extends SubsystemBase {
+public class IntakeSubsystem extends SubsystemBase {
 
-    private static final String TELEMETRY_PREFIX = "Hopper";
+    private static final String TELEMETRY_PREFIX = "Intake";
 
     /** Operating states of the hopper mechanism. */
     public enum State {
@@ -72,19 +72,19 @@ public class HopperSubsystem extends SubsystemBase {
         IDLE,
         /** Lift slowly lowering to find bumper hardstop and zero encoders. */
         HOMING,
-        /** Hopper at lowered (match) position; rollers stopped. */
+        /** Intake at lowered (match) position; rollers stopped. */
         LOWERED,
-        /** Hopper at lowered position; rollers spinning inward to collect balls. */
+        /** Intake at lowered position; rollers spinning inward to collect balls. */
         FEEDING,
-        /** Hopper at lowered position; rollers spinning outward to eject. */
+        /** Intake at lowered position; rollers spinning outward to eject. */
         REVERSING,
         /** Lift moving upward toward stowed position. */
         RAISING,
-        /** Hopper at raised (stowed) position; all motors holding. */
+        /** Intake at raised (stowed) position; all motors holding. */
         RAISED,
     }
 
-    private final HopperSubsystemContext context;
+    private final IntakeSubsystemContext context;
 
     // Motors
     private final SparkFlex rollerMotor; // NEO Vortex
@@ -121,19 +121,19 @@ public class HopperSubsystem extends SubsystemBase {
     // -------------------------------------------------------------------------
 
     /**
-     * Instantiates a HopperSubsystem with default context.
+     * Instantiates a IntakeSubsystem with default context.
      */
-    public HopperSubsystem() {
-        this(HopperSubsystemContext.defaults());
+    public IntakeSubsystem() {
+        this(IntakeSubsystemContext.defaults());
     }
 
     /**
-     * Instantiates a HopperSubsystem with the specified context.
+     * Instantiates a IntakeSubsystem with the specified context.
      *
-     * @param context The HopperSubsystemContext to apply to this instance
+     * @param context The IntakeSubsystemContext to apply to this instance
      */
-    public HopperSubsystem(final HopperSubsystemContext context) {
-        requireNonNull(context, "HopperSubsystemContext cannot be null");
+    public IntakeSubsystem(final IntakeSubsystemContext context) {
+        requireNonNull(context, "IntakeSubsystemContext cannot be null");
         this.context = context;
 
         this.rollerMotor = new SparkFlex(context.getRollerMotorId(), MotorType.kBrushless);
@@ -334,7 +334,7 @@ public class HopperSubsystem extends SubsystemBase {
                         this::holdLift)
                 .until(this::isAtBumperHardstop)
                 .andThen(this.runOnce(this::completeHoming))
-                .withName("Hopper.Home");
+                .withName("Intake.Home");
     }
 
     /**
@@ -362,7 +362,7 @@ public class HopperSubsystem extends SubsystemBase {
                     holdLift();
                     setState(State.RAISED);
                 }))
-                .withName("Hopper.Raise");
+                .withName("Intake.Raise");
     }
 
     /**
@@ -388,7 +388,7 @@ public class HopperSubsystem extends SubsystemBase {
                     holdLift();
                     setState(State.LOWERED);
                 }))
-                .withName("Hopper.Lower");
+                .withName("Intake.Lower");
     }
 
     /**
@@ -409,7 +409,7 @@ public class HopperSubsystem extends SubsystemBase {
                             stopRollers();
                             if (currentState == State.FEEDING) setState(State.LOWERED);
                         })
-                .withName("Hopper.Intake");
+                .withName("Intake.Intake");
     }
 
     /**
@@ -429,7 +429,7 @@ public class HopperSubsystem extends SubsystemBase {
                             stopRollers();
                             if (currentState == State.REVERSING) setState(State.LOWERED);
                         })
-                .withName("Hopper.Reverse");
+                .withName("Intake.Reverse");
     }
 
     /**
@@ -448,7 +448,7 @@ public class HopperSubsystem extends SubsystemBase {
                             holdLift();
                             setState(State.RAISED);
                         })
-                .withName("Hopper.ManualRaise");
+                .withName("Intake.ManualRaise");
     }
 
     /**
@@ -462,7 +462,7 @@ public class HopperSubsystem extends SubsystemBase {
                     holdLift();
                     setState(State.LOWERED);
                 })
-                .withName("Hopper.ManualLower");
+                .withName("Intake.ManualLower");
     }
 
     /**
@@ -475,7 +475,7 @@ public class HopperSubsystem extends SubsystemBase {
                     stopAll();
                     setState(State.IDLE);
                 })
-                .withName("Hopper.Stop");
+                .withName("Intake.Stop");
     }
 
     // -------------------------------------------------------------------------
