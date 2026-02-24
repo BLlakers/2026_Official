@@ -78,14 +78,13 @@ public final class Constants {
 
     public static class Port {
         public static final int FRONT_LEFT_DRIVE_CHANNEL = 1;
-        public static final int FRONT_LEFT_STEER_CHANNEL = 2;
+        public static final int FRONT_LEFT_TURN_CHANNEL = 2;
 
         public static final int FRONT_RIGHT_DRIVE_CHANNEL = 3;
-        public static final int FRONT_RIGHT_STEER_CHANNEL = 4;
-        
+        public static final int FRONT_RIGHT_TURN_CHANNEL = 4;
 
         public static final int BACK_RIGHT_DRIVE_CHANNEL = 5;
-        public static final int BACK_RIGHT_STEER_CHANNEL = 6;
+        public static final int BACK_RIGHT_TURN_CHANNEL = 6;
 
         public static final int BACK_LEFT_DRIVE_CHANNEL = 7;
         public static final int BACK_LEFT_TURN_CHANNEL = 8;
@@ -367,10 +366,10 @@ public final class Constants {
     }
 
     public class RobotVersion2026 extends RobotVersionConstants {
-        public static final double flTurnEncoderOffset = 4.865;
-        public static final double frTurnEncoderOffset = 0.815;
-        public static final double blTurnEncoderOffset = 1.680;
-        public static final double brTurnEncoderOffset = 5.409;
+        public static final double flTurnEncoderOffset = 4.815;
+        public static final double frTurnEncoderOffset = 1.699;
+        public static final double blTurnEncoderOffset = 6.056;
+        public static final double brTurnEncoderOffset = 3.807;
     }
 
     public static final class Poses {

@@ -37,17 +37,17 @@ public class DrivetrainContext {
     private SwerveModuleContext flSwerveContext = SwerveModuleContext.builder()
             .name("Swerve Module/Front Left")
             .driveMotorId(Constants.Port.FRONT_LEFT_DRIVE_CHANNEL)
-            .turningMotorId(Constants.Port.FRONT_LEFT_STEER_CHANNEL)
+            .turningMotorId(Constants.Port.FRONT_LEFT_TURN_CHANNEL)
             .turnEncoderPWMChannel(Constants.Port.FRONT_LEFT_TURN_ENCODER_DIO_CHANNEL)
             .turnOffset(Constants.RobotVersion2026.flTurnEncoderOffset)
-            .inverted(true)
+            .inverted(false)
             .build();
 
     @Builder.Default
     private SwerveModuleContext frSwerveContext = SwerveModuleContext.builder()
             .name("Swerve Module/Front Right")
             .driveMotorId(Constants.Port.FRONT_RIGHT_DRIVE_CHANNEL)
-            .turningMotorId(Constants.Port.FRONT_RIGHT_STEER_CHANNEL)
+            .turningMotorId(Constants.Port.FRONT_RIGHT_TURN_CHANNEL)
             .turnEncoderPWMChannel(Constants.Port.FRONT_RIGHT_TURN_ENCODER_DIO_CHANNEL)
             .turnOffset(Constants.RobotVersion2026.frTurnEncoderOffset)
             .inverted(true)
@@ -57,7 +57,7 @@ public class DrivetrainContext {
     private SwerveModuleContext brSwerveContext = SwerveModuleContext.builder()
             .name("Swerve Module/Back Right")
             .driveMotorId(Constants.Port.BACK_RIGHT_DRIVE_CHANNEL)
-            .turningMotorId(Constants.Port.BACK_RIGHT_STEER_CHANNEL)
+            .turningMotorId(Constants.Port.BACK_RIGHT_TURN_CHANNEL)
             .turnEncoderPWMChannel(Constants.Port.BACK_RIGHT_TURN_ENCODER_DIO_CHANNEL)
             .turnOffset(Constants.RobotVersion2026.brTurnEncoderOffset)
             .inverted(true)
@@ -70,7 +70,7 @@ public class DrivetrainContext {
             .turningMotorId(Constants.Port.BACK_LEFT_TURN_CHANNEL)
             .turnEncoderPWMChannel(Constants.Port.BACK_LEFT_TURN_ENCODER_DIO_CHANNEL)
             .turnOffset(Constants.RobotVersion2026.blTurnEncoderOffset)
-            .inverted(true)
+            .inverted(false)
             .build();
 
     
