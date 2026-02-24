@@ -17,10 +17,10 @@ public final class Constants {
      * Flip these to true as hardware becomes available on the robot.
      */
     public static final class FeatureFlags {
-        public static final boolean ENABLE_TURRET_TRACKER = true;
+        public static final boolean ENABLE_TURRET_TRACKER = false;
         public static final boolean ENABLE_LED_STRAND = false;
-        public static final boolean ENABLE_VISION = true;
-        public static final boolean ENABLE_CLIMB = true;
+        public static final boolean ENABLE_VISION = false;
+        public static final boolean ENABLE_CLIMB = false;
         public static final boolean ENABLE_HOPPER = false;
     }
 
@@ -77,19 +77,26 @@ public final class Constants {
     }
 
     public static class Port {
-        public static final int BACK_LEFT_TURN_CHANNEL = 2;
-        public static final int BACK_LEFT_DRIVE_CHANNEL = 1;
-        public static final int FRONT_LEFT_DRIVE_CHANNEL = 7;
-        public static final int FRONT_LEFT_STEER_CHANNEL = 3;
-        public static final int FRONT_RIGHT_STEER_CHANNEL = 6;
-        public static final int FRONT_RIGHT_DRIVE_CHANNEL = 4;
+        public static final int FRONT_LEFT_DRIVE_CHANNEL = 1;
+        public static final int FRONT_LEFT_STEER_CHANNEL = 2;
+
+        public static final int FRONT_RIGHT_DRIVE_CHANNEL = 3;
+        public static final int FRONT_RIGHT_STEER_CHANNEL = 4;
+        
+
         public static final int BACK_RIGHT_DRIVE_CHANNEL = 5;
-        public static final int BACK_RIGHT_STEER_CHANNEL = 8;
+        public static final int BACK_RIGHT_STEER_CHANNEL = 6;
+
+        public static final int BACK_LEFT_DRIVE_CHANNEL = 7;
+        public static final int BACK_LEFT_TURN_CHANNEL = 8;
+        
         public static final int CLIMB_DRIVE_CHANNEL = 12;
-        public static final int FRONT_RIGHT_TURN_ENCODER_DIO_CHANNEL = DIOChannel.ZERO.getChannel();
-        public static final int FRONT_LEFT_TURN_ENCODER_DIO_CHANNEL = DIOChannel.ONE.getChannel();
+
+        public static final int FRONT_LEFT_TURN_ENCODER_DIO_CHANNEL = DIOChannel.ZERO.getChannel();
+        public static final int FRONT_RIGHT_TURN_ENCODER_DIO_CHANNEL = DIOChannel.ONE.getChannel();
         public static final int BACK_RIGHT_TURN_ENCODER_DIO_CHANNEL = DIOChannel.TWO.getChannel();
         public static final int BACK_LEFT_TURN_ENCODER_DIO_CHANNEL = DIOChannel.THREE.getChannel();
+
         public static final int climbMagSwitchDIOC = DIOChannel.FOUR.getChannel();
     }
 
@@ -360,10 +367,10 @@ public final class Constants {
     }
 
     public class RobotVersion2026 extends RobotVersionConstants {
-        public static final double flTurnEncoderOffset = 3.827;
-        public static final double frTurnEncoderOffset = 5.978;
-        public static final double blTurnEncoderOffset = 1.709;
-        public static final double brTurnEncoderOffset = 4.864;
+        public static final double flTurnEncoderOffset = 4.865;
+        public static final double frTurnEncoderOffset = 0.815;
+        public static final double blTurnEncoderOffset = 1.680;
+        public static final double brTurnEncoderOffset = 5.409;
     }
 
     public static final class Poses {
