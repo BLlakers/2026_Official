@@ -118,7 +118,7 @@ public class SwerveModule extends SubsystemBase {
 
     private SparkMaxConfig assembleTurnMotorConfig() {
         SparkMaxConfig config = new SparkMaxConfig();
-        config.smartCurrentLimit(25); // TODO: Lift into context
+        config.smartCurrentLimit(this.context.getTurnMotorCurrentLimit());
         config.idleMode(IdleMode.kBrake); // TODO: Consider kBrake... should use coast instead?
         return config;
     }
@@ -172,21 +172,16 @@ public class SwerveModule extends SubsystemBase {
         desiredState.optimize(this.lastAngle);
         this.lastAngle = desiredState.angle;
 
-        // Simple proportional turn control matching the proven 2025 approach:
-        // error / 2π normalizes to [-0.5, 0.5], then gain of 1.6 scales to motor output.
+        // Simple proportional turn control: error / 2π normalizes to [-0.5, 0.5], then
+        // gain of 3 scales to motor output (saturates at ±1.5 before clamp).
+        // Output is clamped to ±60% — see NEO_MOTOR_SMOKE_EVENT.md for rationale.
         // MathUtil.angleModulus handles wraparound correctly (always shortest path).
         double angleError = MathUtil.angleModulus(desiredState.angle.getRadians() - currentAngle.getRadians());
-
-        // NOTE: Clamped to 60% after smoke event
-        // https://github.com/BLlakers/2026_Official/wiki/Incident-Report:-Back-Left-Turn-Motor-Failure
         double turnOutput = MathUtil.clamp((angleError / TOTAL_ROTATIONAL_RANGE) * 3, -0.6, 0.6);
-
-        // Smoked
-        // double turnOutput = (angleError / TOTAL_ROTATIONAL_RANGE) * 3;
 
         this.turningMotor.set(-turnOutput);
 
-        double driveMotorPercentPower = desiredState.speedMetersPerSecond / this.context.getTurnMotorMaxSpeed();
+        double driveMotorPercentPower = desiredState.speedMetersPerSecond / this.context.getDriveMotorMaxSpeed();
         this.driveMotor.set(driveMotorPercentPower);
 
         this.publishTelemetry(

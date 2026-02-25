@@ -58,6 +58,10 @@ public class SwerveModuleContext {
     @Builder.Default
     private double turnMotorMaxSpeed = Units.feetToMeters(Constants.MAX_TURN_MOTOR_SPEED);
 
+    @Getter
+    @Builder.Default
+    private int turnMotorCurrentLimit = 25;
+
     // Drive motor: NEO Vortex on SPARK Flex
     @Getter(lazy = true)
     private final TeamSpark driveMotor = createDriveMotor(driveMotorId, MotorType.kBrushless);
