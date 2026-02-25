@@ -132,7 +132,7 @@ public class Drivetrain extends SubsystemBase {
 
         this.context = context;
 
-        this.simVoltsMetPerSec = NOMINAL_BATT_VOLTS / this.getMaxSpeed();
+        this.simVoltsMetPerSec = NOMINAL_BATT_VOLTS / this.getDriveMotorMaxSpeed();
 
         NetworkTableInstance nti = NetworkTableInstance.getDefault();
 
@@ -279,8 +279,8 @@ public class Drivetrain extends SubsystemBase {
                 prefix + "/NavX/AngleAdjustment", this.navXSensorModule.getAngleAdjustment(), TelemetryLevel.VERBOSE);
     }
 
-    public double getMaxSpeed() {
-        return this.context.getMaxSpeed();
+    public double getDriveMotorMaxSpeed() {
+        return this.context.getDriveMotorMaxSpeed();
     }
 
     public double getMaxTurnAngularSpeed() {
@@ -332,7 +332,7 @@ public class Drivetrain extends SubsystemBase {
      * Tells our modules what speed to go to
      */
     private void setModuleStates(SwerveModuleState[] swerveModuleStates) {
-        SwerveDriveKinematics.desaturateWheelSpeeds(swerveModuleStates, SwerveModule.DRIVE_MAX_SPEED);
+        SwerveDriveKinematics.desaturateWheelSpeeds(swerveModuleStates, this.context.getDriveMotorMaxSpeed());
         this.flSwerve.setDesiredState(swerveModuleStates[0]);
         this.frSwerve.setDesiredState(swerveModuleStates[1]);
         this.blSwerve.setDesiredState(swerveModuleStates[2]);

@@ -13,6 +13,12 @@ import java.util.List;
 
 public final class Constants {
 
+    // TODO: Find a better home
+    public static final double MAX_DRIVE_MOTOR_SPEED = 14.25;
+
+    // TODO: Find a better home
+    public static final double MAX_TURN_MOTOR_SPEED = 12.5;
+
     /**
      * Feature flags to enable/disable subsystems during incremental robot bring-up.
      * Flip these to true as hardware becomes available on the robot.
@@ -42,9 +48,16 @@ public final class Constants {
         public static final double kWheelDiameterM = Inches.of(4).in(Meters);
         public static final double wheelRadius = kWheelDiameterM / 2.0;
         public static final double kWheelCircumference = Math.PI * kWheelDiameterM;
+
+        // TODO: Remove these legacy values one once drivetrain is calibrated and validated/calibrated
+        @Deprecated
         public static final double NeoMaxSpeedRPM = 5820;
-        public static final double DriveGearRatio = 8.14;
+
+        // TODO: Remove these legacy values one once drivetrain is calibrated and validated/calibrated
+        @Deprecated
         public static final double TurnGearRatio = 12.8;
+
+        public static final double DriveGearRatio = 8.14;
     }
 
     public static class Controller {

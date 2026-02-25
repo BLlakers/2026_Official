@@ -28,7 +28,7 @@ public class SwerveDriveCommand extends Command {
     public SwerveDriveCommand(final ControllerDelegate controllerDelegate, final Drivetrain drivetrain) {
         this.controllerDelegate = controllerDelegate;
         this.drivetrain = drivetrain;
-        this.driveMaxSpeed = MAX_DRIVE_SPEED_ADJUSTMENT * this.drivetrain.getMaxSpeed();
+        this.driveMaxSpeed = MAX_DRIVE_SPEED_ADJUSTMENT * this.drivetrain.getDriveMotorMaxSpeed();
         this.turnMaxSpeed = MAX_TURN_SPEED_ADJUSTMENT * this.drivetrain.getMaxTurnAngularSpeed();
         addRequirements(this.drivetrain);
     }

@@ -25,7 +25,10 @@ public class DrivetrainContext {
     }
 
     @Builder.Default
-    private double maxSpeed = Units.feetToMeters(14.25); // WP this seemed to work don't know why // 3.68;
+    private double driveMotorMaxSpeed = Units.feetToMeters(Constants.MAX_DRIVE_MOTOR_SPEED);
+
+    @Builder.Default
+    private double turnMotorMaxSpeed = Units.feetToMeters(Constants.MAX_TURN_MOTOR_SPEED);
 
     @Builder.Default
     private PIDSettings lateralMovementPIDSettings = new PIDSettings(3, 0, 0);
@@ -98,7 +101,7 @@ public class DrivetrainContext {
     private SwerveModuleState fullStopAt45Degrees = new SwerveModuleState(0, new Rotation2d((Math.PI / 4)));
 
     public double getMaxTurnAngularSpeed() {
-        return this.maxSpeed / Constants.Drive.SMBackLeftLocation.getNorm(); // 1/2
+        return this.turnMotorMaxSpeed / Constants.Drive.SMBackLeftLocation.getNorm(); // 1/2
     }
 
     public Optional<RobotConfig> getRobotConfig() {

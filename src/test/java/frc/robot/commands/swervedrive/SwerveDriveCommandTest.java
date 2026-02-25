@@ -27,7 +27,7 @@ class SwerveDriveCommandTest {
         // Arrange: stub drivetrain BEFORE command construction
         double maxSpeed = 3.6;
         double maxTurn = Math.PI;
-        when(drivetrain.getMaxSpeed()).thenReturn(maxSpeed);
+        when(drivetrain.getDriveMotorMaxSpeed()).thenReturn(maxSpeed);
         when(drivetrain.getMaxTurnAngularSpeed()).thenReturn(maxTurn);
 
         // Inputs (pick values safely above deadband so we don't get zeroed)

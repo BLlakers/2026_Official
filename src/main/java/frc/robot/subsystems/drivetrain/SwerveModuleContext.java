@@ -1,6 +1,8 @@
 package frc.robot.subsystems.drivetrain;
 
 import com.revrobotics.spark.SparkLowLevel.MotorType;
+import edu.wpi.first.math.util.Units;
+import frc.robot.Constants;
 import frc.robot.Robot;
 import frc.robot.support.PIDSettings;
 import frc.robot.support.sparkmax.TeamSpark;
@@ -47,6 +49,14 @@ public class SwerveModuleContext {
     @Builder.Default
     // Used to scale the normalized angular error into motor power for the turning motor
     private final double rotationalProportionalGain = 0.8;
+
+    @Getter
+    @Builder.Default
+    private double driveMotorMaxSpeed = Units.feetToMeters(Constants.MAX_DRIVE_MOTOR_SPEED);
+
+    @Getter
+    @Builder.Default
+    private double turnMotorMaxSpeed = Units.feetToMeters(Constants.MAX_TURN_MOTOR_SPEED);
 
     // Drive motor: NEO Vortex on SPARK Flex
     @Getter(lazy = true)

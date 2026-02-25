@@ -4,8 +4,6 @@
 
 package frc.robot.subsystems.drivetrain;
 
-import static frc.robot.Constants.Conversion.NeoMaxSpeedRPM;
-import static frc.robot.Constants.Conversion.TurnGearRatio;
 import static java.util.Objects.requireNonNull;
 
 import com.revrobotics.spark.FeedbackSensor;
@@ -14,11 +12,9 @@ import com.revrobotics.spark.SparkBase.ResetMode;
 import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 import com.revrobotics.spark.config.SparkFlexConfig;
 import edu.wpi.first.math.MathUtil;
-import edu.wpi.first.math.controller.ProfiledPIDController;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
-import edu.wpi.first.math.trajectory.TrapezoidProfile;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.util.sendable.SendableBuilder;
 import edu.wpi.first.wpilibj.DutyCycleEncoder;
@@ -42,26 +38,15 @@ public class SwerveModule extends SubsystemBase {
 
     private static final double VELOCITY_CONVERSION_FACTOR = POSITION_CONVERSION_FACTOR / 60;
 
-    public static final double DRIVE_MAX_SPEED = Units.feetToMeters(12.5);
-
     // Below this speed (m/s), we skip optimize() and stop both motors.
     // Prevents turn motor shimmy caused by optimize() freely flipping the
     // desired angle by PI when negating zero speed has no effect.
     private static final double DESIRED_SPEED_DEADBAND = 0.01;
 
-    // meters per second or 12.1 ft/s (max speed of SDS Mk3 with Neo motor)
-    // TODO KMaxSpeed needs to go with enum
-    private static final double MAX_ANGULAR_SPEED =
-            Units.rotationsPerMinuteToRadiansPerSecond(NeoMaxSpeedRPM / TurnGearRatio); // 1/2
-
-    private static final double MAX_ANGULAR_VELOCITY = MAX_ANGULAR_SPEED;
-
-    // radians per second squared
-    private static final double MODULE_MAX_ANGULAR_ACCELERATION = TOTAL_ROTATIONAL_RANGE;
-
     private static final int TURNING_MOTOR_ASSUMED_FREQUENCY = 242;
 
     private final SwerveModuleContext context;
+
     private final String telemetryPrefix;
 
     private final TeamSpark driveMotor;
@@ -69,11 +54,6 @@ public class SwerveModule extends SubsystemBase {
     private final TeamSpark turningMotor;
 
     private final DutyCycleEncoder turningMotorEncoder;
-
-    // Turn PID gain: 2025 used (error / 2π) × 1.6 which is an effective P of ~0.25.
-    // P=1 was far too aggressive and caused turn motor overshoot/oscillation.
-    private final ProfiledPIDController turningController = new ProfiledPIDController(
-            0.25, 0, 0, new TrapezoidProfile.Constraints(MAX_ANGULAR_VELOCITY, MODULE_MAX_ANGULAR_ACCELERATION));
 
     // Retain our last desired state to support simulation
     private SwerveModuleState lastDesiredState = new SwerveModuleState();
@@ -111,9 +91,6 @@ public class SwerveModule extends SubsystemBase {
                 this.assembleDriveMotorConfig(this.context.isInverted()),
                 ResetMode.kResetSafeParameters,
                 PersistMode.kPersistParameters);
-
-        // Limit the PID Controller's input range between -pi and pi and set the input to be continuous.
-        this.turningController.enableContinuousInput(-Math.PI, Math.PI);
     }
 
     /**
@@ -192,7 +169,7 @@ public class SwerveModule extends SubsystemBase {
         double turnOutput = (angleError / TOTAL_ROTATIONAL_RANGE) * 3;
         this.turningMotor.set(-turnOutput);
 
-        double driveMotorPercentPower = desiredState.speedMetersPerSecond / DRIVE_MAX_SPEED;
+        double driveMotorPercentPower = desiredState.speedMetersPerSecond / this.context.getTurnMotorMaxSpeed();
         this.driveMotor.set(driveMotorPercentPower);
 
         this.publishTelemetry(
