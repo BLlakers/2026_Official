@@ -373,10 +373,10 @@ public final class Constants {
     }
 
     public class TurnEncoderOffsets {
-        public static final double flTurnEncoderOffset = 4.815;
-        public static final double frTurnEncoderOffset = 1.699;
-        public static final double blTurnEncoderOffset = 6.056;
-        public static final double brTurnEncoderOffset = 3.807;
+        public static final double flTurnEncoderOffset = 4.911;
+        public static final double frTurnEncoderOffset = 1.697;
+        public static final double blTurnEncoderOffset = -0.100;
+        public static final double brTurnEncoderOffset = 3.790;
     }
 
     public static final class Poses {

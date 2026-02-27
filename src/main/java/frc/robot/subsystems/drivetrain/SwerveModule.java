@@ -179,7 +179,7 @@ public class SwerveModule extends SubsystemBase {
         double angleError = MathUtil.angleModulus(desiredState.angle.getRadians() - currentAngle.getRadians());
         double turnOutput = MathUtil.clamp((angleError / TOTAL_ROTATIONAL_RANGE) * 3, -0.6, 0.6);
 
-        this.turningMotor.set(-turnOutput);
+        this.turningMotor.set(turnOutput);
 
         double driveMotorPercentPower = desiredState.speedMetersPerSecond / this.context.getDriveMotorMaxSpeed();
         this.driveMotor.set(driveMotorPercentPower);
