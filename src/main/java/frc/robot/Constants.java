@@ -30,6 +30,7 @@ public final class Constants {
         public static final boolean ENABLE_CLIMB = false;
         public static final boolean ENABLE_INTAKE = false;
         public static final boolean ENABLE_RELAY = false;
+        public static final boolean ENABLE_INDEXER = false;
     }
 
     public static final class DriverLabels {
@@ -405,6 +406,40 @@ public final class Constants {
 
         /** Speed for reversing to clear jams. Negative. */
         public static final double RELAY_REVERSE_SPEED = -0.5; // TODO: tune
+    }
+
+    public static class IndexerConstants {
+
+        // -------------------------------------------------------------------------
+        // CAN IDs — confirm with build team before first power-on
+        // -------------------------------------------------------------------------
+
+        /** CAN ID for the indexer drive motor (NEO on SparkMax). */
+        public static final int INDEXER_MOTOR_ID = 17;
+
+        // -------------------------------------------------------------------------
+        // Current limits
+        // -------------------------------------------------------------------------
+
+        public static final int INDEXER_CURRENT_LIMIT = 40; // amps
+
+        // -------------------------------------------------------------------------
+        // Gear ratio
+        // -------------------------------------------------------------------------
+
+        /** Direct drive — NEO shaft to driveshaft. 1:1. */
+        public static final double INDEXER_GEAR_RATIO = 1.0;
+
+        // -------------------------------------------------------------------------
+        // Speeds [-1.0, 1.0]
+        // Convention: positive = pull balls into chamber and advance toward shooter
+        // -------------------------------------------------------------------------
+
+        /** Speed for indexing balls toward the shooter. Positive. */
+        public static final double INDEXER_SPEED = 1.0; // TODO: tune
+
+        /** Speed for reversing to clear jams. Negative. */
+        public static final double INDEXER_REVERSE_SPEED = -0.5; // TODO: tune
     }
 
     public class TurnEncoderOffsets {

@@ -19,8 +19,12 @@ import frc.robot.subsystems.climb.ClimbSubsystem;
 import frc.robot.subsystems.climb.ClimbSubsystemContext;
 import frc.robot.subsystems.drivetrain.Drivetrain;
 import frc.robot.subsystems.drivetrain.DrivetrainContext;
+import frc.robot.subsystems.indexer.IndexerSubsystem;
+import frc.robot.subsystems.indexer.IndexerSubsystemContext;
 import frc.robot.subsystems.intake.IntakeSubsystem;
 import frc.robot.subsystems.intake.IntakeSubsystemContext;
+import frc.robot.subsystems.relay.RelaySubsystem;
+import frc.robot.subsystems.relay.RelaySubsystemContext;
 import frc.robot.subsystems.turrettracker.TurretTracker;
 import frc.robot.subsystems.turrettracker.TurretTrackerContext;
 import frc.robot.subsystems.vision.VisionSubsystem;
@@ -40,6 +44,10 @@ public class RobotContainer {
     private final ClimbSubsystem climbSubsystem;
 
     private final IntakeSubsystem intakeSubsystem;
+
+    private final RelaySubsystem relaySubsystem;
+
+    private final IndexerSubsystem indexerSubsystem;
 
     private final VisionSubsystem visionSubsystem;
 
@@ -82,6 +90,12 @@ public class RobotContainer {
         this.intakeSubsystem =
                 Constants.FeatureFlags.ENABLE_INTAKE ? new IntakeSubsystem(IntakeSubsystemContext.defaults()) : null;
 
+        this.relaySubsystem =
+                Constants.FeatureFlags.ENABLE_RELAY ? new RelaySubsystem(RelaySubsystemContext.defaults()) : null;
+
+        this.indexerSubsystem =
+                Constants.FeatureFlags.ENABLE_INDEXER ? new IndexerSubsystem(IndexerSubsystemContext.defaults()) : null;
+
         this.visionSubsystem = Constants.FeatureFlags.ENABLE_VISION
                 ? new VisionSubsystem(
                         VisionSubsystemContext.builder()
@@ -98,6 +112,8 @@ public class RobotContainer {
         this.driveTrain.setName("DriveTrain");
         if (this.climbSubsystem != null) this.climbSubsystem.setName("ClimbSubsystem");
         if (this.intakeSubsystem != null) this.intakeSubsystem.setName("IntakeSubsystem");
+        if (this.relaySubsystem != null) this.relaySubsystem.setName("RelaySubsystem");
+        if (this.indexerSubsystem != null) this.indexerSubsystem.setName("IndexerSubsystem");
         if (this.visionSubsystem != null) this.visionSubsystem.setName("VisionSubsystem");
         if (this.turretTracker != null) this.turretTracker.setName("TurretTracker");
 
@@ -272,11 +288,22 @@ public class RobotContainer {
             this.manipController.start().onTrue(this.intakeSubsystem.getHomingCommand());
         }
 
-        // Manipulator Controller - Relay / Indexer / Shooter commands
-        // TODO: Wire up once RelaySubsystem, IndexerSubsystem, and ShooterSubsystem are enabled.
+        // Manipulator Controller - Relay + Indexer commands (only if both are enabled)
+        // TODO: Add shooterSubsystem.getShootCommand() / getReverseCommand() to each parallel
+        //       group once the ShooterSubsystem is stubbed out.
         //
-        // Manip RT (held) → advance relay + indexer + shooter in unison
-        // Manip RB (held) → reverse relay + indexer + shooter in unison
+        // Manip RT (held) → advance relay + indexer (+ shooter TODO) in unison
+        // Manip RB (held) → reverse relay + indexer (+ shooter TODO) in unison
+        if (this.relaySubsystem != null && this.indexerSubsystem != null) {
+            this.manipController
+                    .rightTrigger()
+                    .whileTrue(Commands.parallel(
+                            this.relaySubsystem.getRunCommand(), this.indexerSubsystem.getIndexCommand()));
+            this.manipController
+                    .rightBumper()
+                    .whileTrue(Commands.parallel(
+                            this.relaySubsystem.getReverseCommand(), this.indexerSubsystem.getReverseCommand()));
+        }
     }
 
     private void configureShuffleboard() {
@@ -287,6 +314,8 @@ public class RobotContainer {
         Telemetry.putData(this.driveTrain.getName() + "/Reset Pose 2D", this.driveTrain.getResetOdometryCommand());
         if (this.climbSubsystem != null) Telemetry.putData(this.climbSubsystem);
         if (this.intakeSubsystem != null) Telemetry.putData(this.intakeSubsystem);
+        if (this.relaySubsystem != null) Telemetry.putData(this.relaySubsystem);
+        if (this.indexerSubsystem != null) Telemetry.putData(this.indexerSubsystem);
         if (this.visionSubsystem != null) Telemetry.putData(this.visionSubsystem);
         if (this.turretTracker != null) Telemetry.putData(this.turretTracker);
 
