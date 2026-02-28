@@ -308,7 +308,8 @@ public class TurretSubsystem extends SubsystemBase {
                     setState(State.TRACKING);
                     double targetDegrees = targetAngleDegreesSupplier.getAsDouble();
                     double errorDegrees = targetDegrees - getCurrentAngleDegrees();
-                    double output = MathUtil.clamp(TRACKING_KP * errorDegrees, -TRACKING_MAX_OUTPUT, TRACKING_MAX_OUTPUT);
+                    double output =
+                            MathUtil.clamp(TRACKING_KP * errorDegrees, -TRACKING_MAX_OUTPUT, TRACKING_MAX_OUTPUT);
                     turretMotor.set(output);
                 })
                 .withName("Turret.Track");

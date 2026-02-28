@@ -292,13 +292,13 @@ public final class Constants {
         // -------------------------------------------------------------------------
 
         /** CAN ID for the roller NEO Vortex (SparkFlex). */
-        public static final int ROLLER_MOTOR_ID = 13;
+        public static final int ROLLER_MOTOR_ID = 9;
 
         /** CAN ID for lift motor 1 (NEO / SparkMax — right side). */
-        public static final int LIFT_MOTOR_1_ID = 14;
+        public static final int LIFT_MOTOR_1_ID = 10;
 
         /** CAN ID for lift motor 2 (NEO / SparkMax — left side, likely inverted). */
-        public static final int LIFT_MOTOR_2_ID = 15;
+        public static final int LIFT_MOTOR_2_ID = 11;
 
         // -------------------------------------------------------------------------
         // Current limits
@@ -383,7 +383,7 @@ public final class Constants {
         // -------------------------------------------------------------------------
 
         /** CAN ID for the relay drive motor (NEO on SparkMax). */
-        public static final int RELAY_MOTOR_ID = 16;
+        public static final int RELAY_MOTOR_ID = 13;
 
         // -------------------------------------------------------------------------
         // Current limits
@@ -417,7 +417,7 @@ public final class Constants {
         // -------------------------------------------------------------------------
 
         /** CAN ID for the indexer drive motor (NEO on SparkMax). */
-        public static final int INDEXER_MOTOR_ID = 17;
+        public static final int INDEXER_MOTOR_ID = 14;
 
         // -------------------------------------------------------------------------
         // Current limits
@@ -473,10 +473,10 @@ public final class Constants {
         // -------------------------------------------------------------------------
 
         /** CAN ID for the front flywheel motor — flywheel A, 3" diameter (NEO on SparkMax). */
-        public static final int SHOOTER_FRONT_MOTOR_ID = 18;
+        public static final int SHOOTER_FRONT_MOTOR_ID = 17;
 
         /** CAN ID for the rear flywheel motor — flywheel B, 4" diameter (NEO on SparkMax). */
-        public static final int SHOOTER_REAR_MOTOR_ID = 19;
+        public static final int SHOOTER_REAR_MOTOR_ID = 16;
 
         // -------------------------------------------------------------------------
         // Current limits
@@ -529,13 +529,9 @@ public final class Constants {
      * Constants for the Turret subsystem — the physical motor that rotates the shooter
      * assembly to aim at the hub.
      *
-     * <h2>Gear Ratio Note</h2>
-     * <p>{@code TURRET_GEAR_RATIO} represents <b>only the motor-side gearbox</b> (20:1).
-     * The full effective ratio also includes the external ring gear / pinion stage, which
-     * is determined by the tooth count or diameter ratio of the ring gear assembly.
-     * <b>Update {@code TURRET_GEAR_RATIO} to the total combined ratio once the ring gear
-     * geometry is confirmed from CAD.</b> The encoder position scaling and all PID tuning
-     * depend on this value being correct.
+     * <h2>Gear Ratio</h2>
+     * <p>Full gear train: NEO → 3:1 × 3:1 gearbox → 44t→74t → 30t→120t = 666/11 ≈ 60.55:1.
+     * See {@link #TURRET_GEAR_RATIO} for the stage-by-stage breakdown.
      *
      * <h2>Encoder Convention</h2>
      * <p>Zero = the turret's home position (aimed straight forward).
@@ -549,11 +545,8 @@ public final class Constants {
         // CAN IDs — confirm with build team before first power-on
         // -------------------------------------------------------------------------
 
-        /**
-         * CAN ID for the turret rotation motor (NEO on SparkMax).
-         * NOTE: ID 20 is reserved for the REV PDH (configured in Robot.java). Turret starts at 21.
-         */
-        public static final int TURRET_MOTOR_ID = 21;
+        /** CAN ID for the turret rotation motor (NEO on SparkMax). */
+        public static final int TURRET_MOTOR_ID = 15;
 
         // -------------------------------------------------------------------------
         // Current limits
@@ -566,12 +559,18 @@ public final class Constants {
         // -------------------------------------------------------------------------
 
         /**
-         * Motor-side gearbox reduction — 20:1.
-         * <b>TODO: multiply by the external ring gear / pinion ratio once confirmed from CAD.
-         * All encoder-based position calculations are wrong until this value is the full
-         * effective ratio (gearbox × ring gear stage).</b>
+         * Full turret gear train reduction — NEO → output rotation.
+         *
+         * <p>Stages (motor → turret):
+         * <ol>
+         *   <li>Stacked gearbox adapters: 3:1 × 3:1 = 9:1</li>
+         *   <li>First external stage:  44-tooth → 74-tooth = 74/44</li>
+         *   <li>Second external stage: 30-tooth → 120-tooth = 120/30 = 4:1</li>
+         * </ol>
+         *
+         * <p>Total = 9 × (74/44) × (120/30) = 666/11 ≈ 60.55:1
          */
-        public static final double TURRET_GEAR_RATIO = 20.0; // TODO: update with full ratio
+        public static final double TURRET_GEAR_RATIO = 9.0 * (74.0 / 44.0) * (120.0 / 30.0); // ≈ 60.55:1
 
         // -------------------------------------------------------------------------
         // Range of motion
