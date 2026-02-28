@@ -29,6 +29,7 @@ public final class Constants {
         public static final boolean ENABLE_VISION = false;
         public static final boolean ENABLE_CLIMB = false;
         public static final boolean ENABLE_INTAKE = false;
+        public static final boolean ENABLE_RELAY = false;
     }
 
     public static final class DriverLabels {
@@ -370,6 +371,40 @@ public final class Constants {
          * TODO: tighten after physical testing.
          */
         public static final double POSITION_TOLERANCE_ROTATIONS = 1.0;
+    }
+
+    public static class RelayConstants {
+
+        // -------------------------------------------------------------------------
+        // CAN IDs — confirm with build team before first power-on
+        // -------------------------------------------------------------------------
+
+        /** CAN ID for the relay drive motor (NEO on SparkMax). */
+        public static final int RELAY_MOTOR_ID = 16;
+
+        // -------------------------------------------------------------------------
+        // Current limits
+        // -------------------------------------------------------------------------
+
+        public static final int RELAY_CURRENT_LIMIT = 40; // amps
+
+        // -------------------------------------------------------------------------
+        // Gear ratio
+        // -------------------------------------------------------------------------
+
+        /** Gear reduction between NEO shaft and innermost roller bar. 10:1. */
+        public static final double RELAY_GEAR_RATIO = 10.0;
+
+        // -------------------------------------------------------------------------
+        // Speeds [-1.0, 1.0]
+        // Convention: positive = convey balls toward indexer
+        // -------------------------------------------------------------------------
+
+        /** Speed for conveying balls toward the indexer. Positive. */
+        public static final double RELAY_SPEED = 1.0; // TODO: tune
+
+        /** Speed for reversing to clear jams. Negative. */
+        public static final double RELAY_REVERSE_SPEED = -0.5; // TODO: tune
     }
 
     public class TurnEncoderOffsets {
