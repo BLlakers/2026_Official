@@ -40,7 +40,6 @@ class SwerveDriveCommandTest {
         when(delegate.getRightX()).thenReturn(rightX);
         when(delegate.getAcceleration()).thenReturn(1.0);
         when(delegate.getElevatorDecelerateRatio()).thenReturn(1.0);
-        when(delegate.isHalfSpeed()).thenReturn(false);
         when(delegate.getDriver()).thenReturn(ControllerDelegate.Driver.ASA);
 
         SwerveDriveCommand command = new SwerveDriveCommand(delegate, drivetrain);

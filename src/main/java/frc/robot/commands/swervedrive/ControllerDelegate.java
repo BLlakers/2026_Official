@@ -2,7 +2,6 @@ package frc.robot.commands.swervedrive;
 
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import frc.robot.Constants;
-import java.util.function.BooleanSupplier;
 import java.util.function.DoubleSupplier;
 import lombok.Builder;
 
@@ -19,7 +18,6 @@ public class ControllerDelegate {
     private final DoubleSupplier rightYSupplier;
     private final DoubleSupplier accelerationSupplier;
     private final DoubleSupplier elevatorDecelerateRatioSupplier;
-    private final BooleanSupplier runHalfSpeedConditionSupplier;
     private final Driver driver;
 
     public ControllerDelegate(
@@ -29,7 +27,6 @@ public class ControllerDelegate {
             final DoubleSupplier rightYSupplier,
             final DoubleSupplier accelerationSupplier,
             final DoubleSupplier elevatorDecelerateRatioSupplier,
-            final BooleanSupplier runHalfSpeedConditionSupplier,
             final Driver driver) {
         this.leftXSupplier = leftXSupplier;
         this.leftYSupplier = leftYSupplier;
@@ -37,7 +34,6 @@ public class ControllerDelegate {
         this.rightYSupplier = rightYSupplier;
         this.accelerationSupplier = accelerationSupplier;
         this.elevatorDecelerateRatioSupplier = elevatorDecelerateRatioSupplier;
-        this.runHalfSpeedConditionSupplier = runHalfSpeedConditionSupplier;
         this.driver = driver;
     }
 
@@ -74,10 +70,6 @@ public class ControllerDelegate {
 
     public double getElevatorDecelerateRatio() {
         return this.elevatorDecelerateRatioSupplier.getAsDouble();
-    }
-
-    public boolean isHalfSpeed() {
-        return this.runHalfSpeedConditionSupplier.getAsBoolean();
     }
 
     /**

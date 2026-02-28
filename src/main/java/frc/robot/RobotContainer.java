@@ -223,7 +223,6 @@ public class RobotContainer {
          * - Left Stick: Steering
          * - Right Stick: Rotate the robot
          * - Right Trigger: provide gas
-         * - Left Trigger: reduce maximum driving speed by 50%
          */
         this.driveTrain.setDefaultCommand(new SwerveDriveCommand(
                 ControllerDelegate.builder()
@@ -233,7 +232,6 @@ public class RobotContainer {
                         .rightYSupplier(this.driverController::getRightY)
                         .accelerationSupplier(this.driverController::getRightTriggerAxis)
                         .elevatorDecelerateRatioSupplier(() -> 1.0) // No elevator, always full speed
-                        .runHalfSpeedConditionSupplier(() -> driverController.getLeftTriggerAxis() >= 0.5)
                         .driver(ControllerDelegate.Driver.ASA)
                         .build(),
                 driveTrain));
@@ -245,34 +243,40 @@ public class RobotContainer {
         // Manipulator Controller - Climb Subsystem commands (only if climb is enabled)
         // TODO: Confirm all button assignments with drive team before first climb test.
         //
-        // A button    → climb next bar (retract to engage hooks; auto-stops; interruptible by bumpers)
-        // B button    → extend telescope up to next bar (position-based, auto-stops; interruptible)
+        // A button    → climb next bar (retract to engage hooks; auto-stops)
+        // B button    → extend telescope up to next bar (position-based, auto-stops)
         // Back button → manual re-home (use if climb drifted or auto-home didn't complete cleanly)
-        // LB (held)   → manual retract override (holds on release; interrupts any position command)
-        // RB (held)   → manual extend override  (holds on release; interrupts any position command)
+        //
+        // TODO: Manual retract/extend overrides need a new home — LB and RB are now used by
+        //       intake (LB) and the future reverse-all command (RB). Candidates: chord (Back+A/B),
+        //       debug controller, or stick-click buttons.
         if (this.climbSubsystem != null) {
             this.manipController.a().onTrue(this.climbSubsystem.getClimbNextBarCommand());
             this.manipController.b().onTrue(this.climbSubsystem.getExtendToBarCommand());
             this.manipController.back().onTrue(this.climbSubsystem.getHomingCommand());
-            this.manipController.leftBumper().whileTrue(this.climbSubsystem.getManualRetractCommand());
-            this.manipController.rightBumper().whileTrue(this.climbSubsystem.getManualExtendCommand());
         }
 
-        // Driver Controller + Manipulator Controller - Intake commands (only if intake is enabled)
+        // Manipulator Controller - Intake commands (only if intake is enabled)
         // TODO: Confirm all button assignments with drive team before first intake test.
         //
-        // Driver RB (held)   → intake rollers spin in to collect balls
-        // Driver LB (held)   → intake rollers reverse to eject
+        // Manip LT (held)    → intake rollers spin in to collect balls
+        // Manip LB (held)    → intake rollers reverse to eject
         // Manip Y button     → raise intake to stowed position (for climb)
         // Manip X button     → lower intake to match position
-        // Manip Start button → re-home the intake lift (lowers to bumper contact, zeros encoders)
+        // Manip Start button → re-home the intake lift (raises to retracted hardstop, zeros encoders)
         if (this.intakeSubsystem != null) {
-            this.driverController.rightBumper().whileTrue(this.intakeSubsystem.getIntakeCommand());
-            this.driverController.leftBumper().whileTrue(this.intakeSubsystem.getReverseCommand());
+            this.manipController.leftTrigger().whileTrue(this.intakeSubsystem.getIntakeCommand());
+            this.manipController.leftBumper().whileTrue(this.intakeSubsystem.getReverseCommand());
             this.manipController.y().onTrue(this.intakeSubsystem.getRaiseCommand());
             this.manipController.x().onTrue(this.intakeSubsystem.getLowerCommand());
             this.manipController.start().onTrue(this.intakeSubsystem.getHomingCommand());
         }
+
+        // Manipulator Controller - Relay / Indexer / Shooter commands
+        // TODO: Wire up once RelaySubsystem, IndexerSubsystem, and ShooterSubsystem are enabled.
+        //
+        // Manip RT (held) → advance relay + indexer + shooter in unison
+        // Manip RB (held) → reverse relay + indexer + shooter in unison
     }
 
     private void configureShuffleboard() {

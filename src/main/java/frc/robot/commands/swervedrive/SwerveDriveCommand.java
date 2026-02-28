@@ -66,12 +66,6 @@ public class SwerveDriveCommand extends Command {
             ySpeed = x * this.driveMaxSpeed * acceleration * elevatorDecelerationRatio;
         }
 
-        if (this.controllerDelegate.isHalfSpeed()) {
-            xSpeed /= 2;
-            ySpeed /= 2;
-            rotSpeed /= 2;
-        }
-
         Telemetry.publish("Drivetrain/Controller/Command/X Speed", xSpeed, TelemetryLevel.LAB);
         Telemetry.publish("Drivetrain/Controller/Command/Y Speed", ySpeed, TelemetryLevel.LAB);
         Telemetry.publish("Drivetrain/Controller/Command/Rot Speed", rotSpeed, TelemetryLevel.LAB);
