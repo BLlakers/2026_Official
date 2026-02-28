@@ -16,10 +16,12 @@ import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N2;
 import edu.wpi.first.math.system.LinearSystem;
 import edu.wpi.first.math.system.plant.DCMotor;
+import edu.wpi.first.wpilibj.DutyCycleEncoder;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.simulation.DCMotorSim;
+import edu.wpi.first.wpilibj.simulation.DutyCycleEncoderSim;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.subsystems.drivetrain.Drivetrain;
@@ -52,7 +54,10 @@ import frc.robot.support.TelemetryLevel;
  *
  * <h2>Encoder Convention</h2>
  * <ul>
- *   <li>Homing retracts the telescope until the first stage spring pushes back (current spike).
+ *   <li>Homing retracts the telescope until the <strong>REV Through Bore Encoder</strong> on the
+ *       spool shaft reads the calibrated stored angle, then the relative encoder is zeroed.</li>
+ *   <li>If the mechanism is at the stored position when the robot boots, homing is skipped
+ *       (the subsystem auto-seeds from the absolute encoder in the constructor).</li>
  *   <li>Encoder = 0 = stored (stages nested, assembly at lowest frame position)</li>
  *   <li>Encoder positive = second stage extending upward (reaching for bar)</li>
  *   <li>Encoder negative = assembly traveling through frame bottom (hooks rising toward bar).
@@ -62,7 +67,8 @@ import frc.robot.support.TelemetryLevel;
  * <h2>Build Team TODOs</h2>
  * <ul>
  *   <li>Confirm motor inversion — positive output should extend telescope <strong>upward</strong></li>
- *   <li>Tune {@code homingCurrentThresholdAmps} watching {@code Climb/Motor/Current} in Shuffleboard</li>
+ *   <li>Calibrate {@code throughBoreStoredAngleRotations}: place in stored position, watch
+ *       {@code Climb/ThroughBore/RawAngle} in the Lab tab, enter value in Constants</li>
  *   <li>Measure {@code bar1/2/3ExtendRotations} and {@code bar1/2/3EngageRotations} during testing</li>
  *   <li>Confirm {@code positionToleranceRotations}</li>
  * </ul>
@@ -90,6 +96,14 @@ public class ClimbSubsystem extends SubsystemBase {
     private final ClimbSubsystemContext context;
     private final SparkMax winchMotor;
     private final RelativeEncoder encoder;
+
+    /**
+     * REV Through Bore Encoder on the spool output shaft (DIO 4).
+     * Provides a single-turn absolute position used as a homing reference. Replaces the
+     * current-spike detection — the homing command runs until this encoder reads the
+     * calibrated stored angle rather than waiting for a current spike.
+     */
+    private final DutyCycleEncoder throughBoreEncoder;
 
     private final ClimbVisualizer visualizer;
 
@@ -123,6 +137,9 @@ public class ClimbSubsystem extends SubsystemBase {
 
     /** Timestamp of the last simulation tick, for computing dt. */
     private double lastSimTime = 0.0;
+
+    /** Sim bridge for the through-bore encoder — drives the duty-cycle value in simulation. */
+    private DutyCycleEncoderSim throughBoreEncoderSim;
 
     // -------------------------------------------------------------------------
     // Construction
@@ -160,6 +177,7 @@ public class ClimbSubsystem extends SubsystemBase {
 
         this.winchMotor = new SparkMax(this.context.getMotorId(), MotorType.kBrushless);
         this.encoder = this.winchMotor.getEncoder();
+        this.throughBoreEncoder = new DutyCycleEncoder(this.context.getThroughBoreEncoderDioChannel());
 
         configureMotor();
 
@@ -174,6 +192,18 @@ public class ClimbSubsystem extends SubsystemBase {
             LinearSystem<N2, N1, N2> plant = createDCMotorSystem(DCMotor.getNEO(1), 0.01, context.getGearRatio());
             this.winchMotorSim = new DCMotorSim(plant, DCMotor.getNEO(1));
             this.lastSimTime = Timer.getFPGATimestamp();
+            // Initialize through-bore encoder sim at the stored angle so homing completes
+            // immediately in simulation (mechanism always starts stored in sim).
+            this.throughBoreEncoderSim = new DutyCycleEncoderSim(this.throughBoreEncoder);
+            this.throughBoreEncoderSim.set(this.context.getThroughBoreStoredAngleRotations());
+        }
+
+        // Boot-time absolute seeding: on a real robot the through-bore encoder always knows
+        // the spool angle. If the mechanism is already at the stored position (normal at match
+        // start), seed the relative encoder to 0 and skip the homing sequence entirely.
+        if (RobotBase.isReal() && isAbsoluteAtStoredPosition()) {
+            encoder.setPosition(0.0);
+            currentState = State.STORED;
         }
 
         initializeTelemetry();
@@ -311,10 +341,30 @@ public class ClimbSubsystem extends SubsystemBase {
     /**
      * Returns true when a current spike indicates the telescope has reached the ground-contact
      * hardstop. There is no internal mechanical hardstop — the spike occurs when the stages are
-     * nested and the first stage spring resistance pushes back
+     * nested and the first stage spring resistance pushes back.
+     *
+     * <p>Retained as a fallback diagnostic. The primary homing completion check is now
+     * {@link #isAbsoluteAtStoredPosition()}, which uses the through-bore encoder.
      */
     private boolean isAtHardstop() {
         return getMotorCurrent() >= this.context.getHomingCurrentThresholdAmps();
+    }
+
+    /**
+     * Returns true when the through-bore encoder reads within tolerance of the stored (zero)
+     * position. This is the primary homing completion check — it replaces the current-spike
+     * approach with a precise absolute angle check.
+     *
+     * <p>Wrap-around near the 0/1 boundary is handled: the difference is taken as the minimum
+     * of the direct delta and its complement (1 − delta), so a stored angle of 0.02 and a
+     * reading of 0.98 correctly produce a diff of 0.04 rather than 0.96.
+     */
+    private boolean isAbsoluteAtStoredPosition() {
+        double raw = throughBoreEncoder.get(); // [0, 1)
+        double stored = context.getThroughBoreStoredAngleRotations();
+        double diff = Math.abs(raw - stored);
+        double wrappedDiff = Math.min(diff, 1.0 - diff); // handle 0↔1 wrap-around
+        return wrappedDiff <= context.getThroughBoreAngleTolerance();
     }
 
     /** Zeros the encoder and resets bar counter after a successful homing. */
@@ -335,15 +385,21 @@ public class ClimbSubsystem extends SubsystemBase {
     // -------------------------------------------------------------------------
 
     /**
-     * Homing command — slowly retracts the telescope until the ground-contact hardstop is reached
-     * (detected via motor current spike), then zeroes the encoder.
+     * Homing command — slowly retracts the telescope until the through-bore encoder reads the
+     * calibrated stored angle ({@code throughBoreStoredAngleRotations}), then zeroes the relative
+     * encoder.
      *
      * <p>After homing: encoder = 0 = stored (stages nested, assembly at lowest frame position).
      * Positive = extended upward; negative = assembly through frame.
      * Resets the internal bar counter to 0.
      *
-     * <p><strong>The robot MUST be on the ground for homing.</strong> There is no internal
-     * mechanical hardstop — the ground provides the reference. Do not call this while hanging.
+     * <p><strong>The robot MUST be on the ground for homing.</strong> The through-bore encoder
+     * reads the spool angle; the stored angle must be calibrated on the physical robot
+     * (see {@code Climb/ThroughBore/RawAngle} in the Lab tab).
+     * Do not call this while hanging.
+     *
+     * <p>If the mechanism was already at the stored position when the robot booted, this command
+     * completes immediately (the subsystem was auto-seeded in the constructor).
      *
      * <p>This command is chained after {@link #getLowerToGroundCommand()} in
      * {@code scheduleTeleopInit()} to guarantee the robot is on the ground.
@@ -357,7 +413,7 @@ public class ClimbSubsystem extends SubsystemBase {
                             winchMotor.set(this.context.getHomingSpeed());
                         },
                         () -> winchMotor.set(0))
-                .until(this::isAtHardstop)
+                .until(this::isAbsoluteAtStoredPosition)
                 .andThen(this.runOnce(this::completeHoming))
                 .withName("Climb.Home");
     }
@@ -563,6 +619,8 @@ public class ClimbSubsystem extends SubsystemBase {
         Telemetry.record(prefix + "/Motor/Current", getMotorCurrent(), TelemetryLevel.LAB);
         Telemetry.record(
                 prefix + "/Homing/CurrentThreshold", context.getHomingCurrentThresholdAmps(), TelemetryLevel.LAB);
+        Telemetry.record(prefix + "/ThroughBore/RawAngle", throughBoreEncoder.get(), TelemetryLevel.LAB);
+        Telemetry.record(prefix + "/ThroughBore/AtStoredPosition", isAbsoluteAtStoredPosition() ? 1.0 : 0.0, TelemetryLevel.LAB);
     }
 
     // -------------------------------------------------------------------------
@@ -596,8 +654,9 @@ public class ClimbSubsystem extends SubsystemBase {
      * <h3>Ground hardstop simulation</h3>
      * <p>When the robot is on the ground (states: {@code HOMING}, {@code STORED}, {@code IDLE}),
      * the encoder position is clamped at 0 — simulating the ground blocking further retraction.
-     * The motor stalls at this point, producing a current spike that triggers
-     * {@link #isAtHardstop()} and allows homing to complete.
+     * The through-bore encoder sim is initialized at the stored angle, so
+     * {@link #isAbsoluteAtStoredPosition()} returns {@code true} immediately and the homing
+     * command completes without needing to drive to the hardstop.
      *
      * <p>When hanging from a bar (states: {@code EXTENDING}, {@code RETRACTING}, {@code HOLDING}),
      * the ground stop is inactive and the encoder can freely go negative (assembly through frame).
@@ -633,5 +692,15 @@ public class ClimbSubsystem extends SubsystemBase {
 
         // Update simulated current for homing detection via isAtHardstop()
         simCurrent = winchSparkMaxSim.getMotorCurrent();
+
+        // Keep the through-bore encoder sim in sync with spool position.
+        // The encoder wraps at 1.0 revolution — add the stored angle offset so that simPosition=0
+        // maps to the configured stored angle, matching what the real encoder does.
+        if (throughBoreEncoderSim != null) {
+            double spoolRotations = simPosition / context.getGearRatio();
+            double encoderAngle = (spoolRotations + context.getThroughBoreStoredAngleRotations()) % 1.0;
+            if (encoderAngle < 0.0) encoderAngle += 1.0; // keep in [0, 1)
+            throughBoreEncoderSim.set(encoderAngle);
+        }
     }
 }

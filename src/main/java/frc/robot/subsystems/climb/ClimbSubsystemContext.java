@@ -24,18 +24,20 @@ import lombok.Data;
  * </ul>
  *
  * <p>There is <strong>no internal hardstop</strong> between the stages. The homing zero point is
- * established via ground-contact: the motor retracts until the stages nest and the ground prevents
- * further travel, producing a current spike. <strong>The robot must be on the ground for homing.</strong>
+ * established by the <strong>REV Through Bore Encoder</strong> on the spool shaft: the motor
+ * retracts slowly until the encoder reads the calibrated stored angle, then the relative encoder
+ * is zeroed. If the mechanism is already at the stored position at boot, homing is skipped
+ * entirely. <strong>The robot must be on the ground for homing.</strong>
  *
- * <p>When hanging from a bar, the motor overcomes the first-stage spring and the encoder freely
- * goes negative as the assembly travels through the frame.
+ * <p>When hanging from a bar, the motor overcomes the first-stage spring and the relative encoder
+ * freely goes negative as the assembly travels through the frame.
  *
  * <h2>Build Team TODOs</h2>
  * <ul>
  *   <li>{@code gearRatio} — confirm from mechanism CAD</li>
  *   <li>{@code spoolCircumferenceMeters} — measure from spool diameter</li>
- *   <li>{@code homingCurrentThresholdAmps} — tune by watching {@code Climb/Motor/Current}
- *       in Shuffleboard during a slow homing run on a flat surface; set just below the spike</li>
+ *   <li>{@code throughBoreStoredAngleRotations} — calibrate: place in stored position,
+ *       read {@code Climb/ThroughBore/RawAngle} in the Lab tab, enter the value here</li>
  *   <li>{@code bar1/2/3ExtendRotations} — measure how far to extend to reach each bar</li>
  *   <li>{@code bar1/2/3EngageRotations} — measure how far to retract for hooks to engage each bar</li>
  *   <li>{@code positionToleranceRotations} — how close is "close enough" to a setpoint</li>
@@ -113,6 +115,37 @@ public class ClimbSubsystemContext {
      */
     @Builder.Default
     private final double homingCurrentThresholdAmps = HOMING_CURRENT_THRESHOLD_AMPS;
+
+    // -------------------------------------------------------------------------
+    // Through-bore encoder (REV Through Bore Encoder on spool output shaft, DIO 5)
+    // Provides absolute single-turn position — used for homing instead of current-spike
+    // detection. If the mechanism is at the stored position at boot the subsystem
+    // auto-seeds and skips the homing sequence entirely.
+    // -------------------------------------------------------------------------
+
+    /**
+     * DIO channel for the REV Through Bore Encoder on the spool output shaft.
+     * Defaults to {@link frc.robot.Constants.ClimbConstants#THROUGH_BORE_ENCODER_DIO_CHANNEL}.
+     */
+    @Builder.Default
+    private final int throughBoreEncoderDioChannel = THROUGH_BORE_ENCODER_DIO_CHANNEL;
+
+    /**
+     * Absolute encoder angle [0, 1 rotation) that corresponds to the stored (zero) position.
+     * Calibrate on the physical robot: place in stored position, read
+     * {@code Climb/ThroughBore/RawAngle} in the Lab tab, enter the reading here and in
+     * {@link frc.robot.Constants.ClimbConstants#THROUGH_BORE_STORED_ANGLE_ROTATIONS}.
+     */
+    @Builder.Default
+    private final double throughBoreStoredAngleRotations = THROUGH_BORE_STORED_ANGLE_ROTATIONS;
+
+    /**
+     * Acceptable error (rotations) when comparing the through-bore reading to
+     * {@link #throughBoreStoredAngleRotations}. Wrap-around near the 0/1 boundary is handled.
+     * 0.02 rotations ≈ 7°.
+     */
+    @Builder.Default
+    private final double throughBoreAngleTolerance = THROUGH_BORE_ANGLE_TOLERANCE_ROTATIONS;
 
     // -------------------------------------------------------------------------
     // Encoder setpoints (rotations from stored/0)

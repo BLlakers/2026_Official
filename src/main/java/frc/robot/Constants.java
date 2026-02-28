@@ -114,7 +114,8 @@ public final class Constants {
         public static final int BACK_RIGHT_TURN_ENCODER_DIO_CHANNEL = DIOChannel.TWO.getChannel();
         public static final int BACK_LEFT_TURN_ENCODER_DIO_CHANNEL = DIOChannel.THREE.getChannel();
 
-        public static final int climbMagSwitchDIOC = DIOChannel.FOUR.getChannel();
+        // DIO 4: Climb Through Bore Encoder (spool output shaft) — see ClimbConstants.
+        // DIO 5–9: Available.
     }
 
     public static class ClimbConstants {
@@ -273,6 +274,36 @@ public final class Constants {
          * TODO: measure from CAD / physical robot.
          */
         public static final double TELESCOPE_SIDE_OFFSET_METERS = 0.340;
+
+        // -------------------------------------------------------------------------
+        // Through-bore encoder — absolute homing reference (REV Through Bore Encoder)
+        // Wired to DIO 4 on the RoboRIO. Mounted on the spool output shaft.
+        // Used to replace current-spike detection during homing with a precise
+        // absolute angle check. DIO 0-3 = swerve turn encoders; DIO 4 = this encoder.
+        // -------------------------------------------------------------------------
+
+        /**
+         * DIO channel for the REV Through Bore Encoder mounted on the spool output shaft.
+         * TODO: confirm actual wiring after the encoder is installed.
+         */
+        public static final int THROUGH_BORE_ENCODER_DIO_CHANNEL = DIOChannel.FOUR.getChannel();
+
+        /**
+         * Absolute encoder angle [0, 1 rotation) when the mechanism is in the stored (zero)
+         * position — stages nested, assembly at the lowest frame position, on the ground.
+         *
+         * <p>Calibrate once on the physical robot: place the mechanism in the stored position,
+         * watch {@code Climb/ThroughBore/RawAngle} in the Lab tab, and enter the reading here.
+         * TODO: calibrate on physical robot.
+         */
+        public static final double THROUGH_BORE_STORED_ANGLE_ROTATIONS = 0.0; // TODO: calibrate
+
+        /**
+         * Acceptable error (rotations) when comparing the through-bore reading to
+         * {@link #THROUGH_BORE_STORED_ANGLE_ROTATIONS}. Wrap-around near the 0/1 boundary is
+         * handled in software. 0.02 rotations ≈ 7°.
+         */
+        public static final double THROUGH_BORE_ANGLE_TOLERANCE_ROTATIONS = 0.02;
     }
 
     /**
