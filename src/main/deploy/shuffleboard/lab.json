@@ -1,0 +1,112 @@
+{
+  "tabPane": [
+    {
+      "title": "Match",
+      "autoPopulate": false,
+      "autoPopulatePrefix": "",
+      "widgetPane": {
+        "gridSize": 128.0,
+        "showGrid": true,
+        "hgap": 16.0,
+        "vgap": 16.0,
+        "titleType": 0,
+        "tiles": {
+
+          "0,0": { "size": [2, 1], "content": { "_type": "Text View",    "_source0": "network_table:///Telemetry/Robot/Battery/VoltageV",         "_title": "Battery (V)",    "_glyph": 148, "_showGlyph": false } },
+          "2,0": { "size": [1, 1], "content": { "_type": "Boolean Box",  "_source0": "network_table:///Telemetry/Robot/Battery/BrownedOut",        "_title": "Brownout",       "_glyph": 148, "_showGlyph": false } },
+          "3,0": { "size": [1, 1], "content": { "_type": "Text View",    "_source0": "network_table:///Telemetry/Auto/Alliance",                   "_title": "Alliance",       "_glyph": 148, "_showGlyph": false } },
+          "4,0": { "size": [2, 1], "content": { "_type": "Text View",    "_source0": "network_table:///Telemetry/Drivetrain/HeadingDeg",            "_title": "Heading (deg)",  "_glyph": 148, "_showGlyph": false } },
+          "7,0": { "size": [3, 1], "content": { "_type": "Text View",    "_source0": "network_table:///Telemetry/Code Version",                    "_title": "Code Version",   "_glyph": 148, "_showGlyph": false } },
+
+          "0,1": { "size": [2, 1], "content": { "_type": "Text View",    "_source0": "network_table:///Telemetry/Relay/State",                     "_title": "Relay",          "_glyph": 148, "_showGlyph": false } },
+          "2,1": { "size": [2, 1], "content": { "_type": "Text View",    "_source0": "network_table:///Telemetry/Indexer/State",                   "_title": "Indexer",        "_glyph": 148, "_showGlyph": false } },
+          "4,1": { "size": [2, 1], "content": { "_type": "Text View",    "_source0": "network_table:///Telemetry/Shooter/State",                   "_title": "Shooter",        "_glyph": 148, "_showGlyph": false } },
+          "6,1": { "size": [2, 1], "content": { "_type": "Text View",    "_source0": "network_table:///Telemetry/Intake/State",                    "_title": "Intake",         "_glyph": 148, "_showGlyph": false } },
+          "8,1": { "size": [1, 1], "content": { "_type": "Text View",    "_source0": "network_table:///Telemetry/Climb/State",                     "_title": "Climb",          "_glyph": 148, "_showGlyph": false } },
+          "9,1": { "size": [1, 1], "content": { "_type": "Text View",    "_source0": "network_table:///Telemetry/Climb/CurrentBar",                "_title": "Climb Bar",      "_glyph": 148, "_showGlyph": false } },
+
+          "0,2": { "size": [2, 1], "content": { "_type": "Text View",    "_source0": "network_table:///Telemetry/Turret/State",                    "_title": "Turret",         "_glyph": 148, "_showGlyph": false } },
+          "2,2": { "size": [2, 1], "content": { "_type": "Text View",    "_source0": "network_table:///Telemetry/Turret/AngleDeg",                 "_title": "T.Angle (deg)",  "_glyph": 148, "_showGlyph": false } },
+          "4,2": { "size": [2, 1], "content": { "_type": "Text View",    "_source0": "network_table:///Telemetry/TurretTracker/Mode",              "_title": "Mode",           "_glyph": 148, "_showGlyph": false } },
+          "6,2": { "size": [1, 1], "content": { "_type": "Text View",    "_source0": "network_table:///Telemetry/TurretTracker/AngleDeg",          "_title": "Target Angle",   "_glyph": 148, "_showGlyph": false } },
+          "7,2": { "size": [1, 1], "content": { "_type": "Boolean Box",  "_source0": "network_table:///Telemetry/TurretTracker/InRange",           "_title": "In Range",       "_glyph": 148, "_showGlyph": false } },
+          "8,2": { "size": [1, 1], "content": { "_type": "Text View",    "_source0": "network_table:///Telemetry/TurretTracker/DistanceM",         "_title": "Dist (m)",       "_glyph": 148, "_showGlyph": false } },
+          "9,2": { "size": [1, 1], "content": { "_type": "Text View",    "_source0": "network_table:///Telemetry/TurretTracker/ElevationDeg",      "_title": "Elev (deg)",     "_glyph": 148, "_showGlyph": false } },
+
+          "0,3": { "size": [3, 1], "content": { "_type": "Text View",    "_source0": "network_table:///Telemetry/Vision/Status",                   "_title": "Vision Status",  "_glyph": 148, "_showGlyph": false } },
+          "3,3": { "size": [1, 1], "content": { "_type": "Text View",    "_source0": "network_table:///Telemetry/Vision/TotalTagsDetected",        "_title": "Tags",           "_glyph": 148, "_showGlyph": false } },
+          "4,3": { "size": [1, 1], "content": { "_type": "Boolean Box",  "_source0": "network_table:///Telemetry/Vision/FrontRightCamera/Connected","_title": "FR Cam",         "_glyph": 148, "_showGlyph": false } },
+          "5,3": { "size": [1, 1], "content": { "_type": "Boolean Box",  "_source0": "network_table:///Telemetry/Vision/FrontLeftCamera/Connected", "_title": "FL Cam",         "_glyph": 148, "_showGlyph": false } },
+          "6,3": { "size": [1, 1], "content": { "_type": "Boolean Box",  "_source0": "network_table:///Telemetry/Vision/RightSideCamera/Connected", "_title": "RS Cam",         "_glyph": 148, "_showGlyph": false } },
+          "7,3": { "size": [1, 1], "content": { "_type": "Boolean Box",  "_source0": "network_table:///Telemetry/Vision/LeftSideCamera/Connected",  "_title": "LS Cam",         "_glyph": 148, "_showGlyph": false } },
+          "8,3": { "size": [2, 1], "content": { "_type": "Text View",    "_source0": "network_table:///Telemetry/TurretTracker/Status",             "_title": "Tracker Status", "_glyph": 148, "_showGlyph": false } },
+
+          "0,4": { "size": [2, 1], "content": { "_type": "Text View",    "_source0": "network_table:///Telemetry/TurretTracker/HorizontalDistM",   "_title": "H.Dist (m)",     "_glyph": 148, "_showGlyph": false } },
+          "2,4": { "size": [2, 1], "content": { "_type": "Text View",    "_source0": "network_table:///Telemetry/Vision/AcceptedPose/X",            "_title": "Pose X",         "_glyph": 148, "_showGlyph": false } },
+          "4,4": { "size": [2, 1], "content": { "_type": "Text View",    "_source0": "network_table:///Telemetry/Vision/AcceptedPose/Y",            "_title": "Pose Y",         "_glyph": 148, "_showGlyph": false } }
+
+        }
+      }
+    },
+    {
+      "title": "Lab",
+      "autoPopulate": false,
+      "autoPopulatePrefix": "",
+      "widgetPane": {
+        "gridSize": 128.0,
+        "showGrid": true,
+        "hgap": 16.0,
+        "vgap": 16.0,
+        "titleType": 0,
+        "tiles": {
+
+          "0,0": { "size": [2, 1], "content": { "_type": "Text View",    "_source0": "network_table:///Telemetry/Robot/Battery/VoltageV",          "_title": "Battery (V)",    "_glyph": 148, "_showGlyph": false } },
+          "2,0": { "size": [1, 1], "content": { "_type": "Boolean Box",  "_source0": "network_table:///Telemetry/Robot/Battery/BrownedOut",         "_title": "Brownout",       "_glyph": 148, "_showGlyph": false } },
+          "3,0": { "size": [1, 1], "content": { "_type": "Text View",    "_source0": "network_table:///Telemetry/Auto/Alliance",                    "_title": "Alliance",       "_glyph": 148, "_showGlyph": false } },
+          "4,0": { "size": [2, 1], "content": { "_type": "Text View",    "_source0": "network_table:///Telemetry/Drivetrain/HeadingDeg",             "_title": "Heading (deg)",  "_glyph": 148, "_showGlyph": false } },
+          "6,0": { "size": [1, 1], "content": { "_type": "Boolean Box",  "_source0": "network_table:///Telemetry/Drivetrain/Cmd/FieldRelative",      "_title": "Field Rel",      "_glyph": 148, "_showGlyph": false } },
+          "7,0": { "size": [3, 1], "content": { "_type": "Text View",    "_source0": "network_table:///Telemetry/Code Version",                     "_title": "Code Version",   "_glyph": 148, "_showGlyph": false } },
+
+          "0,1": { "size": [2, 1], "content": { "_type": "Text View",    "_source0": "network_table:///Telemetry/Drivetrain/Chassis/vx",            "_title": "vX (m/s)",       "_glyph": 148, "_showGlyph": false } },
+          "2,1": { "size": [2, 1], "content": { "_type": "Text View",    "_source0": "network_table:///Telemetry/Drivetrain/Chassis/vy",            "_title": "vY (m/s)",       "_glyph": 148, "_showGlyph": false } },
+          "4,1": { "size": [2, 1], "content": { "_type": "Text View",    "_source0": "network_table:///Telemetry/Drivetrain/Chassis/omega",         "_title": "omega (rad/s)",  "_glyph": 148, "_showGlyph": false } },
+
+          "0,2": { "size": [2, 1], "content": { "_type": "Text View",    "_source0": "network_table:///Telemetry/Relay/State",                      "_title": "Relay",          "_glyph": 148, "_showGlyph": false } },
+          "2,2": { "size": [2, 1], "content": { "_type": "Text View",    "_source0": "network_table:///Telemetry/Indexer/State",                    "_title": "Indexer",        "_glyph": 148, "_showGlyph": false } },
+          "4,2": { "size": [2, 1], "content": { "_type": "Text View",    "_source0": "network_table:///Telemetry/Shooter/State",                    "_title": "Shooter",        "_glyph": 148, "_showGlyph": false } },
+          "6,2": { "size": [2, 1], "content": { "_type": "Text View",    "_source0": "network_table:///Telemetry/Intake/State",                     "_title": "Intake",         "_glyph": 148, "_showGlyph": false } },
+          "8,2": { "size": [1, 1], "content": { "_type": "Text View",    "_source0": "network_table:///Telemetry/Climb/State",                      "_title": "Climb",          "_glyph": 148, "_showGlyph": false } },
+          "9,2": { "size": [1, 1], "content": { "_type": "Text View",    "_source0": "network_table:///Telemetry/Climb/CurrentBar",                 "_title": "Climb Bar",      "_glyph": 148, "_showGlyph": false } },
+
+          "0,3": { "size": [2, 1], "content": { "_type": "Text View",    "_source0": "network_table:///Telemetry/Turret/State",                     "_title": "Turret",         "_glyph": 148, "_showGlyph": false } },
+          "2,3": { "size": [2, 1], "content": { "_type": "Text View",    "_source0": "network_table:///Telemetry/Turret/AngleDeg",                  "_title": "T.Angle (deg)",  "_glyph": 148, "_showGlyph": false } },
+          "4,3": { "size": [2, 1], "content": { "_type": "Text View",    "_source0": "network_table:///Telemetry/TurretTracker/Mode",               "_title": "Mode",           "_glyph": 148, "_showGlyph": false } },
+          "6,3": { "size": [1, 1], "content": { "_type": "Text View",    "_source0": "network_table:///Telemetry/TurretTracker/AngleDeg",           "_title": "Target Angle",   "_glyph": 148, "_showGlyph": false } },
+          "7,3": { "size": [1, 1], "content": { "_type": "Boolean Box",  "_source0": "network_table:///Telemetry/TurretTracker/InRange",            "_title": "In Range",       "_glyph": 148, "_showGlyph": false } },
+          "8,3": { "size": [1, 1], "content": { "_type": "Text View",    "_source0": "network_table:///Telemetry/TurretTracker/DistanceM",          "_title": "Dist (m)",       "_glyph": 148, "_showGlyph": false } },
+          "9,3": { "size": [1, 1], "content": { "_type": "Text View",    "_source0": "network_table:///Telemetry/TurretTracker/ElevationDeg",       "_title": "Elev (deg)",     "_glyph": 148, "_showGlyph": false } },
+
+          "0,4": { "size": [3, 1], "content": { "_type": "Text View",    "_source0": "network_table:///Telemetry/Vision/Status",                    "_title": "Vision Status",  "_glyph": 148, "_showGlyph": false } },
+          "3,4": { "size": [1, 1], "content": { "_type": "Text View",    "_source0": "network_table:///Telemetry/Vision/FrontRightCamera/TargetCount","_title": "FR Tags",        "_glyph": 148, "_showGlyph": false } },
+          "4,4": { "size": [1, 1], "content": { "_type": "Text View",    "_source0": "network_table:///Telemetry/Vision/FrontLeftCamera/TargetCount", "_title": "FL Tags",        "_glyph": 148, "_showGlyph": false } },
+          "5,4": { "size": [1, 1], "content": { "_type": "Text View",    "_source0": "network_table:///Telemetry/Vision/RightSideCamera/TargetCount", "_title": "RS Tags",        "_glyph": 148, "_showGlyph": false } },
+          "6,4": { "size": [1, 1], "content": { "_type": "Text View",    "_source0": "network_table:///Telemetry/Vision/LeftSideCamera/TargetCount",  "_title": "LS Tags",        "_glyph": 148, "_showGlyph": false } },
+          "7,4": { "size": [2, 1], "content": { "_type": "Text View",    "_source0": "network_table:///Telemetry/Vision/AvgDistance",                "_title": "Avg Dist (m)",   "_glyph": 148, "_showGlyph": false } },
+          "9,4": { "size": [1, 1], "content": { "_type": "Text View",    "_source0": "network_table:///Telemetry/Vision/StdDev/XY",                  "_title": "StdDev XY",      "_glyph": 148, "_showGlyph": false } },
+
+          "0,5": { "size": [3, 1], "content": { "_type": "Text View",    "_source0": "network_table:///Telemetry/Vision/FrontRightCamera/EstimateStatus", "_title": "FR Estimate", "_glyph": 148, "_showGlyph": false } },
+          "3,5": { "size": [3, 1], "content": { "_type": "Text View",    "_source0": "network_table:///Telemetry/Vision/FrontLeftCamera/EstimateStatus",  "_title": "FL Estimate", "_glyph": 148, "_showGlyph": false } },
+          "6,5": { "size": [2, 1], "content": { "_type": "Text View",    "_source0": "network_table:///Telemetry/Vision/RightSideCamera/EstimateStatus",  "_title": "RS Estimate", "_glyph": 148, "_showGlyph": false } },
+          "8,5": { "size": [2, 1], "content": { "_type": "Text View",    "_source0": "network_table:///Telemetry/Vision/LeftSideCamera/EstimateStatus",   "_title": "LS Estimate", "_glyph": 148, "_showGlyph": false } }
+
+        }
+      }
+    }
+  ],
+  "windowGeometry": {
+    "x": -7.199999809265137,
+    "y": -7.199999809265137,
+    "width": 1550.4000244140625,
+    "height": 830.4000244140625
+  }
+}
