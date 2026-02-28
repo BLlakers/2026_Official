@@ -3,6 +3,7 @@ package frc.robot;
 import edu.wpi.first.cameraserver.CameraServer;
 import edu.wpi.first.cscore.UsbCamera;
 import edu.wpi.first.wpilibj.PowerDistribution;
+import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
@@ -18,6 +19,7 @@ public class Robot extends TimedRobot {
     private PowerDistribution PDH = new PowerDistribution(20, PowerDistribution.ModuleType.kRev);
     public static boolean navxCalibrated = false;
     private boolean isConnected = false;
+    private boolean lastBrownedOut = false;
 
     @Override
     public void close() {
@@ -56,6 +58,18 @@ public class Robot extends TimedRobot {
     public void robotPeriodic() {
         // Capture telemetry from all registered subsystems
         Telemetry.periodic();
+
+        // Battery / brownout monitoring
+        double batteryVoltage = RobotController.getBatteryVoltage();
+        boolean brownedOut = RobotController.isBrownedOut();
+        Telemetry.publish("Robot/Battery/VoltageV", batteryVoltage, TelemetryLevel.MATCH);
+        Telemetry.publish("Robot/Battery/BrownedOut", brownedOut, TelemetryLevel.MATCH);
+        Telemetry.record("Robot/Battery/VoltageV", batteryVoltage, TelemetryLevel.MATCH);
+        Telemetry.record("Robot/Battery/BrownedOut", brownedOut, TelemetryLevel.MATCH);
+        if (brownedOut && !lastBrownedOut) {
+            Telemetry.event("Robot/Battery/Brownout", String.format("Voltage=%.2fV", batteryVoltage));
+        }
+        lastBrownedOut = brownedOut;
 
         CommandScheduler.getInstance().run();
     }

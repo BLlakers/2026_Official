@@ -549,8 +549,11 @@ public final class Constants {
         // CAN IDs — confirm with build team before first power-on
         // -------------------------------------------------------------------------
 
-        /** CAN ID for the turret rotation motor (NEO on SparkMax). */
-        public static final int TURRET_MOTOR_ID = 20;
+        /**
+         * CAN ID for the turret rotation motor (NEO on SparkMax).
+         * NOTE: ID 20 is reserved for the REV PDH (configured in Robot.java). Turret starts at 21.
+         */
+        public static final int TURRET_MOTOR_ID = 21;
 
         // -------------------------------------------------------------------------
         // Current limits
