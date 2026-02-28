@@ -31,6 +31,7 @@ public final class Constants {
         public static final boolean ENABLE_INTAKE = false;
         public static final boolean ENABLE_RELAY = false;
         public static final boolean ENABLE_INDEXER = false;
+        public static final boolean ENABLE_SHOOTER = false;
     }
 
     public static final class DriverLabels {
@@ -440,6 +441,87 @@ public final class Constants {
 
         /** Speed for reversing to clear jams. Negative. */
         public static final double INDEXER_REVERSE_SPEED = -0.5; // TODO: tune
+    }
+
+    /**
+     * Constants for the Shooter subsystem.
+     *
+     * <p>The shooter is a differential-velocity dual-roller launcher. Two flywheels of different
+     * diameters grip opposite sides of the 5.91" fuel ball as it passes through a fixed-angle
+     * channel. By independently controlling the speed of each flywheel, the shooter controls
+     * both exit velocity and backspin (Magnus lift), which together determine the trajectory.
+     *
+     * <p>Flywheel geometry:
+     * <ul>
+     *   <li>Front flywheel (A): 3.0" (0.0762 m) diameter</li>
+     *   <li>Rear flywheel (B): 4.0" (0.1016 m) diameter</li>
+     * </ul>
+     *
+     * <p>Speed convention: positive output → ball is fired toward the target. One flywheel
+     * motor must be inverted to grip opposite sides — see
+     * {@link frc.robot.subsystems.shooter.ShooterSubsystemContext}.
+     *
+     * <p>All speed values are open-loop percent output placeholders. The physics-based
+     * inverse solver (see SHOOTER.md) will provide calibrated RPM targets once coefficients
+     * are measured.
+     */
+    public static class ShooterConstants {
+
+        // -------------------------------------------------------------------------
+        // CAN IDs — confirm with build team before first power-on
+        // -------------------------------------------------------------------------
+
+        /** CAN ID for the front flywheel motor — flywheel A, 3" diameter (NEO on SparkMax). */
+        public static final int SHOOTER_FRONT_MOTOR_ID = 18;
+
+        /** CAN ID for the rear flywheel motor — flywheel B, 4" diameter (NEO on SparkMax). */
+        public static final int SHOOTER_REAR_MOTOR_ID = 19;
+
+        // -------------------------------------------------------------------------
+        // Current limits
+        // -------------------------------------------------------------------------
+
+        public static final int SHOOTER_CURRENT_LIMIT = 40; // amps
+
+        // -------------------------------------------------------------------------
+        // Gear ratios — both flywheels are direct-drive (motor shaft = flywheel axle)
+        // -------------------------------------------------------------------------
+
+        /** Front flywheel gear ratio — direct drive, NEO shaft to 3" flywheel. 1:1. */
+        public static final double SHOOTER_FRONT_GEAR_RATIO = 1.0;
+
+        /** Rear flywheel gear ratio — direct drive, NEO shaft to 4" flywheel. 1:1. */
+        public static final double SHOOTER_REAR_GEAR_RATIO = 1.0;
+
+        // -------------------------------------------------------------------------
+        // Open-loop speeds [-1.0, 1.0]
+        // Convention: positive = ball fired toward target
+        // These are stubs — replace with physics-solver RPM targets after calibration.
+        // -------------------------------------------------------------------------
+
+        /**
+         * Open-loop speed for the front flywheel (A, 3") when shooting. Positive.
+         * <b>TODO: replace with physics-solver RPM target after SHOOTER.md calibration sessions.</b>
+         */
+        public static final double SHOOTER_FRONT_SPEED = 1.0; // TODO: tune
+
+        /**
+         * Open-loop speed for the rear flywheel (B, 4") when shooting. Positive.
+         * <b>TODO: replace with physics-solver RPM target after SHOOTER.md calibration sessions.</b>
+         */
+        public static final double SHOOTER_REAR_SPEED = 1.0; // TODO: tune
+
+        /**
+         * Open-loop speed for the front flywheel when reversing. Negative.
+         * <b>TODO: tune for effective jam clearing.</b>
+         */
+        public static final double SHOOTER_FRONT_REVERSE_SPEED = -0.5; // TODO: tune
+
+        /**
+         * Open-loop speed for the rear flywheel when reversing. Negative.
+         * <b>TODO: tune for effective jam clearing.</b>
+         */
+        public static final double SHOOTER_REAR_REVERSE_SPEED = -0.5; // TODO: tune
     }
 
     public class TurnEncoderOffsets {

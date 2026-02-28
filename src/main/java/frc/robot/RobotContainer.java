@@ -25,6 +25,8 @@ import frc.robot.subsystems.intake.IntakeSubsystem;
 import frc.robot.subsystems.intake.IntakeSubsystemContext;
 import frc.robot.subsystems.relay.RelaySubsystem;
 import frc.robot.subsystems.relay.RelaySubsystemContext;
+import frc.robot.subsystems.shooter.ShooterSubsystem;
+import frc.robot.subsystems.shooter.ShooterSubsystemContext;
 import frc.robot.subsystems.turrettracker.TurretTracker;
 import frc.robot.subsystems.turrettracker.TurretTrackerContext;
 import frc.robot.subsystems.vision.VisionSubsystem;
@@ -48,6 +50,8 @@ public class RobotContainer {
     private final RelaySubsystem relaySubsystem;
 
     private final IndexerSubsystem indexerSubsystem;
+
+    private final ShooterSubsystem shooterSubsystem;
 
     private final VisionSubsystem visionSubsystem;
 
@@ -96,6 +100,9 @@ public class RobotContainer {
         this.indexerSubsystem =
                 Constants.FeatureFlags.ENABLE_INDEXER ? new IndexerSubsystem(IndexerSubsystemContext.defaults()) : null;
 
+        this.shooterSubsystem =
+                Constants.FeatureFlags.ENABLE_SHOOTER ? new ShooterSubsystem(ShooterSubsystemContext.defaults()) : null;
+
         this.visionSubsystem = Constants.FeatureFlags.ENABLE_VISION
                 ? new VisionSubsystem(
                         VisionSubsystemContext.builder()
@@ -114,6 +121,7 @@ public class RobotContainer {
         if (this.intakeSubsystem != null) this.intakeSubsystem.setName("IntakeSubsystem");
         if (this.relaySubsystem != null) this.relaySubsystem.setName("RelaySubsystem");
         if (this.indexerSubsystem != null) this.indexerSubsystem.setName("IndexerSubsystem");
+        if (this.shooterSubsystem != null) this.shooterSubsystem.setName("ShooterSubsystem");
         if (this.visionSubsystem != null) this.visionSubsystem.setName("VisionSubsystem");
         if (this.turretTracker != null) this.turretTracker.setName("TurretTracker");
 
@@ -288,21 +296,26 @@ public class RobotContainer {
             this.manipController.start().onTrue(this.intakeSubsystem.getHomingCommand());
         }
 
-        // Manipulator Controller - Relay + Indexer commands (only if both are enabled)
-        // TODO: Add shooterSubsystem.getShootCommand() / getReverseCommand() to each parallel
-        //       group once the ShooterSubsystem is stubbed out.
+        // Manipulator Controller - Relay + Indexer + Shooter commands (only if all three are enabled)
         //
-        // Manip RT (held) → advance relay + indexer (+ shooter TODO) in unison
-        // Manip RB (held) → reverse relay + indexer (+ shooter TODO) in unison
-        if (this.relaySubsystem != null && this.indexerSubsystem != null) {
+        // Manip RT (held) → advance relay + indexer + shooter in unison to fire balls
+        // Manip RB (held) → reverse relay + indexer + shooter in unison to clear jams
+        //
+        // TODO: Once the physics-based inverse solver (SHOOTER.md) is integrated, the shooter
+        //       command will accept a distance-to-target supplier instead of running open-loop.
+        if (this.relaySubsystem != null && this.indexerSubsystem != null && this.shooterSubsystem != null) {
             this.manipController
                     .rightTrigger()
                     .whileTrue(Commands.parallel(
-                            this.relaySubsystem.getRunCommand(), this.indexerSubsystem.getIndexCommand()));
+                            this.relaySubsystem.getRunCommand(),
+                            this.indexerSubsystem.getIndexCommand(),
+                            this.shooterSubsystem.getShootCommand()));
             this.manipController
                     .rightBumper()
                     .whileTrue(Commands.parallel(
-                            this.relaySubsystem.getReverseCommand(), this.indexerSubsystem.getReverseCommand()));
+                            this.relaySubsystem.getReverseCommand(),
+                            this.indexerSubsystem.getReverseCommand(),
+                            this.shooterSubsystem.getReverseCommand()));
         }
     }
 
@@ -316,6 +329,7 @@ public class RobotContainer {
         if (this.intakeSubsystem != null) Telemetry.putData(this.intakeSubsystem);
         if (this.relaySubsystem != null) Telemetry.putData(this.relaySubsystem);
         if (this.indexerSubsystem != null) Telemetry.putData(this.indexerSubsystem);
+        if (this.shooterSubsystem != null) Telemetry.putData(this.shooterSubsystem);
         if (this.visionSubsystem != null) Telemetry.putData(this.visionSubsystem);
         if (this.turretTracker != null) Telemetry.putData(this.turretTracker);
 
