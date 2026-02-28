@@ -6,34 +6,45 @@ This repository contains our Java/WPILib robot code with a simulation-first work
 abstractions, and CI with test coverage. This guide explains how to set up your environment, run the sim, deploy to the
 robot, and contribute.
 
-## Current State: 2026 Season Migration (In Progress)
+## Current State: 2026 Season (Mechanism Bring-Up)
 
-This codebase is currently in a **transitional state** as we migrate from the 2025 season to the 2026 season:
+All game mechanisms have been stubbed out and are ready for hardware bring-up. Feature flags
+control which subsystems are active — see `INT_NEXT.md` for the full integration checklist
+and `CONTROLS.md` for the current controller layout.
 
 ### What's Complete:
-- ✓ **WPILib 2026 Migration** - Upgraded to 2026.1.1-beta-2 toolchain
+- ✓ **WPILib 2026 Migration** - Upgraded to GradleRIO 2026.2.1 / Java 17
 - ✓ **PathPlanner Integration** - Using 2026-compatible PathPlanner for autonomous path planning
-- ✓ **FuelSubsystem Implementation** - Adapted from 2026 KitBot reference implementation with team Context pattern
-- ✓ **TemplateMechanism Example** - Phoenix6 TalonFX reference subsystem for new mechanism development
-- ✓ **Legacy Subsystem Removal** - Removed 2025-specific mechanisms (climb, elevator, vision/Limelight)
-- ✓ **PhotonVision Integration** - Vision subsystem with dual-camera AprilTag detection and SmartDashboard telemetry
-- ✓ **Enhanced Telemetry System** - Level-aware data capture (NONE/MATCH/LAB/VERBOSE), USB auto-detection, structured type support, AdvantageScope-compatible logging for match replay
+- ✓ **Swerve Drivetrain** - REV SPARK MAX NEOs, NavX-MXP gyro, field-relative drive
+- ✓ **PhotonVision Integration** - Quad-camera AprilTag setup (front-right, front-left, right-side, left-side) feeding `SwerveDrivePoseEstimator`
+- ✓ **Enhanced Telemetry System** - Level-aware data capture (NONE/MATCH/LAB/VERBOSE), USB auto-detection, AdvantageScope-compatible logging
+- ✓ **ClimbSubsystem** - Multi-bar telescope climb with homing, position-based bar sequencing, and AdvantageScope Pose3d visualization
+- ✓ **IntakeSubsystem** - 2-motor lift (25:1 NEO) + NEO Vortex roller; retracted-hardstop homing; encoder 0 = retracted
+- ✓ **RelaySubsystem** - 6-roller belt conveyor (NEO 10:1); open-loop; conveys balls from intake to indexer
+- ✓ **IndexerSubsystem** - Dual opposite-wheel tower (NEO 1:1); open-loop; advances balls to shooter
+- ✓ **ShooterSubsystem** - Differential-velocity dual flywheel (3" front + 4" rear, NEO 1:1 each); open-loop stub; see `SHOOTER.md` for physics model and calibration plan
+- ✓ **TurretSubsystem** - Horizontal rotation motor (NEO 20:1 gearbox); proportional tracking stub; brake-mode position hold
+- ✓ **TurretTracker** - Pure-software aim calculator; computes hub angle, 3D distance, and elevation from pose estimate; auto-switches SHOOTING / PASSING modes; AdvantageScope Pose3d visualization
 
 ### Architecture Pattern:
-This codebase uses a **Context-based configuration pattern** inspired by the 2026 KitBot reference implementation:
-- **Context Classes**: Lombok `@Builder` pattern for testable, flexible configuration (e.g., `FuelSubsystemContext`, `DrivetrainContext`)
+This codebase uses a **Context-based configuration pattern**:
+- **Context Classes**: Lombok `@Builder` pattern for testable, flexible configuration (e.g., `RelaySubsystemContext`, `DrivetrainContext`)
 - **Subsystems**: Accept Context objects via constructor dependency injection
-- **Command Factories**: Subsystems expose command factory methods (`getIntakeCommand()`, `getLaunchCommand()`)
-- **KitBot Best Practices**: SparkMaxConfig with proper reset/persist modes, voltage-based control for simple mechanisms, SmartDashboard tuning
+- **Command Factories**: Subsystems expose command factory methods (e.g., `getRunCommand()`, `getReverseCommand()`, `getStopCommand()`)
+- **Feature Flags**: `Constants.FeatureFlags` enables/disables subsystems at compile time for incremental hardware bring-up
+- **SparkMax Best Practices**: `SparkMaxConfig` with `ResetMode.kResetSafeParameters` + `PersistMode.kPersistParameters`
 
 ### What's Next:
 - MK5i Swerve Module integration (planned hardware upgrade)
-- Additional 2026 game-specific mechanisms
+- Hardware bring-up: flip feature flags as motors are wired (see `INT_NEXT.md`)
+- Shooter closed-loop RPM control + physics-based inverse solver (see `SHOOTER.md`)
+- Turret closed-loop PID position control (pending full gear ratio from CAD)
 - PathPlanner autonomous routine development
-- Further refinement of subsystem implementations
+- Resolve displaced climb manual override buttons (see `CONTROLS.md`)
 
 For new subsystem development, refer to:
-- `FuelSubsystem` - SparkMax-based roller mechanism (adapted from KitBot)
+- `RelaySubsystem` - Simplest single-motor open-loop pattern (SparkMax / NEO / coast)
+- `TurretSubsystem` - Position-tracking pattern (SparkMax / NEO / brake + proportional control)
 - `TemplateMechanism` - TalonFX-based mechanism baseline
 - `Drivetrain.captureTelemetry()` - Example of telemetry integration pattern
 
@@ -108,43 +119,21 @@ vendordeps/            # Vendor JSONs (REV, CTRE Phoenix6, PathPlanner, etc.)
 ---
 
 ## Driver Station Controls
-Driver Station (3 Controllers):
-```
-USB 0: DRIVER CONTROLLER
-├─ Swerve drive (left stick: translation, right stick: rotation)
-├─ Right trigger: acceleration/gas
-├─ Left trigger: half-speed mode (≥0.5 threshold)
-├─ Gyro reset (B button)
-└─ Wheel lock (right stick button)
 
-USB 1: MANIPULATION/OPERATOR CONTROLLER
-├─ Fuel intake (left bumper - hold)
-├─ Fuel launch (right bumper - spin up → launch sequence)
-└─ Fuel eject (X button - hold)
+> **See [`CONTROLS.md`](CONTROLS.md) for the full, current controller layout.**
 
-USB 2: DEBUG CONTROLLER
-└─ (Reserved for testing and overrides)
-```
+Three Xbox controllers are used (USB 0–2). Quick reference:
 
-### 1. **Driver Controller** (Channel 0)
-- **Primary job:** Drive the robot using swerve drivetrain
-- Left stick: Translation (forward/back, strafe left/right)
-- Right stick: Rotation
-- Right trigger: Acceleration multiplier
-- Left trigger: Half-speed mode for precision
-- B button: Reset gyro/NavX heading
-- Right stick button: Toggle wheel lock (X-pattern for defense)
+| Port | Controller | Role |
+|---|---|---|
+| USB 0 | Driver | Swerve driving only |
+| USB 1 | Manipulator | All mechanism operation (intake, relay, indexer, shooter, climb) |
+| USB 2 | Debug | Bring-up testing and overrides (turret jog, reserved mirrors) |
 
-### 2. **Manipulation Controller** (Channel 1)
-- **Primary job:** Operate fuel subsystem
-- Left bumper (hold): Intake fuel into mechanism
-- Right bumper (hold): Launch sequence (1 second spin-up, then launch)
-- X button (hold): Eject/reverse fuel out of intake
-
-### 3. **Debug Controller** (Channel 2)
-- **Primary job:** Testing and overrides
-- Currently reserved for development/testing purposes
-- Used during practice for mechanism testing and troubleshooting
+Key changes from 2025:
+- **Half-speed mode removed** — driver left trigger is now unbound
+- **All mechanism controls moved to manipulator controller**
+- Right trigger fires relay + indexer + shooter in parallel; left trigger runs intake rollers
 
 ## Running the Simulator
 
@@ -184,7 +173,13 @@ Then enable using the **FRC Driver Station**.
 
 ## PhotonVision Development Loop
 
-The **VisionSubsystem** provides AprilTag detection using PhotonVision with support for dual cameras. This section describes the complete development and validation workflow.
+> ⚠️ **This section was written for the original 2-camera (front + rear) setup.** The robot
+> has since migrated to a **quad-camera** configuration (front-right, front-left, right-side,
+> left-side). Camera names, SmartDashboard paths, and configuration examples below reflect the
+> old layout. Update this section once the quad-camera bring-up is complete and camera names
+> are confirmed in `VisionSubsystemContext`. The general procedures remain valid.
+
+The **VisionSubsystem** provides AprilTag detection using PhotonVision with support for four cameras (front-right, front-left, right-side, left-side). This section describes the complete development and validation workflow.
 
 ### Architecture Overview
 
@@ -196,7 +191,7 @@ The vision subsystem follows our Context-based pattern:
 ### Current Capabilities (Proof of Life)
 
 The VisionSubsystem currently provides:
-- ✓ **Dual Camera Support** - Front and rear cameras configured independently
+- ✓ **Quad Camera Support** - Four cameras configured independently (front-right, front-left, right-side, left-side)
 - ✓ **AprilTag Detection** - Detects and logs all visible AprilTag IDs
 - ✓ **SmartDashboard Telemetry** - Real-time camera status and detection data
 - ✓ **Connection Monitoring** - Tracks camera connectivity status

@@ -27,6 +27,8 @@ import frc.robot.subsystems.relay.RelaySubsystem;
 import frc.robot.subsystems.relay.RelaySubsystemContext;
 import frc.robot.subsystems.shooter.ShooterSubsystem;
 import frc.robot.subsystems.shooter.ShooterSubsystemContext;
+import frc.robot.subsystems.turret.TurretSubsystem;
+import frc.robot.subsystems.turret.TurretSubsystemContext;
 import frc.robot.subsystems.turrettracker.TurretTracker;
 import frc.robot.subsystems.turrettracker.TurretTrackerContext;
 import frc.robot.subsystems.vision.VisionSubsystem;
@@ -52,6 +54,8 @@ public class RobotContainer {
     private final IndexerSubsystem indexerSubsystem;
 
     private final ShooterSubsystem shooterSubsystem;
+
+    private final TurretSubsystem turretSubsystem;
 
     private final VisionSubsystem visionSubsystem;
 
@@ -103,6 +107,9 @@ public class RobotContainer {
         this.shooterSubsystem =
                 Constants.FeatureFlags.ENABLE_SHOOTER ? new ShooterSubsystem(ShooterSubsystemContext.defaults()) : null;
 
+        this.turretSubsystem =
+                Constants.FeatureFlags.ENABLE_TURRET ? new TurretSubsystem(TurretSubsystemContext.defaults()) : null;
+
         this.visionSubsystem = Constants.FeatureFlags.ENABLE_VISION
                 ? new VisionSubsystem(
                         VisionSubsystemContext.builder()
@@ -122,6 +129,7 @@ public class RobotContainer {
         if (this.relaySubsystem != null) this.relaySubsystem.setName("RelaySubsystem");
         if (this.indexerSubsystem != null) this.indexerSubsystem.setName("IndexerSubsystem");
         if (this.shooterSubsystem != null) this.shooterSubsystem.setName("ShooterSubsystem");
+        if (this.turretSubsystem != null) this.turretSubsystem.setName("TurretSubsystem");
         if (this.visionSubsystem != null) this.visionSubsystem.setName("VisionSubsystem");
         if (this.turretTracker != null) this.turretTracker.setName("TurretTracker");
 
@@ -317,6 +325,25 @@ public class RobotContainer {
                             this.indexerSubsystem.getReverseCommand(),
                             this.shooterSubsystem.getReverseCommand()));
         }
+
+        // Turret default command — track TurretTracker angle when both are enabled.
+        // When only the turret motor is enabled (tracker disabled), turret stays IDLE.
+        if (this.turretSubsystem != null && this.turretTracker != null) {
+            this.turretSubsystem.setDefaultCommand(
+                    this.turretSubsystem.getTrackCommand(this.turretTracker::getTurretAngleDegrees));
+        }
+
+        // Debug Controller - Turret manual jog commands (only if turret is enabled)
+        // Used during bring-up to verify motor direction and encoder sign convention.
+        //
+        // Debug D-pad left  (held) → jog turret left  (CCW; should produce positive encoder counts)
+        // Debug D-pad right (held) → jog turret right (CW;  should produce negative encoder counts)
+        //
+        // TODO: Remove or gate behind a sim/lab mode once closed-loop tracking is verified.
+        if (this.turretSubsystem != null) {
+            this.debugController.povLeft().whileTrue(this.turretSubsystem.getJogLeftCommand());
+            this.debugController.povRight().whileTrue(this.turretSubsystem.getJogRightCommand());
+        }
     }
 
     private void configureShuffleboard() {
@@ -330,6 +357,7 @@ public class RobotContainer {
         if (this.relaySubsystem != null) Telemetry.putData(this.relaySubsystem);
         if (this.indexerSubsystem != null) Telemetry.putData(this.indexerSubsystem);
         if (this.shooterSubsystem != null) Telemetry.putData(this.shooterSubsystem);
+        if (this.turretSubsystem != null) Telemetry.putData(this.turretSubsystem);
         if (this.visionSubsystem != null) Telemetry.putData(this.visionSubsystem);
         if (this.turretTracker != null) Telemetry.putData(this.turretTracker);
 

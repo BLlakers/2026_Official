@@ -32,6 +32,7 @@ public final class Constants {
         public static final boolean ENABLE_RELAY = false;
         public static final boolean ENABLE_INDEXER = false;
         public static final boolean ENABLE_SHOOTER = false;
+        public static final boolean ENABLE_TURRET = false;
     }
 
     public static final class DriverLabels {
@@ -522,6 +523,84 @@ public final class Constants {
          * <b>TODO: tune for effective jam clearing.</b>
          */
         public static final double SHOOTER_REAR_REVERSE_SPEED = -0.5; // TODO: tune
+    }
+
+    /**
+     * Constants for the Turret subsystem — the physical motor that rotates the shooter
+     * assembly to aim at the hub.
+     *
+     * <h2>Gear Ratio Note</h2>
+     * <p>{@code TURRET_GEAR_RATIO} represents <b>only the motor-side gearbox</b> (20:1).
+     * The full effective ratio also includes the external ring gear / pinion stage, which
+     * is determined by the tooth count or diameter ratio of the ring gear assembly.
+     * <b>Update {@code TURRET_GEAR_RATIO} to the total combined ratio once the ring gear
+     * geometry is confirmed from CAD.</b> The encoder position scaling and all PID tuning
+     * depend on this value being correct.
+     *
+     * <h2>Encoder Convention</h2>
+     * <p>Zero = the turret's home position (aimed straight forward).
+     * Positive = counterclockwise (left) rotation; negative = clockwise (right) rotation.
+     * This matches the WPILib field-relative angle convention used by {@link frc.robot.subsystems.turrettracker.TurretTracker}.
+     * <b>TODO: confirm sign convention during first homing test.</b>
+     */
+    public static class TurretConstants {
+
+        // -------------------------------------------------------------------------
+        // CAN IDs — confirm with build team before first power-on
+        // -------------------------------------------------------------------------
+
+        /** CAN ID for the turret rotation motor (NEO on SparkMax). */
+        public static final int TURRET_MOTOR_ID = 20;
+
+        // -------------------------------------------------------------------------
+        // Current limits
+        // -------------------------------------------------------------------------
+
+        public static final int TURRET_CURRENT_LIMIT = 30; // amps — lighter load than flywheel
+
+        // -------------------------------------------------------------------------
+        // Gear ratio
+        // -------------------------------------------------------------------------
+
+        /**
+         * Motor-side gearbox reduction — 20:1.
+         * <b>TODO: multiply by the external ring gear / pinion ratio once confirmed from CAD.
+         * All encoder-based position calculations are wrong until this value is the full
+         * effective ratio (gearbox × ring gear stage).</b>
+         */
+        public static final double TURRET_GEAR_RATIO = 20.0; // TODO: update with full ratio
+
+        // -------------------------------------------------------------------------
+        // Range of motion
+        // -------------------------------------------------------------------------
+
+        /**
+         * Total turret range of motion in degrees. Must match
+         * {@link frc.robot.subsystems.turrettracker.TurretTrackerContext#turretRangeOfMotionDegrees}.
+         * ±135° from forward = 270° total.
+         */
+        public static final double TURRET_RANGE_OF_MOTION_DEGREES = 270.0;
+
+        // -------------------------------------------------------------------------
+        // Manual jog speed — for initial testing only
+        // -------------------------------------------------------------------------
+
+        /**
+         * Open-loop speed for manual jog commands during bring-up testing.
+         * Kept slow to avoid hitting mechanical stops at speed.
+         * <b>TODO: remove or gate behind a test mode once closed-loop tracking is working.</b>
+         */
+        public static final double TURRET_JOG_SPEED = 0.15; // TODO: tune
+
+        // -------------------------------------------------------------------------
+        // Position tolerance
+        // -------------------------------------------------------------------------
+
+        /**
+         * Acceptable position error (degrees) when checking if the turret is on target.
+         * <b>TODO: tighten after PID tuning with the physical robot.</b>
+         */
+        public static final double TURRET_POSITION_TOLERANCE_DEGREES = 2.0; // TODO: tune
     }
 
     public class TurnEncoderOffsets {
