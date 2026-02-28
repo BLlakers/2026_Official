@@ -335,35 +335,35 @@ public final class Constants {
         public static final double LOWER_SPEED = -0.3; // TODO: tune
 
         /**
-         * Speed for homing — slow downward creep until bumper contact is detected via current.
-         * Negative. Kept slow to avoid hard impact.
+         * Speed for homing — slow upward creep until the retracted hardstop is detected via current.
+         * Positive. Kept slow to avoid hard impact.
          */
-        public static final double HOMING_SPEED = -0.15; // TODO: tune
+        public static final double HOMING_SPEED = 0.15; // TODO: tune
 
         // -------------------------------------------------------------------------
-        // Homing — bumper-contact current detection
+        // Homing — retracted-hardstop current detection
         // -------------------------------------------------------------------------
 
         /**
-         * Current threshold (amps) that signals the intake has reached the bumper hardstop.
+         * Current threshold (amps) that signals the intake has reached the retracted hardstop.
          * Homing stops when EITHER lift motor exceeds this threshold.
          *
-         * <p>Tune empirically: run homing on a flat surface, watch
+         * <p>Tune empirically: run homing, watch
          * {@code Intake/Lift/Motor1/Current} and {@code Intake/Lift/Motor2/Current},
-         * note the spike when the assembly contacts the bumpers, then set just below it.
+         * note the spike when the assembly contacts the retracted hardstop, then set just below it.
          */
         public static final double HOMING_CURRENT_THRESHOLD_AMPS = 20.0; // TODO: tune empirically
 
         // -------------------------------------------------------------------------
         // Encoder setpoints (lift motor rotations from homed zero)
-        // Zero = fully lowered (bumper contact). Positive = intake raised.
+        // Zero = fully retracted (hardstop contact). Negative = intake lowered.
         // -------------------------------------------------------------------------
 
-        /** Encoder position at fully-lowered (normal match) position. Zeroed by homing. */
-        public static final double LOWERED_POSITION_ROTATIONS = 0.0;
+        /** Encoder position at fully-lowered (match) position. Negative from homed zero. */
+        public static final double LOWERED_POSITION_ROTATIONS = -50.0; // TODO: measure empirically
 
-        /** Encoder position at fully-raised (stowed for climb) position. TODO: measure. */
-        public static final double RAISED_POSITION_ROTATIONS = 50.0; // TODO: measure empirically
+        /** Encoder position at fully-retracted (stowed for climb) position. Established by homing. */
+        public static final double RAISED_POSITION_ROTATIONS = 0.0;
 
         /**
          * Acceptable position error (rotations) for setpoint commands.

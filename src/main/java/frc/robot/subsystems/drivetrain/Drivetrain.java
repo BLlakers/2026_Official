@@ -160,6 +160,9 @@ public class Drivetrain extends SubsystemBase {
         // Initialize NavX gyro
         this.navXSensorModule = new AHRS(AHRS.NavXComType.kMXP_SPI);
 
+        // NOTE: This may account for verticle
+        this.navXSensorModule.getBoardYawAxis().board_axis = AHRS.BoardAxis.kBoardAxisY;
+
         this.context
                 .getRobotConfig()
                 .ifPresentOrElse(

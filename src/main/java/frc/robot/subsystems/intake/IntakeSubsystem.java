@@ -42,14 +42,14 @@ import frc.robot.support.TelemetryLevel;
  *
  * <h2>Encoder Convention (Lift)</h2>
  * <ul>
- *   <li>Encoder = 0 → fully lowered (hopper contacts bumpers — homing reference)</li>
- *   <li>Encoder positive → hopper raised toward stowed position</li>
+ *   <li>Encoder = 0 → fully retracted (hopper at retracted hardstop — homing reference)</li>
+ *   <li>Encoder negative → hopper lowered toward match position</li>
  * </ul>
  *
  * <h2>Homing</h2>
- * <p>Both lift motors slowly lower the hopper until <em>either</em> motor detects a current spike
- * (bumper contact). Both encoders are then zeroed. Re-homing mid-match is expected — the
- * encoders are relative and may drift after collisions.
+ * <p>Both lift motors slowly raise the hopper until <em>either</em> motor detects a current spike
+ * (retracted hardstop contact). Both encoders are then zeroed. Re-homing mid-match is expected —
+ * the encoders are relative and may drift after collisions.
  *
  * <h2>Build Team TODOs</h2>
  * <ul>
@@ -70,7 +70,7 @@ public class IntakeSubsystem extends SubsystemBase {
     public enum State {
         /** All motors stopped; encoder position unknown. Safe before homing. */
         IDLE,
-        /** Lift slowly lowering to find bumper hardstop and zero encoders. */
+        /** Lift slowly raising to find retracted hardstop and zero encoders. */
         HOMING,
         /** Intake at lowered (match) position; rollers stopped. */
         LOWERED,
@@ -267,7 +267,7 @@ public class IntakeSubsystem extends SubsystemBase {
         liftMotor2.set(context.getLowerSpeed());
     }
 
-    private void homingLowerLift() {
+    private void homingRaiseLift() {
         liftMotor1.set(context.getHomingSpeed());
         liftMotor2.set(context.getHomingSpeed());
     }
@@ -288,14 +288,14 @@ public class IntakeSubsystem extends SubsystemBase {
 
     /**
      * Returns true when a current spike on either lift motor indicates the hopper has
-     * contacted the bumper hardstop during homing.
+     * contacted the retracted hardstop during homing.
      */
-    private boolean isAtBumperHardstop() {
+    private boolean isAtRetractedHardstop() {
         return getLift1Current() >= context.getHomingCurrentThresholdAmps()
                 || getLift2Current() >= context.getHomingCurrentThresholdAmps();
     }
 
-    /** Zeros both lift encoders and marks homing complete after bumper contact. */
+    /** Zeros both lift encoders and marks homing complete after retracted hardstop contact. */
     private void completeHoming() {
         holdLift();
         lift1Encoder.setPosition(0.0);
@@ -307,7 +307,7 @@ public class IntakeSubsystem extends SubsystemBase {
             lift2MotorSim.setState(VecBuilder.fill(0.0, 0.0));
         }
         targetRotations = 0.0;
-        setState(State.LOWERED);
+        setState(State.RAISED);
     }
 
     // -------------------------------------------------------------------------
@@ -315,10 +315,10 @@ public class IntakeSubsystem extends SubsystemBase {
     // -------------------------------------------------------------------------
 
     /**
-     * Homing command — slowly lowers the hopper until it contacts the bumpers (current spike on
-     * either lift motor), then zeroes both encoders.
+     * Homing command — slowly raises the hopper until it contacts the retracted hardstop (current
+     * spike on either lift motor), then zeroes both encoders.
      *
-     * <p>After homing: encoder = 0 = fully lowered (bumper contact). Positive = raised.
+     * <p>After homing: encoder = 0 = fully retracted (hardstop contact). Negative = lowered.
      *
      * <p>This command is safe to run mid-match whenever the lift encoder is suspected to have
      * drifted (e.g., after a collision). The hopper must not be carrying the robot when homing.
@@ -329,10 +329,10 @@ public class IntakeSubsystem extends SubsystemBase {
         return this.runEnd(
                         () -> {
                             setState(State.HOMING);
-                            homingLowerLift();
+                            homingRaiseLift();
                         },
                         this::holdLift)
-                .until(this::isAtBumperHardstop)
+                .until(this::isAtRetractedHardstop)
                 .andThen(this.runOnce(this::completeHoming))
                 .withName("Intake.Home");
     }
@@ -538,9 +538,13 @@ public class IntakeSubsystem extends SubsystemBase {
      * Advances simulated lift motor physics each tick.
      *
      * <p>Mirrors the ClimbSubsystem simulation pattern: both lift motors are modelled
-     * as independent NEO DCMotorSims. A floor hardstop at encoder = 0 prevents the
-     * simulated position from going negative, producing a current spike that triggers
-     * {@link #isAtBumperHardstop()} so homing can complete in simulation.
+     * as independent NEO DCMotorSims. Two hardstops are simulated:
+     * <ul>
+     *   <li>Ceiling at encoder = 0 (retracted hardstop) — stalls motor to produce a current spike
+     *       that triggers {@link #isAtRetractedHardstop()} so homing can complete in simulation.</li>
+     *   <li>Floor at {@code loweredPositionRotations} (extended hardstop) — stalls motor at the
+     *       fully-lowered position so the intake rests without motor effort.</li>
+     * </ul>
      */
     @Override
     public void simulationPeriodic() {
@@ -548,14 +552,8 @@ public class IntakeSubsystem extends SubsystemBase {
         double dt = now - lastSimTime;
         lastSimTime = now;
 
-        boolean bumperStopActive = currentState == State.HOMING
-                || currentState == State.LOWERED
-                || currentState == State.IDLE
-                || currentState == State.FEEDING
-                || currentState == State.REVERSING;
-
-        simulateLiftMotor(lift1SparkMaxSim, lift1MotorSim, dt, bumperStopActive, true);
-        simulateLiftMotor(lift2SparkMaxSim, lift2MotorSim, dt, bumperStopActive, false);
+        simulateLiftMotor(lift1SparkMaxSim, lift1MotorSim, dt, true);
+        simulateLiftMotor(lift2SparkMaxSim, lift2MotorSim, dt, false);
 
         // Retrieve results
         simLift1Current = lift1SparkMaxSim.getMotorCurrent();
@@ -565,25 +563,30 @@ public class IntakeSubsystem extends SubsystemBase {
     }
 
     /**
-     * Simulates a single lift motor with optional bumper floor hardstop.
+     * Simulates a single lift motor with physical hardstops at both travel limits.
      *
-     * @param sparkSim  REV sim bridge for current/velocity
-     * @param motorSim  DCMotorSim physics model
-     * @param dt        elapsed time since last tick (seconds)
-     * @param floorActive whether the bumper hardstop is active (prevents going below 0)
-     * @param isMotor1  used only to store simulated position into the correct field
+     * @param sparkSim REV sim bridge for current/velocity
+     * @param motorSim DCMotorSim physics model
+     * @param dt       elapsed time since last tick (seconds)
+     * @param isMotor1 used only to store simulated position into the correct field
      */
-    private void simulateLiftMotor(
-            SparkMaxSim sparkSim, DCMotorSim motorSim, double dt, boolean floorActive, boolean isMotor1) {
+    private void simulateLiftMotor(SparkMaxSim sparkSim, DCMotorSim motorSim, double dt, boolean isMotor1) {
         double voltage = sparkSim.getAppliedOutput() * RobotController.getBatteryVoltage();
         double currentPos = motorSim.getAngularPositionRotations();
+        double floor = context.getLoweredPositionRotations();
 
-        if (floorActive && currentPos <= 0.0 && voltage < 0.0) {
-            // At bumper floor — stall motor to produce current spike for homing detection
+        if (currentPos >= 0.0 && voltage > 0.0) {
+            // At retracted ceiling hardstop — stall motor to produce current spike for homing
             motorSim.setState(VecBuilder.fill(0.0, 0.0));
             sparkSim.iterate(0.0, RobotController.getBatteryVoltage(), dt);
             if (isMotor1) simLift1Position = 0.0;
             else simLift2Position = 0.0;
+        } else if (currentPos <= floor && voltage < 0.0) {
+            // At extended floor hardstop — stall motor, intake rests on hardstop
+            motorSim.setState(VecBuilder.fill(floor, 0.0));
+            sparkSim.iterate(0.0, RobotController.getBatteryVoltage(), dt);
+            if (isMotor1) simLift1Position = floor;
+            else simLift2Position = floor;
         } else {
             motorSim.setInputVoltage(voltage);
             motorSim.update(dt);

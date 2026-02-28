@@ -16,14 +16,14 @@ import lombok.Data;
  *
  * <h2>Encoder Convention (Lift)</h2>
  * <ul>
- *   <li>Encoder = 0 → fully lowered (intake resting on bumpers — homing reference)</li>
- *   <li>Encoder positive → intake raised (stowed for climb / frame-perimeter compliance)</li>
+ *   <li>Encoder = 0 → fully retracted (intake at retracted hardstop — homing reference)</li>
+ *   <li>Encoder negative → intake lowered (match / collection position)</li>
  * </ul>
  *
  * <h2>Homing</h2>
- * <p>The intake is slowly lowered until EITHER lift motor exceeds
- * {@link #homingCurrentThresholdAmps} (indicating bumper contact). Both encoders are then zeroed.
- * Homing can be re-triggered mid-match when encoders are suspected to have drifted.
+ * <p>The intake is slowly raised until EITHER lift motor exceeds
+ * {@link #homingCurrentThresholdAmps} (indicating retracted hardstop contact). Both encoders are
+ * then zeroed. Homing can be re-triggered mid-match when encoders are suspected to have drifted.
  *
  * <h2>Build Team TODOs</h2>
  * <ul>
@@ -147,23 +147,23 @@ public class IntakeSubsystemContext {
     private final double lowerSpeed = LOWER_SPEED;
 
     /**
-     * Speed for homing — slow downward creep toward bumper contact.
-     * Negative. Kept slow to avoid hard impact with bumpers.
+     * Speed for homing — slow upward creep toward retracted hardstop contact.
+     * Positive. Kept slow to avoid hard impact.
      * <b>TODO: tune.</b>
      */
     @Builder.Default
     private final double homingSpeed = HOMING_SPEED;
 
     // -------------------------------------------------------------------------
-    // Homing — bumper-contact current detection
+    // Homing — retracted-hardstop current detection
     // -------------------------------------------------------------------------
 
     /**
-     * Current threshold (amps) signalling bumper contact during homing.
+     * Current threshold (amps) signalling retracted hardstop contact during homing.
      * Homing stops when EITHER lift motor current exceeds this value.
      *
      * <p>Tune empirically: run homing, watch {@code Intake/Lift/Motor1/Current}
-     * and {@code Intake/Lift/Motor2/Current}, note the spike at bumper contact,
+     * and {@code Intake/Lift/Motor2/Current}, note the spike at retracted hardstop contact,
      * set just below it.
      */
     @Builder.Default
@@ -171,19 +171,20 @@ public class IntakeSubsystemContext {
 
     // -------------------------------------------------------------------------
     // Encoder setpoints (motor rotations from homed zero)
-    // Zero = fully lowered (bumper contact). Positive = intake raised.
+    // Zero = fully retracted (hardstop contact). Negative = intake lowered.
     // -------------------------------------------------------------------------
 
     /**
      * Encoder position at fully-lowered (normal match) position.
-     * Zero — established by homing. Intake rests on bumpers here.
+     * Negative from homed zero. Intake rests on extended hardstop here.
+     * <b>TODO: measure on physical robot.</b>
      */
     @Builder.Default
     private final double loweredPositionRotations = LOWERED_POSITION_ROTATIONS;
 
     /**
-     * Encoder position at fully-raised (stowed for climb) position.
-     * <b>TODO: measure on physical robot.</b>
+     * Encoder position at fully-retracted (stowed for climb) position.
+     * Zero — established by homing. Intake rests on retracted hardstop here.
      */
     @Builder.Default
     private final double raisedPositionRotations = RAISED_POSITION_ROTATIONS;
