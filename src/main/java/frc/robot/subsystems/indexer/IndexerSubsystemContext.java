@@ -80,7 +80,7 @@ public class IndexerSubsystemContext {
      * <b>TODO: confirm during first indexer test.</b>
      */
     @Builder.Default
-    private final boolean indexerMotorInverted = false;
+    private final boolean indexerMotorInverted = true;
 
     // -------------------------------------------------------------------------
     // Speeds [-1.0, 1.0]

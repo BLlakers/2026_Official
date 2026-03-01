@@ -344,6 +344,18 @@ public class RobotContainer {
             this.debugController.povLeft().whileTrue(this.turretSubsystem.getJogLeftCommand());
             this.debugController.povRight().whileTrue(this.turretSubsystem.getJogRightCommand());
         }
+
+        // Debug Controller - Relay selective run (only if relay is enabled)
+        // Allows the relay to be exercised in isolation, independent of the indexer and shooter.
+        // Use this during bring-up to verify roller direction and speed before enabling the full
+        // manip RT/RB fuel-delivery chain.
+        //
+        // Debug RT (held) → run relay forward  (conveys balls toward indexer)
+        // Debug RB (held) → run relay reverse  (clears jams)
+        if (this.relaySubsystem != null) {
+            this.debugController.rightTrigger().whileTrue(this.relaySubsystem.getRunCommand());
+            this.debugController.rightBumper().whileTrue(this.relaySubsystem.getReverseCommand());
+        }
     }
 
     private void configureShuffleboard() {

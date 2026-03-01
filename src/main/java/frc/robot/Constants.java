@@ -435,10 +435,10 @@ public final class Constants {
         // -------------------------------------------------------------------------
 
         /** Speed for conveying balls toward the indexer. Positive. */
-        public static final double RELAY_SPEED = 1.0; // TODO: tune
+        public static final double RELAY_SPEED = 0.8;
 
         /** Speed for reversing to clear jams. Negative. */
-        public static final double RELAY_REVERSE_SPEED = -0.5; // TODO: tune
+        public static final double RELAY_REVERSE_SPEED = -0.5;
     }
 
     public static class IndexerConstants {
@@ -469,10 +469,10 @@ public final class Constants {
         // -------------------------------------------------------------------------
 
         /** Speed for indexing balls toward the shooter. Positive. */
-        public static final double INDEXER_SPEED = 1.0; // TODO: tune
+        public static final double INDEXER_SPEED = 0.3;
 
         /** Speed for reversing to clear jams. Negative. */
-        public static final double INDEXER_REVERSE_SPEED = -0.5; // TODO: tune
+        public static final double INDEXER_REVERSE_SPEED = -0.1;
     }
 
     /**
