@@ -30,8 +30,8 @@ public final class Constants {
         public static final boolean ENABLE_CLIMB = false;
         public static final boolean ENABLE_INTAKE = true;
         public static final boolean ENABLE_RELAY = true;
-        public static final boolean ENABLE_INDEXER = false;
-        public static final boolean ENABLE_SHOOTER = false;
+        public static final boolean ENABLE_INDEXER = true;
+        public static final boolean ENABLE_SHOOTER = true;
         public static final boolean ENABLE_TURRET = false;
     }
 
@@ -469,10 +469,10 @@ public final class Constants {
         // -------------------------------------------------------------------------
 
         /** Speed for indexing balls toward the shooter. Positive. */
-        public static final double INDEXER_SPEED = 0.3;
+        public static final double INDEXER_SPEED = 0.35;
 
         /** Speed for reversing to clear jams. Negative. */
-        public static final double INDEXER_REVERSE_SPEED = -0.1;
+        public static final double INDEXER_REVERSE_SPEED = -0.25;
     }
 
     /**
@@ -535,13 +535,13 @@ public final class Constants {
          * Open-loop speed for the front flywheel (A, 3") when shooting. Positive.
          * <b>TODO: replace with physics-solver RPM target after SHOOTER.md calibration sessions.</b>
          */
-        public static final double SHOOTER_FRONT_SPEED = 1.0; // TODO: tune
+        public static final double SHOOTER_FRONT_SPEED = 0.2; // TODO: tune
 
         /**
          * Open-loop speed for the rear flywheel (B, 4") when shooting. Positive.
          * <b>TODO: replace with physics-solver RPM target after SHOOTER.md calibration sessions.</b>
          */
-        public static final double SHOOTER_REAR_SPEED = 1.0; // TODO: tune
+        public static final double SHOOTER_REAR_SPEED = 0.35; // TODO: tune
 
         /**
          * Open-loop speed for the front flywheel when reversing. Negative.
