@@ -170,6 +170,7 @@ public class IntakeSubsystem extends SubsystemBase {
         config.idleMode(IdleMode.kCoast); // Coast so rollers don't snap-stop and jam balls
         // TODO: Set config.inverted(true/false) once roller direction is confirmed with build team.
         //       Convention: positive output = rollers spin inward to collect balls.
+        config.inverted(context.isRollorMotorInverted());
         rollerMotor.configure(config, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
     }
 

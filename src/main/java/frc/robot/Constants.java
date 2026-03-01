@@ -28,8 +28,8 @@ public final class Constants {
         public static final boolean ENABLE_LED_STRAND = false;
         public static final boolean ENABLE_VISION = false;
         public static final boolean ENABLE_CLIMB = false;
-        public static final boolean ENABLE_INTAKE = false;
-        public static final boolean ENABLE_RELAY = false;
+        public static final boolean ENABLE_INTAKE = true;
+        public static final boolean ENABLE_RELAY = true;
         public static final boolean ENABLE_INDEXER = false;
         public static final boolean ENABLE_SHOOTER = false;
         public static final boolean ENABLE_TURRET = false;
@@ -350,10 +350,10 @@ public final class Constants {
         // -------------------------------------------------------------------------
 
         /** Intake speed — rollers spin inward to collect balls. Positive. */
-        public static final double INTAKE_SPEED = 1.0; // TODO: tune
+        public static final double INTAKE_SPEED = 0.55; //TDO: tune
 
         /** Reverse speed — rollers spin outward to eject. Negative. */
-        public static final double REVERSE_SPEED = -0.5; // TODO: tune
+        public static final double REVERSE_SPEED = -0.55; // TODO: tune
 
         // -------------------------------------------------------------------------
         // Lift speeds [-1.0, 1.0]
