@@ -469,10 +469,10 @@ public final class Constants {
         // -------------------------------------------------------------------------
 
         /** Speed for indexing balls toward the shooter. Positive. */
-        public static final double INDEXER_SPEED = 0.35;
+        public static final double INDEXER_SPEED = 0.45;
 
         /** Speed for reversing to clear jams. Negative. */
-        public static final double INDEXER_REVERSE_SPEED = -0.25;
+        public static final double INDEXER_REVERSE_SPEED = -0.35;
     }
 
     /**
