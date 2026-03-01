@@ -620,7 +620,8 @@ public class ClimbSubsystem extends SubsystemBase {
         Telemetry.record(
                 prefix + "/Homing/CurrentThreshold", context.getHomingCurrentThresholdAmps(), TelemetryLevel.LAB);
         Telemetry.record(prefix + "/ThroughBore/RawAngle", throughBoreEncoder.get(), TelemetryLevel.LAB);
-        Telemetry.record(prefix + "/ThroughBore/AtStoredPosition", isAbsoluteAtStoredPosition() ? 1.0 : 0.0, TelemetryLevel.LAB);
+        Telemetry.record(
+                prefix + "/ThroughBore/AtStoredPosition", isAbsoluteAtStoredPosition() ? 1.0 : 0.0, TelemetryLevel.LAB);
     }
 
     // -------------------------------------------------------------------------
