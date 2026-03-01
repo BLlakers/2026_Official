@@ -604,15 +604,53 @@ public final class Constants {
         public static final double TURRET_GEAR_RATIO = 9.0 * (74.0 / 44.0) * (120.0 / 30.0); // ≈ 60.55:1
 
         // -------------------------------------------------------------------------
-        // Range of motion
+        // Range of motion — asymmetric (turret home is not centered in its arc)
         // -------------------------------------------------------------------------
 
         /**
-         * Total turret range of motion in degrees. Must match
-         * {@link frc.robot.subsystems.turrettracker.TurretTrackerContext#turretRangeOfMotionDegrees}.
-         * ±135° from forward = 270° total.
+         * Maximum left (CCW / positive) travel from the home position in degrees.
+         * Must match {@link frc.robot.subsystems.turrettracker.TurretTrackerContext#maxLeftDegrees}.
          */
-        public static final double TURRET_RANGE_OF_MOTION_DEGREES = 270.0;
+        public static final double TURRET_MAX_LEFT_DEGREES = 200.0;
+
+        /**
+         * Maximum right (CW) travel from the home position in degrees (positive magnitude).
+         * The minimum turret angle is {@code -TURRET_MAX_RIGHT_DEGREES}.
+         * Must match {@link frc.robot.subsystems.turrettracker.TurretTrackerContext#maxRightDegrees}.
+         */
+        public static final double TURRET_MAX_RIGHT_DEGREES = 100.0;
+
+        // -------------------------------------------------------------------------
+        // Through-bore encoder (REV Through Bore on counter shaft, DIO 5)
+        // -------------------------------------------------------------------------
+        // The counter shaft sits between the 44→74t and 30→120t stages of the gear train.
+        // It turns 4× faster than the turret output (counter-to-turret ratio = 4:1).
+        //
+        // The through-bore is single-turn: its output range is [0, 1) per revolution.
+        // Across the full 300° turret range the counter shaft turns 3.33 revolutions,
+        // so the reading is ambiguous across the full range.
+        //
+        // It is used ONLY as a boot-time homing reference: if the turret is at home
+        // (0°, facing forward) when powered on, the through-bore matches
+        // TURRET_THROUGH_BORE_HOME_ANGLE_ROTATIONS and the SparkMax encoder is seeded
+        // to 0 automatically — no homing sequence required.
+
+        /** DIO channel for the turret counter-shaft through-bore encoder. */
+        public static final int TURRET_THROUGH_BORE_DIO_CHANNEL = DIOChannel.FIVE.getChannel(); // DIO 5
+
+        /**
+         * Counter-shaft through-bore reading when the turret is at home (0°, facing forward).
+         * TODO: calibrate — jog turret to center/forward, read Turret/ThroughBore/RawAngle,
+         * enter that value here, redeploy.
+         */
+        public static final double TURRET_THROUGH_BORE_HOME_ANGLE_ROTATIONS = 0.0; // TODO: calibrate
+
+        /**
+         * Acceptable error (counter rotations) when comparing the through-bore reading to home.
+         * 0.025 counter rotations = 0.025 / 4 × 360° ≈ 2.25° of turret travel —
+         * within the position tolerance, so the auto-seed window is tight but reachable.
+         */
+        public static final double TURRET_THROUGH_BORE_ANGLE_TOLERANCE_ROTATIONS = 0.025;
 
         // -------------------------------------------------------------------------
         // Manual jog speed — for initial testing only

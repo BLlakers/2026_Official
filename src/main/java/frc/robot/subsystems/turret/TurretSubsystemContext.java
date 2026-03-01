@@ -15,11 +15,9 @@ import lombok.Data;
  * (ratio TBD from CAD). The SparkMax built-in encoder tracks motor rotations; dividing by
  * the total gear ratio converts to turret degrees.
  *
- * <h2>Gear Ratio Warning</h2>
- * <p>{@code turretGearRatio} currently holds only the motor-side gearbox value (20:1).
- * The full effective ratio must include the external ring gear stage. <b>All encoder-based
- * position calculations produce incorrect degree values until this field is updated to the
- * confirmed total ratio.</b>
+ * <h2>Gear Ratio</h2>
+ * <p>{@code turretGearRatio} = 9 × (74/44) × (120/30) = 666/11 ≈ 60.55:1 (confirmed from CAD).
+ * Stage-by-stage breakdown is documented in {@link frc.robot.Constants.TurretConstants#TURRET_GEAR_RATIO}.
  *
  * <h2>Encoder Convention</h2>
  * <ul>
@@ -30,12 +28,12 @@ import lombok.Data;
  *
  * <h2>Build Team TODOs</h2>
  * <ul>
- *   <li>{@code turretGearRatio} — update to total effective ratio (gearbox × ring gear stage)
- *       once ring gear tooth counts / diameters are confirmed from CAD</li>
  *   <li>{@code turretMotorInverted} — confirm positive output rotates the turret
  *       counterclockwise (left) during first motor test</li>
  *   <li>{@code turretJogSpeed} — tune for safe bring-up speed</li>
  *   <li>{@code turretPositionToleranceDegrees} — tighten after PID tuning</li>
+ *   <li>{@code throughBoreHomeAngleRotations} — calibrate on physical robot:
+ *       jog turret to forward/home, read {@code Turret/ThroughBore/RawAngle}, enter here</li>
  * </ul>
  */
 @Data
@@ -81,15 +79,46 @@ public class TurretSubsystemContext {
     private final double turretGearRatio = TURRET_GEAR_RATIO;
 
     // -------------------------------------------------------------------------
-    // Range of motion
+    // Range of motion — asymmetric (turret home is not centered in its arc)
     // -------------------------------------------------------------------------
 
     /**
-     * Total turret range of motion in degrees (±half from center).
-     * Must match {@link frc.robot.subsystems.turrettracker.TurretTrackerContext#turretRangeOfMotionDegrees}.
+     * Maximum left (CCW / positive) travel from the home position in degrees.
+     * Used for soft limit enforcement in jog and track commands.
+     * Must match {@link frc.robot.subsystems.turrettracker.TurretTrackerContext#maxLeftDegrees}.
      */
     @Builder.Default
-    private final double turretRangeOfMotionDegrees = TURRET_RANGE_OF_MOTION_DEGREES;
+    private final double maxLeftDegrees = TURRET_MAX_LEFT_DEGREES;
+
+    /**
+     * Maximum right (CW) travel from the home position in degrees (positive magnitude).
+     * The minimum turret angle is {@code -maxRightDegrees}.
+     * Must match {@link frc.robot.subsystems.turrettracker.TurretTrackerContext#maxRightDegrees}.
+     */
+    @Builder.Default
+    private final double maxRightDegrees = TURRET_MAX_RIGHT_DEGREES;
+
+    // -------------------------------------------------------------------------
+    // Through-bore encoder (REV Through Bore on counter shaft, DIO 5)
+    // -------------------------------------------------------------------------
+
+    /** DIO channel the turret counter-shaft through-bore encoder is wired to. */
+    @Builder.Default
+    private final int throughBoreDioChannel = TURRET_THROUGH_BORE_DIO_CHANNEL;
+
+    /**
+     * Counter-shaft through-bore reading when the turret is at home (0°, facing forward).
+     * TODO: calibrate on physical robot — see TurretSubsystem through-bore calibration procedure.
+     */
+    @Builder.Default
+    private final double throughBoreHomeAngleRotations = TURRET_THROUGH_BORE_HOME_ANGLE_ROTATIONS;
+
+    /**
+     * Acceptable error (counter rotations) for the boot-time home position check.
+     * 0.025 counter rotations ≈ 2.25° of turret travel.
+     */
+    @Builder.Default
+    private final double throughBoreAngleTolerance = TURRET_THROUGH_BORE_ANGLE_TOLERANCE_ROTATIONS;
 
     // -------------------------------------------------------------------------
     // Motor inversion — confirm with build team

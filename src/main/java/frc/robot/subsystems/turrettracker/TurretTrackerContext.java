@@ -1,5 +1,7 @@
 package frc.robot.subsystems.turrettracker;
 
+import static frc.robot.Constants.TurretConstants.*;
+
 import lombok.Builder;
 import lombok.Data;
 
@@ -12,11 +14,20 @@ import lombok.Data;
 public class TurretTrackerContext {
 
     /**
-     * Total turret range of motion in degrees.
-     * 270 means ±135° from robot forward.
+     * Maximum left (CCW / positive) turret travel in degrees from home.
+     * The turret range is asymmetric — left and right limits differ.
+     * Must match {@link frc.robot.subsystems.turret.TurretSubsystemContext#maxLeftDegrees}.
      */
     @Builder.Default
-    private final double turretRangeOfMotionDegrees = 270.0;
+    private final double maxLeftDegrees = TURRET_MAX_LEFT_DEGREES;
+
+    /**
+     * Maximum right (CW) turret travel in degrees from home (positive magnitude).
+     * The minimum turret angle is {@code -maxRightDegrees}.
+     * Must match {@link frc.robot.subsystems.turret.TurretSubsystemContext#maxRightDegrees}.
+     */
+    @Builder.Default
+    private final double maxRightDegrees = TURRET_MAX_RIGHT_DEGREES;
 
     /**
      * Height of the turret above ground for 3D visualization (meters).

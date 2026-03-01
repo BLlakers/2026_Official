@@ -186,14 +186,16 @@ public class TurretTracker extends SubsystemBase {
         robotRelativeRad = Math.atan2(Math.sin(robotRelativeRad), Math.cos(robotRelativeRad));
         rawAngleDegrees = Units.radiansToDegrees(robotRelativeRad);
 
-        // Clamp to turret range
-        double halfRange = context.getTurretRangeOfMotionDegrees() / 2.0;
-        targetInRange = Math.abs(rawAngleDegrees) <= halfRange;
+        // Clamp to turret range — asymmetric (left and right limits differ)
+        targetInRange = rawAngleDegrees <= context.getMaxLeftDegrees()
+                && rawAngleDegrees >= -context.getMaxRightDegrees();
 
         if (targetInRange) {
             turretAngleDegrees = rawAngleDegrees;
+        } else if (rawAngleDegrees > context.getMaxLeftDegrees()) {
+            turretAngleDegrees = context.getMaxLeftDegrees();
         } else {
-            turretAngleDegrees = Math.copySign(halfRange, rawAngleDegrees);
+            turretAngleDegrees = -context.getMaxRightDegrees();
         }
 
         // Update AdvantageScope visualization
@@ -287,7 +289,8 @@ public class TurretTracker extends SubsystemBase {
 
         // LAB level - detailed tracking data
         Telemetry.record(prefix + "/RawAngleDeg", rawAngleDegrees, TelemetryLevel.LAB);
-        Telemetry.record(prefix + "/RangeOfMotionDeg", context.getTurretRangeOfMotionDegrees(), TelemetryLevel.LAB);
+        Telemetry.record(prefix + "/MaxLeftDeg", context.getMaxLeftDegrees(), TelemetryLevel.LAB);
+        Telemetry.record(prefix + "/MaxRightDeg", context.getMaxRightDegrees(), TelemetryLevel.LAB);
         Telemetry.publish(
                 prefix + "/ActiveTarget",
                 String.format("(%.3f, %.3f)", activeTarget.getX(), activeTarget.getY()),

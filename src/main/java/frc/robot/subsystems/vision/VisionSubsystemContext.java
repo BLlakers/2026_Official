@@ -54,43 +54,47 @@ public class VisionSubsystemContext {
 
     /**
      * Transform from robot center to front-right camera optical center.
-     * Mounted on the front-right bumper corner, angled 30deg outward to the right.
-     * Position: X=+0.30m forward, Y=-0.25m right, Z=+0.2286m up (9in).
-     * Rotation: pitch=-15deg (tilted down), yaw=-30deg (angled right).
+     * Mounted on the front-right corner, co-located with the right-side camera.
+     * Position from CAD (2026-03-01): X=13.105in forward, Y=11.615in right, Z=7in up.
+     * Position: X=+0.3329m forward, Y=-0.2950m right, Z=+0.1778m up.
+     * Rotation: pitch=+15deg (nose up — confirmed from CAD mount design), yaw=-30deg (angled right — confirmed from CAD).
      */
     @Builder.Default
     private final Transform3d frontRightCameraToRobot = new Transform3d(
-            new Translation3d(0.30, -0.25, 0.2286), new Rotation3d(0, Math.toRadians(-15), Math.toRadians(-30)));
+            new Translation3d(0.3329, -0.2950, 0.1778), new Rotation3d(0, Math.toRadians(15), Math.toRadians(-30)));
 
     /**
      * Transform from robot center to front-left camera optical center.
-     * Mounted on the front-left bumper corner, angled 30deg outward to the left.
-     * Position: X=+0.30m forward, Y=+0.25m left, Z=+0.2286m up (9in).
-     * Rotation: pitch=-15deg (tilted down), yaw=+30deg (angled left).
+     * Mounted on the front-left corner, co-located with the left-side camera.
+     * Position from CAD (2026-03-01): X=13.105in forward, Y=11.615in left, Z=7in up.
+     * Position: X=+0.3329m forward, Y=+0.2950m left, Z=+0.1778m up.
+     * Rotation: pitch=+15deg (nose up — confirmed from CAD mount design), yaw=+30deg (angled left — confirmed from CAD).
      */
     @Builder.Default
     private final Transform3d frontLeftCameraToRobot = new Transform3d(
-            new Translation3d(0.30, 0.25, 0.2286), new Rotation3d(0, Math.toRadians(-15), Math.toRadians(30)));
+            new Translation3d(0.3329, 0.2950, 0.1778), new Rotation3d(0, Math.toRadians(15), Math.toRadians(30)));
 
     /**
      * Transform from robot center to right-side camera optical center.
-     * Adjacent to the front-right camera, angled 120deg to the right.
-     * Position: X=+0.30m forward, Y=-0.25m right, Z=+0.2286m up (9in).
-     * Rotation: pitch=-15deg (tilted down), yaw=-120deg.
+     * Mounted on the front-right corner, co-located with the front-right camera.
+     * Position from CAD (2026-03-01): X=10.618in forward, Y=13.076in right, Z=7in up.
+     * Position: X=+0.2697m forward, Y=-0.3321m right, Z=+0.1778m up.
+     * Rotation: pitch=+15deg (nose up — confirmed from CAD mount design), yaw=-135deg (angled rear-right — confirmed from CAD).
      */
     @Builder.Default
     private final Transform3d rightSideCameraToRobot = new Transform3d(
-            new Translation3d(0.30, -0.25, 0.2286), new Rotation3d(0, Math.toRadians(-15), Math.toRadians(-135)));
+            new Translation3d(0.2697, -0.3321, 0.1778), new Rotation3d(0, Math.toRadians(15), Math.toRadians(-135)));
 
     /**
      * Transform from robot center to left-side camera optical center.
-     * Adjacent to the front-left camera, angled 120deg to the left.
-     * Position: X=+0.30m forward, Y=+0.25m left, Z=+0.2286m up (9in).
-     * Rotation: pitch=-15deg (tilted down), yaw=+120deg.
+     * Mounted on the front-left corner, co-located with the front-left camera.
+     * Position from CAD (2026-03-01): X=10.618in forward, Y=13.076in left, Z=7in up.
+     * Position: X=+0.2697m forward, Y=+0.3321m left, Z=+0.1778m up.
+     * Rotation: pitch=+15deg (nose up — confirmed from CAD mount design), yaw=+135deg (angled rear-left — confirmed from CAD).
      */
     @Builder.Default
     private final Transform3d leftSideCameraToRobot = new Transform3d(
-            new Translation3d(0.30, 0.25, 0.2286), new Rotation3d(0, Math.toRadians(-15), Math.toRadians(135)));
+            new Translation3d(0.2697, 0.3321, 0.1778), new Rotation3d(0, Math.toRadians(15), Math.toRadians(135)));
 
     /**
      * Whether to enable simulation features (VisionSystemSim)

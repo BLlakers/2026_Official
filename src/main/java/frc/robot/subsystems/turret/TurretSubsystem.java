@@ -15,10 +15,12 @@ import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N2;
 import edu.wpi.first.math.system.LinearSystem;
 import edu.wpi.first.math.system.plant.DCMotor;
+import edu.wpi.first.wpilibj.DutyCycleEncoder;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.simulation.DCMotorSim;
+import edu.wpi.first.wpilibj.simulation.DutyCycleEncoderSim;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.support.Telemetry;
@@ -29,14 +31,14 @@ import java.util.function.DoubleSupplier;
  * Turret subsystem — rotates the shooter assembly horizontally to aim at the hub.
  *
  * <h2>Mechanism Overview</h2>
- * <p>A single NEO drives a 20:1 gearbox whose output shaft drives an external ring gear /
- * pinion stage (ratio TBD from CAD). Together these rotate the shooter assembly horizontally
- * within a ±135° range of motion (270° total). The SparkMax built-in encoder tracks motor
- * rotations; angle at the turret is computed by dividing by the total gear ratio.
+ * <p>A single NEO drives a 9:1 stacked gearbox, then a 44→74t stage, then a 30→120t stage
+ * (total: ≈60.55:1). The shooter assembly rotates asymmetrically: 200° left (CCW) and 100°
+ * right (CW) from home. The SparkMax built-in encoder tracks motor rotations; angle at the
+ * turret is computed by dividing by the total gear ratio.
  *
  * <h2>Encoder Convention</h2>
  * <ul>
- *   <li>0 rotations = home (turret aimed straight forward); established by homing</li>
+ *   <li>0 rotations = home (turret aimed straight forward)</li>
  *   <li>Positive encoder count = counterclockwise (left) rotation</li>
  *   <li>Negative encoder count = clockwise (right) rotation</li>
  * </ul>
@@ -44,28 +46,19 @@ import java.util.function.DoubleSupplier;
  * {@code TurretTracker.getTurretAngleDegrees()} feeds directly into
  * {@link #getTrackCommand(DoubleSupplier)} without sign inversion.
  *
- * <h2>Gear Ratio Warning</h2>
- * <p>The context's {@code turretGearRatio} currently holds only the motor-side gearbox
- * (20:1). The full effective ratio must include the external ring gear / pinion stage.
- * <b>All encoder-based degree calculations are approximate until the full ratio is confirmed
- * from CAD and updated in {@link TurretSubsystemContext}.</b>
- *
- * <h2>Current Implementation Status (Stub)</h2>
- * <ul>
- *   <li>Manual jog commands work immediately for first-run testing</li>
- *   <li>{@link #getTrackCommand(DoubleSupplier)} is a proportional open-loop stub —
- *       replace with SparkMax closed-loop PID once gear ratio and encoder scaling are
- *       confirmed</li>
- *   <li>No homing routine yet — zero the encoder manually before first test</li>
- * </ul>
+ * <h2>Through-Bore Encoder (Homing)</h2>
+ * <p>A REV Through Bore Encoder is mounted on the counter shaft (between the 44→74t and
+ * 30→120t stages). It turns 4× per turret revolution. At boot, if the through-bore reading
+ * matches {@code throughBoreHomeAngleRotations}, the SparkMax encoder is seeded to 0
+ * automatically — no manual homing needed when the turret starts forward.
+ * TODO: calibrate {@code TURRET_THROUGH_BORE_HOME_ANGLE_ROTATIONS} on the physical robot.
  *
  * <h2>Build Team TODOs</h2>
  * <ul>
  *   <li>Confirm motor inversion — positive output must rotate turret counterclockwise (left)</li>
- *   <li>Update total gear ratio in {@link TurretSubsystemContext} from CAD ring gear data</li>
- *   <li>Tune proportional gain in {@link #getTrackCommand(DoubleSupplier)} or migrate to
- *       SparkMax closed-loop position control</li>
- *   <li>Add a homing routine (limit switch or current-spike detection at mechanical stop)</li>
+ *   <li>Calibrate {@code TURRET_THROUGH_BORE_HOME_ANGLE_ROTATIONS}: jog to forward, read
+ *       {@code Turret/ThroughBore/RawAngle}, enter value in {@code Constants.TurretConstants}</li>
+ *   <li>Tune proportional gain or migrate to SparkMax closed-loop position control</li>
  * </ul>
  */
 public class TurretSubsystem extends SubsystemBase {
@@ -102,6 +95,11 @@ public class TurretSubsystem extends SubsystemBase {
     // Motor
     private final SparkMax turretMotor; // NEO
 
+    // Through-bore encoder — REV Through Bore on the counter shaft (DIO 5).
+    // Counter shaft turns 4× for every 1 turret revolution (counter-to-turret = 4:1).
+    // Single-turn: range [0, 1). Used only as a boot-time home position reference.
+    private final DutyCycleEncoder throughBoreEncoder;
+
     private State currentState = State.IDLE;
 
     // -------------------------------------------------------------------------
@@ -110,6 +108,7 @@ public class TurretSubsystem extends SubsystemBase {
 
     private DCMotorSim turretMotorSim;
     private SparkMaxSim turretSparkMaxSim;
+    private DutyCycleEncoderSim throughBoreEncoderSim;
     private double lastSimTime = 0.0;
 
     // -------------------------------------------------------------------------
@@ -133,6 +132,7 @@ public class TurretSubsystem extends SubsystemBase {
         this.context = context;
 
         this.turretMotor = new SparkMax(context.getTurretMotorId(), MotorType.kBrushless);
+        this.throughBoreEncoder = new DutyCycleEncoder(context.getThroughBoreDioChannel());
 
         configureMotor();
 
@@ -142,6 +142,17 @@ public class TurretSubsystem extends SubsystemBase {
                     createDCMotorSystem(DCMotor.getNEO(1), 0.005, context.getTurretGearRatio());
             this.turretMotorSim = new DCMotorSim(plant, DCMotor.getNEO(1));
             this.lastSimTime = Timer.getFPGATimestamp();
+
+            // In sim, initialize through-bore to the home angle so auto-seeding fires on boot
+            this.throughBoreEncoderSim = new DutyCycleEncoderSim(this.throughBoreEncoder);
+            this.throughBoreEncoderSim.set(context.getThroughBoreHomeAngleRotations());
+        }
+
+        // Boot-time auto-seeding: if the turret is physically at home when powered on,
+        // the through-bore confirms it and we seed the SparkMax encoder to 0 immediately.
+        // This skips any manual homing sequence for the common case (turret stored forward).
+        if (RobotBase.isReal() && isAbsoluteAtHome()) {
+            turretMotor.getEncoder().setPosition(0.0);
         }
 
         initializeTelemetry();
@@ -206,14 +217,46 @@ public class TurretSubsystem extends SubsystemBase {
     }
 
     // -------------------------------------------------------------------------
+    // Through-bore helpers
+    // -------------------------------------------------------------------------
+
+    /**
+     * Returns true if the through-bore encoder reading is within tolerance of the configured
+     * home (0°, facing forward) angle.
+     *
+     * <p>Uses wrap-around arithmetic to handle the 0↔1 boundary correctly.
+     * The counter shaft turns 4× per turret revolution, so 0.025 rotations tolerance
+     * at the counter ≈ 2.25° of turret travel.
+     *
+     * @return true if the through-bore reading is near the home angle
+     */
+    private boolean isAbsoluteAtHome() {
+        double raw = throughBoreEncoder.get(); // [0, 1)
+        double home = context.getThroughBoreHomeAngleRotations();
+        double diff = Math.abs(raw - home);
+        double wrappedDiff = Math.min(diff, 1.0 - diff); // handle 0↔1 wrap-around
+        return wrappedDiff <= context.getThroughBoreAngleTolerance();
+    }
+
+    // -------------------------------------------------------------------------
     // Motor actions (private — exposed through command factories)
     // -------------------------------------------------------------------------
 
     private void jogLeft() {
+        // Soft limit — stop at max left boundary
+        if (getCurrentAngleDegrees() >= context.getMaxLeftDegrees()) {
+            turretMotor.set(0);
+            return;
+        }
         turretMotor.set(context.getTurretJogSpeed());
     }
 
     private void jogRight() {
+        // Soft limit — stop at max right boundary
+        if (getCurrentAngleDegrees() <= -context.getMaxRightDegrees()) {
+            turretMotor.set(0);
+            return;
+        }
         turretMotor.set(-context.getTurretJogSpeed());
     }
 
@@ -306,7 +349,13 @@ public class TurretSubsystem extends SubsystemBase {
     public Command getTrackCommand(DoubleSupplier targetAngleDegreesSupplier) {
         return this.run(() -> {
                     setState(State.TRACKING);
-                    double targetDegrees = targetAngleDegreesSupplier.getAsDouble();
+                    // Clamp target to the asymmetric soft limits before computing error.
+                    // TurretTracker already clamps, but this is a safety second layer in case
+                    // the command is used with any other supplier.
+                    double targetDegrees = MathUtil.clamp(
+                            targetAngleDegreesSupplier.getAsDouble(),
+                            -context.getMaxRightDegrees(),
+                            context.getMaxLeftDegrees());
                     double errorDegrees = targetDegrees - getCurrentAngleDegrees();
                     double output =
                             MathUtil.clamp(TRACKING_KP * errorDegrees, -TRACKING_MAX_OUTPUT, TRACKING_MAX_OUTPUT);
@@ -337,6 +386,8 @@ public class TurretSubsystem extends SubsystemBase {
         // LAB level
         Telemetry.record(prefix + "/Current", turretMotor.getOutputCurrent(), TelemetryLevel.LAB);
         Telemetry.record(prefix + "/EncoderRotations", turretMotor.getEncoder().getPosition(), TelemetryLevel.LAB);
+        Telemetry.record(prefix + "/ThroughBore/RawAngle", throughBoreEncoder.get(), TelemetryLevel.LAB);
+        Telemetry.record(prefix + "/ThroughBore/AtHome", isAbsoluteAtHome() ? 1.0 : 0.0, TelemetryLevel.LAB);
 
         // VERBOSE level
         if (RobotBase.isSimulation()) {
@@ -375,5 +426,15 @@ public class TurretSubsystem extends SubsystemBase {
         turretMotorSim.setInputVoltage(voltage);
         turretMotorSim.update(dt);
         turretSparkMaxSim.iterate(turretMotorSim.getAngularVelocityRPM(), RobotController.getBatteryVoltage(), dt);
+
+        // Sync through-bore sim to match simulated turret angle.
+        // counter_rotations = turret_rotations × 4 (counter spins 4× faster than turret)
+        if (throughBoreEncoderSim != null) {
+            double turretRotations = turretMotor.getEncoder().getPosition() / context.getTurretGearRatio();
+            double counterRotations = turretRotations * 4.0;
+            double encoderAngle = (counterRotations + context.getThroughBoreHomeAngleRotations()) % 1.0;
+            if (encoderAngle < 0.0) encoderAngle += 1.0;
+            throughBoreEncoderSim.set(encoderAngle);
+        }
     }
 }
