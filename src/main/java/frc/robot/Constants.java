@@ -26,7 +26,7 @@ public final class Constants {
     public static final class FeatureFlags {
         public static final boolean ENABLE_TURRET_TRACKER = false;
         public static final boolean ENABLE_LED_STRAND = false;
-        public static final boolean ENABLE_VISION = false;
+        public static final boolean ENABLE_VISION = true;
         public static final boolean ENABLE_CLIMB = false;
         public static final boolean ENABLE_INTAKE = true;
         public static final boolean ENABLE_RELAY = true;
@@ -350,7 +350,7 @@ public final class Constants {
         // -------------------------------------------------------------------------
 
         /** Intake speed — rollers spin inward to collect balls. Positive. */
-        public static final double INTAKE_SPEED = 0.55; //TDO: tune
+        public static final double INTAKE_SPEED = 0.55; // TDO: tune
 
         /** Reverse speed — rollers spin outward to eject. Negative. */
         public static final double REVERSE_SPEED = -0.55; // TODO: tune

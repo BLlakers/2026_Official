@@ -187,8 +187,8 @@ public class TurretTracker extends SubsystemBase {
         rawAngleDegrees = Units.radiansToDegrees(robotRelativeRad);
 
         // Clamp to turret range — asymmetric (left and right limits differ)
-        targetInRange = rawAngleDegrees <= context.getMaxLeftDegrees()
-                && rawAngleDegrees >= -context.getMaxRightDegrees();
+        targetInRange =
+                rawAngleDegrees <= context.getMaxLeftDegrees() && rawAngleDegrees >= -context.getMaxRightDegrees();
 
         if (targetInRange) {
             turretAngleDegrees = rawAngleDegrees;
