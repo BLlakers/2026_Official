@@ -20,25 +20,25 @@ public class VisionSubsystemContext {
      * Network table name for the right-front camera
      */
     @Builder.Default
-    private final String rightFrontCameraName = "pv-right-front";
+    private final String rightFrontCameraName = "photonvision-front-right";
 
     /**
      * Network table name for the left-front camera
      */
     @Builder.Default
-    private final String leftFrontCameraName = "pv-left-front";
+    private final String leftFrontCameraName = "photonvision-front-left";
 
     /**
      * Network table name for the right-side camera
      */
     @Builder.Default
-    private final String rightSideCameraName = "pv-right-side";
+    private final String rightSideCameraName = "photonvision-right-side";
 
     /**
      * Network table name for the left-side camera
      */
     @Builder.Default
-    private final String leftSideCameraName = "pv-left-side";
+    private final String leftSideCameraName = "photonvision-left-side";
 
     /**
      * Whether to enable verbose logging to SmartDashboard
