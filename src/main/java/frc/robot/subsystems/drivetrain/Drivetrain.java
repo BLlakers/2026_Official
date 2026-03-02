@@ -424,7 +424,8 @@ public class Drivetrain extends SubsystemBase {
             this.swerveDrivePoseEstimator.resetPosition(this.simYaw, simPositions, pose2d);
         } else {
             this.swerveDriveOdometry.resetPosition(this.getGyroRotation(), this.getSwerveModulePositions(), pose2d);
-            this.swerveDrivePoseEstimator.resetPosition(this.getGyroRotation(), this.getSwerveModulePositions(), pose2d);
+            this.swerveDrivePoseEstimator.resetPosition(
+                    this.getGyroRotation(), this.getSwerveModulePositions(), pose2d);
         }
     }
 
