@@ -177,7 +177,7 @@ public class SwerveModule extends SubsystemBase {
         // Output is clamped to ±60% — see NEO_MOTOR_SMOKE_EVENT.md for rationale.
         // MathUtil.angleModulus handles wraparound correctly (always shortest path).
         double angleError = MathUtil.angleModulus(desiredState.angle.getRadians() - currentAngle.getRadians());
-        double turnOutput = MathUtil.clamp((angleError / TOTAL_ROTATIONAL_RANGE) * 3, -0.6, 0.6);
+        double turnOutput = MathUtil.clamp((angleError / TOTAL_ROTATIONAL_RANGE) * 2, -0.6, 0.6);
 
         this.turningMotor.set(turnOutput);
 
