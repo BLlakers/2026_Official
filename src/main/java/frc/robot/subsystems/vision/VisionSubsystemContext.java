@@ -17,28 +17,28 @@ import org.photonvision.PhotonPoseEstimator.PoseStrategy;
 public class VisionSubsystemContext {
 
     /**
-     * Network table name for the front-right camera
+     * Network table name for the right-front camera
      */
     @Builder.Default
-    private final String frontRightCameraName = "photonvision-front-right";
+    private final String rightFrontCameraName = "pv-right-front";
 
     /**
-     * Network table name for the front-left camera
+     * Network table name for the left-front camera
      */
     @Builder.Default
-    private final String frontLeftCameraName = "photonvision-front-left";
+    private final String leftFrontCameraName = "pv-left-front";
 
     /**
      * Network table name for the right-side camera
      */
     @Builder.Default
-    private final String rightSideCameraName = "photonvision-right-side";
+    private final String rightSideCameraName = "pv-right-side";
 
     /**
      * Network table name for the left-side camera
      */
     @Builder.Default
-    private final String leftSideCameraName = "photonvision-left-side";
+    private final String leftSideCameraName = "pv-left-side";
 
     /**
      * Whether to enable verbose logging to SmartDashboard
@@ -53,25 +53,25 @@ public class VisionSubsystemContext {
     private final boolean enableCameraTelemetry = true;
 
     /**
-     * Transform from robot center to front-right camera optical center.
+     * Transform from robot center to right-front camera optical center.
      * Mounted on the front-right corner, co-located with the right-side camera.
      * Position from CAD (2026-03-01): X=13.105in forward, Y=11.615in right, Z=7in up.
      * Position: X=+0.3329m forward, Y=-0.2950m right, Z=+0.1778m up.
      * Rotation: pitch=+15deg (nose up — confirmed from CAD mount design), yaw=-30deg (angled right — confirmed from CAD).
      */
     @Builder.Default
-    private final Transform3d frontRightCameraToRobot = new Transform3d(
+    private final Transform3d robotToRightFrontCamera = new Transform3d(
             new Translation3d(0.3329, -0.2950, 0.1778), new Rotation3d(0, Math.toRadians(15), Math.toRadians(-30)));
 
     /**
-     * Transform from robot center to front-left camera optical center.
+     * Transform from robot center to left-front camera optical center.
      * Mounted on the front-left corner, co-located with the left-side camera.
      * Position from CAD (2026-03-01): X=13.105in forward, Y=11.615in left, Z=7in up.
      * Position: X=+0.3329m forward, Y=+0.2950m left, Z=+0.1778m up.
      * Rotation: pitch=+15deg (nose up — confirmed from CAD mount design), yaw=+30deg (angled left — confirmed from CAD).
      */
     @Builder.Default
-    private final Transform3d frontLeftCameraToRobot = new Transform3d(
+    private final Transform3d robotToLeftFrontCamera = new Transform3d(
             new Translation3d(0.3329, 0.2950, 0.1778), new Rotation3d(0, Math.toRadians(15), Math.toRadians(30)));
 
     /**
@@ -82,7 +82,7 @@ public class VisionSubsystemContext {
      * Rotation: pitch=+15deg (nose up — confirmed from CAD mount design), yaw=-135deg (angled rear-right — confirmed from CAD).
      */
     @Builder.Default
-    private final Transform3d rightSideCameraToRobot = new Transform3d(
+    private final Transform3d robotToRightSideCamera = new Transform3d(
             new Translation3d(0.2697, -0.3321, 0.1778), new Rotation3d(0, Math.toRadians(15), Math.toRadians(-135)));
 
     /**
@@ -93,7 +93,7 @@ public class VisionSubsystemContext {
      * Rotation: pitch=+15deg (nose up — confirmed from CAD mount design), yaw=+135deg (angled rear-left — confirmed from CAD).
      */
     @Builder.Default
-    private final Transform3d leftSideCameraToRobot = new Transform3d(
+    private final Transform3d robotToLeftSideCamera = new Transform3d(
             new Translation3d(0.2697, 0.3321, 0.1778), new Rotation3d(0, Math.toRadians(15), Math.toRadians(135)));
 
     /**
@@ -114,49 +114,49 @@ public class VisionSubsystemContext {
      * Camera resolution width in pixels
      */
     @Builder.Default
-    private final int cameraResolutionWidth = 960;
+    private final int simCameraResolutionWidth = 320;
 
     /**
      * Camera resolution height in pixels
      */
     @Builder.Default
-    private final int cameraResolutionHeight = 720;
+    private final int simCameraResolutionHeight = 240;
 
     /**
      * Camera field of view in degrees
      */
     @Builder.Default
-    private final double cameraFovDegrees = 90.0;
+    private final double simCameraFovDegrees = 70.0;
 
     /**
      * Camera calibration error in pixels
      */
     @Builder.Default
-    private final double cameraCalibError = 0.35;
+    private final double simCameraCalibError = 0.35;
 
     /**
      * Camera calibration error standard deviation in pixels
      */
     @Builder.Default
-    private final double cameraCalibErrorStddev = 0.10;
+    private final double simCameraCalibErrorStddev = 0.10;
 
     /**
      * Camera frames per second
      */
     @Builder.Default
-    private final int cameraFps = 30;
+    private final int simCameraFps = 60;
 
     /**
      * Average camera latency in milliseconds
      */
     @Builder.Default
-    private final double cameraAvgLatencyMs = 50.0;
+    private final double simCameraAvgLatencyMs = 50.0;
 
     /**
      * Camera latency standard deviation in milliseconds
      */
     @Builder.Default
-    private final double cameraLatencyStddevMs = 15.0;
+    private final double simCameraLatencyStddevMs = 15.0;
 
     // Vision measurement quality parameters
 

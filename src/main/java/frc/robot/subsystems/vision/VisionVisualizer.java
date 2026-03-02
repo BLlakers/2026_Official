@@ -62,13 +62,13 @@ public class VisionVisualizer {
         }
 
         double rayLength = context.getFovVisualizationRayLength();
-        double halfFovRad = Math.toRadians(context.getCameraFovDegrees() / 2.0);
+        double halfFovRad = Math.toRadians(context.getSimCameraFovDegrees() / 2.0);
 
         publishCameraFov(
-                frontRightFovPublisher, robotPose, context.getFrontRightCameraToRobot(), halfFovRad, rayLength);
-        publishCameraFov(frontLeftFovPublisher, robotPose, context.getFrontLeftCameraToRobot(), halfFovRad, rayLength);
-        publishCameraFov(rightSideFovPublisher, robotPose, context.getRightSideCameraToRobot(), halfFovRad, rayLength);
-        publishCameraFov(leftSideFovPublisher, robotPose, context.getLeftSideCameraToRobot(), halfFovRad, rayLength);
+                frontRightFovPublisher, robotPose, context.getRobotToRightFrontCamera(), halfFovRad, rayLength);
+        publishCameraFov(frontLeftFovPublisher, robotPose, context.getRobotToLeftFrontCamera(), halfFovRad, rayLength);
+        publishCameraFov(rightSideFovPublisher, robotPose, context.getRobotToRightSideCamera(), halfFovRad, rayLength);
+        publishCameraFov(leftSideFovPublisher, robotPose, context.getRobotToLeftSideCamera(), halfFovRad, rayLength);
     }
 
     /**

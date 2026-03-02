@@ -91,8 +91,8 @@ public class VisionSubsystem extends SubsystemBase {
         this.visualizer = new VisionVisualizer(context);
 
         // Initialize PhotonVision cameras
-        this.frontRightCamera = new PhotonCamera(context.getFrontRightCameraName());
-        this.frontLeftCamera = new PhotonCamera(context.getFrontLeftCameraName());
+        this.frontRightCamera = new PhotonCamera(context.getRightFrontCameraName());
+        this.frontLeftCamera = new PhotonCamera(context.getLeftFrontCameraName());
         this.rightSideCamera = new PhotonCamera(context.getRightSideCameraName());
         this.leftSideCamera = new PhotonCamera(context.getLeftSideCameraName());
 
@@ -101,13 +101,13 @@ public class VisionSubsystem extends SubsystemBase {
 
         // Create PhotonPoseEstimators for each camera
         this.frontRightPoseEstimator = new PhotonPoseEstimator(
-                fieldLayout, context.getPoseEstimationStrategy(), context.getFrontRightCameraToRobot());
+                fieldLayout, context.getPoseEstimationStrategy(), context.getRobotToRightFrontCamera());
         this.frontLeftPoseEstimator = new PhotonPoseEstimator(
-                fieldLayout, context.getPoseEstimationStrategy(), context.getFrontLeftCameraToRobot());
+                fieldLayout, context.getPoseEstimationStrategy(), context.getRobotToLeftFrontCamera());
         this.rightSidePoseEstimator = new PhotonPoseEstimator(
-                fieldLayout, context.getPoseEstimationStrategy(), context.getRightSideCameraToRobot());
+                fieldLayout, context.getPoseEstimationStrategy(), context.getRobotToRightSideCamera());
         this.leftSidePoseEstimator = new PhotonPoseEstimator(
-                fieldLayout, context.getPoseEstimationStrategy(), context.getLeftSideCameraToRobot());
+                fieldLayout, context.getPoseEstimationStrategy(), context.getRobotToLeftSideCamera());
 
         // Initialize simulation if enabled
         // NOTE: PhotonVision simulation is expensive (~96ms per loop) and causes "CommandScheduler
@@ -136,7 +136,7 @@ public class VisionSubsystem extends SubsystemBase {
         // Configure front-right camera simulation
         SimCameraProperties frontRightProps = createSimCameraProperties();
         frontRightCameraSim = new PhotonCameraSim(frontRightCamera, frontRightProps);
-        visionSim.addCamera(frontRightCameraSim, context.getFrontRightCameraToRobot());
+        visionSim.addCamera(frontRightCameraSim, context.getRobotToRightFrontCamera());
         frontRightCameraSim.enableDrawWireframe(true);
         frontRightCameraSim.enableRawStream(context.isEnablePhotonCameraSimStreams());
         frontRightCameraSim.enableProcessedStream(context.isEnablePhotonCameraSimStreams());
@@ -144,7 +144,7 @@ public class VisionSubsystem extends SubsystemBase {
         // Configure front-left camera simulation
         SimCameraProperties frontLeftProps = createSimCameraProperties();
         frontLeftCameraSim = new PhotonCameraSim(frontLeftCamera, frontLeftProps);
-        visionSim.addCamera(frontLeftCameraSim, context.getFrontLeftCameraToRobot());
+        visionSim.addCamera(frontLeftCameraSim, context.getRobotToLeftFrontCamera());
         frontLeftCameraSim.enableDrawWireframe(true);
         // Disable video streaming to avoid CameraServer handle issues
         frontLeftCameraSim.enableRawStream(false);
@@ -153,7 +153,7 @@ public class VisionSubsystem extends SubsystemBase {
         // Configure right-side camera simulation
         SimCameraProperties rightSideProps = createSimCameraProperties();
         rightSideCameraSim = new PhotonCameraSim(rightSideCamera, rightSideProps);
-        visionSim.addCamera(rightSideCameraSim, context.getRightSideCameraToRobot());
+        visionSim.addCamera(rightSideCameraSim, context.getRobotToRightSideCamera());
         rightSideCameraSim.enableDrawWireframe(true);
         // Disable video streaming to avoid CameraServer handle issues
         rightSideCameraSim.enableRawStream(false);
@@ -162,7 +162,7 @@ public class VisionSubsystem extends SubsystemBase {
         // Configure left-side camera simulation
         SimCameraProperties leftSideProps = createSimCameraProperties();
         leftSideCameraSim = new PhotonCameraSim(leftSideCamera, leftSideProps);
-        visionSim.addCamera(leftSideCameraSim, context.getLeftSideCameraToRobot());
+        visionSim.addCamera(leftSideCameraSim, context.getRobotToLeftSideCamera());
         leftSideCameraSim.enableDrawWireframe(true);
         // Disable video streaming to avoid CameraServer handle issues
         leftSideCameraSim.enableRawStream(false);
@@ -178,70 +178,86 @@ public class VisionSubsystem extends SubsystemBase {
     private SimCameraProperties createSimCameraProperties() {
         SimCameraProperties props = new SimCameraProperties();
         props.setCalibration(
-                context.getCameraResolutionWidth(),
-                context.getCameraResolutionHeight(),
-                Rotation2d.fromDegrees(context.getCameraFovDegrees()));
-        props.setCalibError(context.getCameraCalibError(), context.getCameraCalibErrorStddev());
-        props.setFPS(context.getCameraFps());
-        props.setAvgLatencyMs(context.getCameraAvgLatencyMs());
-        props.setLatencyStdDevMs(context.getCameraLatencyStddevMs());
+                context.getSimCameraResolutionWidth(),
+                context.getSimCameraResolutionHeight(),
+                Rotation2d.fromDegrees(context.getSimCameraFovDegrees()));
+        props.setCalibError(context.getSimCameraCalibError(), context.getSimCameraCalibErrorStddev());
+        props.setFPS(context.getSimCameraFps());
+        props.setAvgLatencyMs(context.getSimCameraAvgLatencyMs());
+        props.setLatencyStdDevMs(context.getSimCameraLatencyStddevMs());
         return props;
     }
 
     /**
-     * Updates pose estimation from all cameras and sends measurements to drivetrain.
-     */
-    private void updatePoseEstimation() {
-        Pose2d currentPose = drivetrain.getPose2dEstimator();
-        frontRightPoseEstimator.setReferencePose(currentPose);
-        frontLeftPoseEstimator.setReferencePose(currentPose);
-        rightSidePoseEstimator.setReferencePose(currentPose);
-        leftSidePoseEstimator.setReferencePose(currentPose);
-
-        processCamera(frontRightCamera, frontRightPoseEstimator, "FrontRight");
-        processCamera(frontLeftCamera, frontLeftPoseEstimator, "FrontLeft");
-        processCamera(rightSideCamera, rightSidePoseEstimator, "RightSide");
-        processCamera(leftSideCamera, leftSidePoseEstimator, "LeftSide");
-    }
-
-    /**
-     * Processes a single camera for pose estimation.
+     * Processes all unread results from a single camera.
      *
-     * @param camera PhotonCamera instance
+     * Telemetry is published from the most recent result in the list so the
+     * dashboard always reflects the camera's current state. Pose estimation
+     * iterates over every result so no frame is skipped and no stale result
+     * is fused twice into the estimator.
+     *
      * @param poseEstimator PhotonPoseEstimator for this camera
-     * @param cameraName Name for telemetry
+     * @param cameraName Name used for telemetry keys
+     * @param connected Whether this camera is currently connected
+     * @param results All unread results from this camera this loop
      */
-    private void processCamera(PhotonCamera camera, PhotonPoseEstimator poseEstimator, String cameraName) {
-        PhotonPipelineResult result = camera.getLatestResult();
-        if (!result.hasTargets()) {
+    private void processCamera(
+            PhotonPoseEstimator poseEstimator,
+            String cameraName,
+            boolean connected,
+            List<PhotonPipelineResult> results) {
+
+        if (!connected || results.isEmpty()) {
+            Telemetry.publish("Vision/" + cameraName + "Camera/TargetCount", 0, TelemetryLevel.MATCH);
+            Telemetry.publish("Vision/" + cameraName + "Camera/DetectedTags", "None", TelemetryLevel.LAB);
             return;
         }
 
-        Optional<EstimatedRobotPose> visionEst = poseEstimator.update(result);
+        // Telemetry reflects the most recent frame received this loop
+        PhotonPipelineResult latestResult = results.get(results.size() - 1);
+        if (latestResult.hasTargets()) {
+            processAndLogTargets(cameraName, latestResult);
+        } else {
+            Telemetry.publish("Vision/" + cameraName + "Camera/TargetCount", 0, TelemetryLevel.MATCH);
+            Telemetry.publish("Vision/" + cameraName + "Camera/DetectedTags", "None", TelemetryLevel.LAB);
+        }
 
-        if (visionEst.isEmpty()) {
+        // Pose estimation processes every frame so none are skipped
+        for (PhotonPipelineResult result : results) {
+            if (!result.hasTargets()) {
+                continue;
+            }
+
+            Optional<EstimatedRobotPose> visionEst = poseEstimator.update(result);
+
+            if (visionEst.isEmpty()) {
+                Telemetry.publish(
+                        "Vision/" + cameraName + "Camera/EstimateStatus", "No valid estimate", TelemetryLevel.LAB);
+                continue;
+            }
+
+            EstimatedRobotPose estimatedPose = visionEst.get();
+
+            if (shouldRejectEstimate(estimatedPose, result)) {
+                Telemetry.publish("Vision/" + cameraName + "Camera/EstimateStatus", "Rejected", TelemetryLevel.LAB);
+                continue;
+            }
+
+            Matrix<N3, N1> stdDevs = calculateVisionStdDevs(estimatedPose, result);
+
+            visionMeasurementConsumer.accept(
+                    estimatedPose.estimatedPose.toPose2d(), estimatedPose.timestampSeconds, stdDevs);
+
+            Telemetry.publish("Vision/" + cameraName + "Camera/EstimateStatus", "Accepted", TelemetryLevel.MATCH);
             Telemetry.publish(
-                    "Vision/" + cameraName + "Camera/EstimateStatus", "No valid estimate", TelemetryLevel.LAB);
-            return;
+                    "Vision/" + cameraName + "Camera/EstimateX",
+                    estimatedPose.estimatedPose.getX(),
+                    TelemetryLevel.MATCH);
+            Telemetry.publish(
+                    "Vision/" + cameraName + "Camera/EstimateY",
+                    estimatedPose.estimatedPose.getY(),
+                    TelemetryLevel.MATCH);
         }
-
-        EstimatedRobotPose estimatedPose = visionEst.get();
-
-        if (shouldRejectEstimate(estimatedPose, result)) {
-            Telemetry.publish("Vision/" + cameraName + "Camera/EstimateStatus", "Rejected", TelemetryLevel.LAB);
-            return;
-        }
-
-        Matrix<N3, N1> stdDevs = calculateVisionStdDevs(estimatedPose, result);
-
-        visionMeasurementConsumer.accept(
-                estimatedPose.estimatedPose.toPose2d(), estimatedPose.timestampSeconds, stdDevs);
-
-        Telemetry.publish("Vision/" + cameraName + "Camera/EstimateStatus", "Accepted", TelemetryLevel.MATCH);
-        Telemetry.publish(
-                "Vision/" + cameraName + "Camera/EstimateX", estimatedPose.estimatedPose.getX(), TelemetryLevel.MATCH);
-        Telemetry.publish(
-                "Vision/" + cameraName + "Camera/EstimateY", estimatedPose.estimatedPose.getY(), TelemetryLevel.MATCH);
     }
 
     /**
@@ -309,50 +325,36 @@ public class VisionSubsystem extends SubsystemBase {
         Telemetry.publish("Vision/RightSideCamera/Connected", rightSideConnected, TelemetryLevel.MATCH);
         Telemetry.publish("Vision/LeftSideCamera/Connected", leftSideConnected, TelemetryLevel.MATCH);
 
-        PhotonPipelineResult frontRightResult = frontRightCamera.getLatestResult();
-        PhotonPipelineResult frontLeftResult = frontLeftCamera.getLatestResult();
-        PhotonPipelineResult rightSideResult = rightSideCamera.getLatestResult();
-        PhotonPipelineResult leftSideResult = leftSideCamera.getLatestResult();
+        // Snapshot the current pose estimate once for all estimators.
+        // Using a single consistent reference avoids compounding intra-loop updates.
+        Pose2d currentPose = drivetrain.getPose2dEstimator();
+        frontRightPoseEstimator.setReferencePose(currentPose);
+        frontLeftPoseEstimator.setReferencePose(currentPose);
+        rightSidePoseEstimator.setReferencePose(currentPose);
+        leftSidePoseEstimator.setReferencePose(currentPose);
 
-        if (frontRightConnected && frontRightResult.hasTargets()) {
-            processAndLogTargets("FrontRight", frontRightResult);
-        } else {
-            Telemetry.publish("Vision/FrontRightCamera/TargetCount", 0, TelemetryLevel.MATCH);
-            Telemetry.publish("Vision/FrontRightCamera/DetectedTags", "None", TelemetryLevel.LAB);
-        }
+        // Consume all frames received since the last loop iteration.
+        // getAllUnreadResults() ensures each frame is processed exactly once —
+        // no frames are skipped and no stale results are fused twice into the estimator.
+        List<PhotonPipelineResult> frontRightResults = frontRightCamera.getAllUnreadResults();
+        List<PhotonPipelineResult> frontLeftResults = frontLeftCamera.getAllUnreadResults();
+        List<PhotonPipelineResult> rightSideResults = rightSideCamera.getAllUnreadResults();
+        List<PhotonPipelineResult> leftSideResults = leftSideCamera.getAllUnreadResults();
 
-        if (frontLeftConnected && frontLeftResult.hasTargets()) {
-            processAndLogTargets("FrontLeft", frontLeftResult);
-        } else {
-            Telemetry.publish("Vision/FrontLeftCamera/TargetCount", 0, TelemetryLevel.MATCH);
-            Telemetry.publish("Vision/FrontLeftCamera/DetectedTags", "None", TelemetryLevel.LAB);
-        }
-
-        if (rightSideConnected && rightSideResult.hasTargets()) {
-            processAndLogTargets("RightSide", rightSideResult);
-        } else {
-            Telemetry.publish("Vision/RightSideCamera/TargetCount", 0, TelemetryLevel.MATCH);
-            Telemetry.publish("Vision/RightSideCamera/DetectedTags", "None", TelemetryLevel.LAB);
-        }
-
-        if (leftSideConnected && leftSideResult.hasTargets()) {
-            processAndLogTargets("LeftSide", leftSideResult);
-        } else {
-            Telemetry.publish("Vision/LeftSideCamera/TargetCount", 0, TelemetryLevel.MATCH);
-            Telemetry.publish("Vision/LeftSideCamera/DetectedTags", "None", TelemetryLevel.LAB);
-        }
+        processCamera(frontRightPoseEstimator, "FrontRight", frontRightConnected, frontRightResults);
+        processCamera(frontLeftPoseEstimator, "FrontLeft", frontLeftConnected, frontLeftResults);
+        processCamera(rightSidePoseEstimator, "RightSide", rightSideConnected, rightSideResults);
+        processCamera(leftSidePoseEstimator, "LeftSide", leftSideConnected, leftSideResults);
 
         updateSystemStatus(
                 frontRightConnected,
                 frontLeftConnected,
                 rightSideConnected,
                 leftSideConnected,
-                frontRightResult,
-                frontLeftResult,
-                rightSideResult,
-                leftSideResult);
-
-        updatePoseEstimation();
+                frontRightResults,
+                frontLeftResults,
+                rightSideResults,
+                leftSideResults);
     }
 
     @Override
@@ -404,16 +406,17 @@ public class VisionSubsystem extends SubsystemBase {
 
     /**
      * Updates overall system status telemetry for 4 cameras.
+     * Uses the most recent result from each camera's list for status reporting.
      */
     private void updateSystemStatus(
             boolean frontRightConnected,
             boolean frontLeftConnected,
             boolean rightSideConnected,
             boolean leftSideConnected,
-            PhotonPipelineResult frontRightResult,
-            PhotonPipelineResult frontLeftResult,
-            PhotonPipelineResult rightSideResult,
-            PhotonPipelineResult leftSideResult) {
+            List<PhotonPipelineResult> frontRightResults,
+            List<PhotonPipelineResult> frontLeftResults,
+            List<PhotonPipelineResult> rightSideResults,
+            List<PhotonPipelineResult> leftSideResults) {
 
         int connectedCount = 0;
         if (frontRightConnected) connectedCount++;
@@ -433,10 +436,10 @@ public class VisionSubsystem extends SubsystemBase {
             status = String.join(", ", offline) + " Offline";
         } else {
             List<String> trackingCams = new ArrayList<>();
-            if (frontRightResult.hasTargets()) trackingCams.add("FR");
-            if (frontLeftResult.hasTargets()) trackingCams.add("FL");
-            if (rightSideResult.hasTargets()) trackingCams.add("RS");
-            if (leftSideResult.hasTargets()) trackingCams.add("LS");
+            if (hasLatestTargets(frontRightResults)) trackingCams.add("FR");
+            if (hasLatestTargets(frontLeftResults)) trackingCams.add("FL");
+            if (hasLatestTargets(rightSideResults)) trackingCams.add("RS");
+            if (hasLatestTargets(leftSideResults)) trackingCams.add("LS");
 
             if (trackingCams.isEmpty()) {
                 status = "No Targets Detected";
@@ -447,20 +450,23 @@ public class VisionSubsystem extends SubsystemBase {
 
         Telemetry.publish("Vision/Status", status, TelemetryLevel.MATCH);
 
-        int totalTags = 0;
-        if (frontRightConnected && frontRightResult.hasTargets()) {
-            totalTags += frontRightResult.getTargets().size();
-        }
-        if (frontLeftConnected && frontLeftResult.hasTargets()) {
-            totalTags += frontLeftResult.getTargets().size();
-        }
-        if (rightSideConnected && rightSideResult.hasTargets()) {
-            totalTags += rightSideResult.getTargets().size();
-        }
-        if (leftSideConnected && leftSideResult.hasTargets()) {
-            totalTags += leftSideResult.getTargets().size();
-        }
+        int totalTags = latestTargetCount(frontRightConnected, frontRightResults)
+                + latestTargetCount(frontLeftConnected, frontLeftResults)
+                + latestTargetCount(rightSideConnected, rightSideResults)
+                + latestTargetCount(leftSideConnected, leftSideResults);
         Telemetry.publish("Vision/TotalTagsDetected", totalTags, TelemetryLevel.MATCH);
+    }
+
+    /** Returns true if the most recent result in the list has at least one target. */
+    private boolean hasLatestTargets(List<PhotonPipelineResult> results) {
+        return !results.isEmpty() && results.get(results.size() - 1).hasTargets();
+    }
+
+    /** Returns the target count from the most recent result, or 0 if not connected / no results. */
+    private int latestTargetCount(boolean connected, List<PhotonPipelineResult> results) {
+        if (!connected || results.isEmpty()) return 0;
+        PhotonPipelineResult latest = results.get(results.size() - 1);
+        return latest.hasTargets() ? latest.getTargets().size() : 0;
     }
 
     // --- Public API ---
