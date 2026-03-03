@@ -21,7 +21,8 @@ public final class Constants {
 
     /**
      * Feature flags to enable/disable subsystems during incremental robot bring-up.
-     * Flip these to true as hardware becomes available on the robot.
+     * Flip these to
+     * true as hardware becomes available on the robot.
      */
     public static final class FeatureFlags {
         public static final boolean ENABLE_TURRET_TRACKER = false;
@@ -32,7 +33,7 @@ public final class Constants {
         public static final boolean ENABLE_RELAY = true;
         public static final boolean ENABLE_INDEXER = true;
         public static final boolean ENABLE_SHOOTER = true;
-        public static final boolean ENABLE_TURRET = false;
+        public static final boolean ENABLE_TURRET = true;
     }
 
     public static final class DriverLabels {
@@ -643,7 +644,7 @@ public final class Constants {
          * TODO: calibrate — jog turret to center/forward, read Turret/ThroughBore/RawAngle,
          * enter that value here, redeploy.
          */
-        public static final double TURRET_THROUGH_BORE_HOME_ANGLE_ROTATIONS = 0.0; // TODO: calibrate
+        public static final double TURRET_THROUGH_BORE_HOME_ANGLE_ROTATIONS = 1.121894478797913;
 
         /**
          * Acceptable error (counter rotations) when comparing the through-bore reading to home.

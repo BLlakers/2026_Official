@@ -3,7 +3,9 @@ package frc.robot.subsystems.turret;
 import static edu.wpi.first.math.system.plant.LinearSystemId.createDCMotorSystem;
 import static java.util.Objects.requireNonNull;
 
+import com.revrobotics.sim.SparkAbsoluteEncoderSim;
 import com.revrobotics.sim.SparkMaxSim;
+import com.revrobotics.spark.SparkAbsoluteEncoder;
 import com.revrobotics.spark.SparkBase.PersistMode;
 import com.revrobotics.spark.SparkBase.ResetMode;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
@@ -15,12 +17,10 @@ import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N2;
 import edu.wpi.first.math.system.LinearSystem;
 import edu.wpi.first.math.system.plant.DCMotor;
-import edu.wpi.first.wpilibj.DutyCycleEncoder;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.simulation.DCMotorSim;
-import edu.wpi.first.wpilibj.simulation.DutyCycleEncoderSim;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.support.Telemetry;
@@ -51,15 +51,6 @@ import java.util.function.DoubleSupplier;
  * 30→120t stages). It turns 4× per turret revolution. At boot, if the through-bore reading
  * matches {@code throughBoreHomeAngleRotations}, the SparkMax encoder is seeded to 0
  * automatically — no manual homing needed when the turret starts forward.
- * TODO: calibrate {@code TURRET_THROUGH_BORE_HOME_ANGLE_ROTATIONS} on the physical robot.
- *
- * <h2>Build Team TODOs</h2>
- * <ul>
- *   <li>Confirm motor inversion — positive output must rotate turret counterclockwise (left)</li>
- *   <li>Calibrate {@code TURRET_THROUGH_BORE_HOME_ANGLE_ROTATIONS}: jog to forward, read
- *       {@code Turret/ThroughBore/RawAngle}, enter value in {@code Constants.TurretConstants}</li>
- *   <li>Tune proportional gain or migrate to SparkMax closed-loop position control</li>
- * </ul>
  */
 public class TurretSubsystem extends SubsystemBase {
 
@@ -95,10 +86,10 @@ public class TurretSubsystem extends SubsystemBase {
     // Motor
     private final SparkMax turretMotor; // NEO
 
-    // Through-bore encoder — REV Through Bore on the counter shaft (DIO 5).
+    // Through-bore encoder — REV Through Bore on the counter shaft, wired to the SparkMax absolute encoder port.
     // Counter shaft turns 4× for every 1 turret revolution (counter-to-turret = 4:1).
     // Single-turn: range [0, 1). Used only as a boot-time home position reference.
-    private final DutyCycleEncoder throughBoreEncoder;
+    private final SparkAbsoluteEncoder throughBoreEncoder;
 
     private State currentState = State.IDLE;
 
@@ -108,7 +99,7 @@ public class TurretSubsystem extends SubsystemBase {
 
     private DCMotorSim turretMotorSim;
     private SparkMaxSim turretSparkMaxSim;
-    private DutyCycleEncoderSim throughBoreEncoderSim;
+    private SparkAbsoluteEncoderSim throughBoreEncoderSim;
     private double lastSimTime = 0.0;
 
     // -------------------------------------------------------------------------
@@ -132,8 +123,7 @@ public class TurretSubsystem extends SubsystemBase {
         this.context = context;
 
         this.turretMotor = new SparkMax(context.getTurretMotorId(), MotorType.kBrushless);
-        this.throughBoreEncoder = new DutyCycleEncoder(context.getThroughBoreDioChannel());
-
+        this.throughBoreEncoder = this.turretMotor.getAbsoluteEncoder();
         configureMotor();
 
         if (RobotBase.isSimulation()) {
@@ -144,8 +134,8 @@ public class TurretSubsystem extends SubsystemBase {
             this.lastSimTime = Timer.getFPGATimestamp();
 
             // In sim, initialize through-bore to the home angle so auto-seeding fires on boot
-            this.throughBoreEncoderSim = new DutyCycleEncoderSim(this.throughBoreEncoder);
-            this.throughBoreEncoderSim.set(context.getThroughBoreHomeAngleRotations());
+            this.throughBoreEncoderSim = new SparkAbsoluteEncoderSim(this.turretMotor);
+            this.throughBoreEncoderSim.setPosition(context.getThroughBoreHomeAngleRotations());
         }
 
         // Boot-time auto-seeding: if the turret is physically at home when powered on,
@@ -231,7 +221,7 @@ public class TurretSubsystem extends SubsystemBase {
      * @return true if the through-bore reading is near the home angle
      */
     private boolean isAbsoluteAtHome() {
-        double raw = throughBoreEncoder.get(); // [0, 1)
+        double raw = throughBoreEncoder.getPosition();
         double home = context.getThroughBoreHomeAngleRotations();
         double diff = Math.abs(raw - home);
         double wrappedDiff = Math.min(diff, 1.0 - diff); // handle 0↔1 wrap-around
@@ -377,17 +367,17 @@ public class TurretSubsystem extends SubsystemBase {
         double angleDegrees = getCurrentAngleDegrees();
 
         // MATCH level
-        Telemetry.record(prefix + "/State", currentState.name(), TelemetryLevel.MATCH);
         Telemetry.publish(prefix + "/State", currentState.name(), TelemetryLevel.MATCH);
-        Telemetry.record(prefix + "/AngleDeg", angleDegrees, TelemetryLevel.MATCH);
+        Telemetry.publish(prefix + "/State", currentState.name(), TelemetryLevel.MATCH);
         Telemetry.publish(prefix + "/AngleDeg", angleDegrees, TelemetryLevel.MATCH);
-        Telemetry.record(prefix + "/OutputPercent", turretMotor.getAppliedOutput(), TelemetryLevel.MATCH);
+        Telemetry.publish(prefix + "/AngleDeg", angleDegrees, TelemetryLevel.MATCH);
+        Telemetry.publish(prefix + "/OutputPercent", turretMotor.getAppliedOutput(), TelemetryLevel.MATCH);
 
         // LAB level
-        Telemetry.record(prefix + "/Current", turretMotor.getOutputCurrent(), TelemetryLevel.LAB);
-        Telemetry.record(prefix + "/EncoderRotations", turretMotor.getEncoder().getPosition(), TelemetryLevel.LAB);
-        Telemetry.record(prefix + "/ThroughBore/RawAngle", throughBoreEncoder.get(), TelemetryLevel.LAB);
-        Telemetry.record(prefix + "/ThroughBore/AtHome", isAbsoluteAtHome() ? 1.0 : 0.0, TelemetryLevel.LAB);
+        Telemetry.publish(prefix + "/Current", turretMotor.getOutputCurrent(), TelemetryLevel.LAB);
+        Telemetry.publish(prefix + "/EncoderRotations", turretMotor.getEncoder().getPosition(), TelemetryLevel.LAB);
+        Telemetry.publish(prefix + "/ThroughBore/RawAngle", throughBoreEncoder.getPosition(), TelemetryLevel.LAB);
+        Telemetry.publish(prefix + "/ThroughBore/AtHome", isAbsoluteAtHome() ? 1.0 : 0.0, TelemetryLevel.LAB);
 
         // VERBOSE level
         if (RobotBase.isSimulation()) {
@@ -434,7 +424,7 @@ public class TurretSubsystem extends SubsystemBase {
             double counterRotations = turretRotations * 4.0;
             double encoderAngle = (counterRotations + context.getThroughBoreHomeAngleRotations()) % 1.0;
             if (encoderAngle < 0.0) encoderAngle += 1.0;
-            throughBoreEncoderSim.set(encoderAngle);
+            this.throughBoreEncoderSim.setPosition(encoderAngle);
         }
     }
 }
