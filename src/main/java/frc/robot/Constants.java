@@ -351,10 +351,10 @@ public final class Constants {
         // -------------------------------------------------------------------------
 
         /** Intake speed — rollers spin inward to collect balls. Positive. */
-        public static final double INTAKE_SPEED = 0.55; // TDO: tune
+        public static final double INTAKE_SPEED = 0.8; // TDO: tune
 
         /** Reverse speed — rollers spin outward to eject. Negative. */
-        public static final double REVERSE_SPEED = -0.55; // TODO: tune
+        public static final double REVERSE_SPEED = -0.6; // TODO: tune
 
         // -------------------------------------------------------------------------
         // Lift speeds [-1.0, 1.0]
