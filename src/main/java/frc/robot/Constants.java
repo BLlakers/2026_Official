@@ -622,38 +622,6 @@ public final class Constants {
         public static final double TURRET_MAX_RIGHT_DEGREES = 100.0;
 
         // -------------------------------------------------------------------------
-        // Through-bore encoder (REV Through Bore on counter shaft, DIO 5)
-        // -------------------------------------------------------------------------
-        // The counter shaft sits between the 44→74t and 30→120t stages of the gear train.
-        // It turns 4× faster than the turret output (counter-to-turret ratio = 4:1).
-        //
-        // The through-bore is single-turn: its output range is [0, 1) per revolution.
-        // Across the full 300° turret range the counter shaft turns 3.33 revolutions,
-        // so the reading is ambiguous across the full range.
-        //
-        // It is used ONLY as a boot-time homing reference: if the turret is at home
-        // (0°, facing forward) when powered on, the through-bore matches
-        // TURRET_THROUGH_BORE_HOME_ANGLE_ROTATIONS and the SparkMax encoder is seeded
-        // to 0 automatically — no homing sequence required.
-
-        /** DIO channel for the turret counter-shaft through-bore encoder. */
-        public static final int TURRET_THROUGH_BORE_DIO_CHANNEL = DIOChannel.FIVE.getChannel(); // DIO 5
-
-        /**
-         * Counter-shaft through-bore reading when the turret is at home (0°, facing forward).
-         * TODO: calibrate — jog turret to center/forward, read Turret/ThroughBore/RawAngle,
-         * enter that value here, redeploy.
-         */
-        public static final double TURRET_THROUGH_BORE_HOME_ANGLE_ROTATIONS = 1.121894478797913;
-
-        /**
-         * Acceptable error (counter rotations) when comparing the through-bore reading to home.
-         * 0.025 counter rotations = 0.025 / 4 × 360° ≈ 2.25° of turret travel —
-         * within the position tolerance, so the auto-seed window is tight but reachable.
-         */
-        public static final double TURRET_THROUGH_BORE_ANGLE_TOLERANCE_ROTATIONS = 0.025;
-
-        // -------------------------------------------------------------------------
         // Manual jog speed — for initial testing only
         // -------------------------------------------------------------------------
 

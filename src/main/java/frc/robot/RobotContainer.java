@@ -343,6 +343,7 @@ public class RobotContainer {
         if (this.turretSubsystem != null) {
             this.debugController.povLeft().whileTrue(this.turretSubsystem.getJogLeftCommand());
             this.debugController.povRight().whileTrue(this.turretSubsystem.getJogRightCommand());
+            this.debugController.back().onTrue(this.turretSubsystem.getResetTurretRotationCommand());
         }
 
         // Debug Controller - Relay selective run (only if relay is enabled)

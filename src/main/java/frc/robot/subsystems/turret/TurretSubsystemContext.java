@@ -32,8 +32,6 @@ import lombok.Data;
  *       counterclockwise (left) during first motor test</li>
  *   <li>{@code turretJogSpeed} — tune for safe bring-up speed</li>
  *   <li>{@code turretPositionToleranceDegrees} — tighten after PID tuning</li>
- *   <li>{@code throughBoreHomeAngleRotations} — calibrate on physical robot:
- *       jog turret to forward/home, read {@code Turret/ThroughBore/RawAngle}, enter here</li>
  * </ul>
  */
 @Data
@@ -97,28 +95,6 @@ public class TurretSubsystemContext {
      */
     @Builder.Default
     private final double maxRightDegrees = TURRET_MAX_RIGHT_DEGREES;
-
-    // -------------------------------------------------------------------------
-    // Through-bore encoder (REV Through Bore on counter shaft, DIO 5)
-    // -------------------------------------------------------------------------
-
-    /** DIO channel the turret counter-shaft through-bore encoder is wired to. */
-    @Builder.Default
-    private final int throughBoreDioChannel = TURRET_THROUGH_BORE_DIO_CHANNEL;
-
-    /**
-     * Counter-shaft through-bore reading when the turret is at home (0°, facing forward).
-     * TODO: calibrate on physical robot — see TurretSubsystem through-bore calibration procedure.
-     */
-    @Builder.Default
-    private final double throughBoreHomeAngleRotations = TURRET_THROUGH_BORE_HOME_ANGLE_ROTATIONS;
-
-    /**
-     * Acceptable error (counter rotations) for the boot-time home position check.
-     * 0.025 counter rotations ≈ 2.25° of turret travel.
-     */
-    @Builder.Default
-    private final double throughBoreAngleTolerance = TURRET_THROUGH_BORE_ANGLE_TOLERANCE_ROTATIONS;
 
     // -------------------------------------------------------------------------
     // Motor inversion — confirm with build team

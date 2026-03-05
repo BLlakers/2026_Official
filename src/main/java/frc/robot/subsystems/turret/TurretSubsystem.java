@@ -1,11 +1,7 @@
 package frc.robot.subsystems.turret;
 
-import static edu.wpi.first.math.system.plant.LinearSystemId.createDCMotorSystem;
 import static java.util.Objects.requireNonNull;
 
-import com.revrobotics.sim.SparkAbsoluteEncoderSim;
-import com.revrobotics.sim.SparkMaxSim;
-import com.revrobotics.spark.SparkAbsoluteEncoder;
 import com.revrobotics.spark.SparkBase.PersistMode;
 import com.revrobotics.spark.SparkBase.ResetMode;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
@@ -13,14 +9,6 @@ import com.revrobotics.spark.SparkMax;
 import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 import com.revrobotics.spark.config.SparkMaxConfig;
 import edu.wpi.first.math.MathUtil;
-import edu.wpi.first.math.numbers.N1;
-import edu.wpi.first.math.numbers.N2;
-import edu.wpi.first.math.system.LinearSystem;
-import edu.wpi.first.math.system.plant.DCMotor;
-import edu.wpi.first.wpilibj.RobotBase;
-import edu.wpi.first.wpilibj.RobotController;
-import edu.wpi.first.wpilibj.Timer;
-import edu.wpi.first.wpilibj.simulation.DCMotorSim;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.support.Telemetry;
@@ -46,11 +34,11 @@ import java.util.function.DoubleSupplier;
  * {@code TurretTracker.getTurretAngleDegrees()} feeds directly into
  * {@link #getTrackCommand(DoubleSupplier)} without sign inversion.
  *
- * <h2>Through-Bore Encoder (Homing)</h2>
- * <p>A REV Through Bore Encoder is mounted on the counter shaft (between the 44→74t and
- * 30→120t stages). It turns 4× per turret revolution. At boot, if the through-bore reading
- * matches {@code throughBoreHomeAngleRotations}, the SparkMax encoder is seeded to 0
- * automatically — no manual homing needed when the turret starts forward.
+ * <h2>Homing</h2>
+ * <p>The turret must be manually rotated to the home position (facing straight forward) before
+ * powering on. On boot, the SparkMax encoder is zeroed automatically via {@link #resetEncoder()}.
+ * The {@link #getResetTurretRotationCommand()} command can re-zero the encoder at any time if
+ * the turret is repositioned after boot.
  */
 public class TurretSubsystem extends SubsystemBase {
 
@@ -86,21 +74,7 @@ public class TurretSubsystem extends SubsystemBase {
     // Motor
     private final SparkMax turretMotor; // NEO
 
-    // Through-bore encoder — REV Through Bore on the counter shaft, wired to the SparkMax absolute encoder port.
-    // Counter shaft turns 4× for every 1 turret revolution (counter-to-turret = 4:1).
-    // Single-turn: range [0, 1). Used only as a boot-time home position reference.
-    private final SparkAbsoluteEncoder throughBoreEncoder;
-
     private State currentState = State.IDLE;
-
-    // -------------------------------------------------------------------------
-    // Simulation fields (only initialized when RobotBase.isSimulation())
-    // -------------------------------------------------------------------------
-
-    private DCMotorSim turretMotorSim;
-    private SparkMaxSim turretSparkMaxSim;
-    private SparkAbsoluteEncoderSim throughBoreEncoderSim;
-    private double lastSimTime = 0.0;
 
     // -------------------------------------------------------------------------
     // Construction
@@ -123,27 +97,11 @@ public class TurretSubsystem extends SubsystemBase {
         this.context = context;
 
         this.turretMotor = new SparkMax(context.getTurretMotorId(), MotorType.kBrushless);
-        this.throughBoreEncoder = this.turretMotor.getAbsoluteEncoder();
         configureMotor();
 
-        if (RobotBase.isSimulation()) {
-            this.turretSparkMaxSim = new SparkMaxSim(turretMotor, DCMotor.getNEO(1));
-            LinearSystem<N2, N1, N2> plant =
-                    createDCMotorSystem(DCMotor.getNEO(1), 0.005, context.getTurretGearRatio());
-            this.turretMotorSim = new DCMotorSim(plant, DCMotor.getNEO(1));
-            this.lastSimTime = Timer.getFPGATimestamp();
-
-            // In sim, initialize through-bore to the home angle so auto-seeding fires on boot
-            this.throughBoreEncoderSim = new SparkAbsoluteEncoderSim(this.turretMotor);
-            this.throughBoreEncoderSim.setPosition(context.getThroughBoreHomeAngleRotations());
-        }
-
-        // Boot-time auto-seeding: if the turret is physically at home when powered on,
-        // the through-bore confirms it and we seed the SparkMax encoder to 0 immediately.
-        // This skips any manual homing sequence for the common case (turret stored forward).
-        if (RobotBase.isReal() && isAbsoluteAtHome()) {
-            turretMotor.getEncoder().setPosition(0.0);
-        }
+        // Zero the encoder on boot. The turret must be physically positioned at home
+        // (facing straight forward) before powering on.
+        resetEncoder();
 
         initializeTelemetry();
     }
@@ -157,6 +115,9 @@ public class TurretSubsystem extends SubsystemBase {
         config.smartCurrentLimit(context.getTurretCurrentLimit());
         config.idleMode(IdleMode.kBrake); // Brake — holds turret angle when motor stops
         config.inverted(context.isTurretMotorInverted());
+        // No positionConversionFactor needed: the SparkMax firmware normalises the NEO's
+        // 42 counts/rev internally, so getPosition() already returns motor rotations.
+        // getCurrentAngleDegrees() converts to turret degrees via the gear ratio.
         turretMotor.configure(config, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
     }
 
@@ -182,6 +143,16 @@ public class TurretSubsystem extends SubsystemBase {
     // -------------------------------------------------------------------------
 
     /**
+     * Zeros the SparkMax encoder, declaring the current physical turret position as home (0°).
+     *
+     * <p>Called automatically on boot. Can also be triggered via
+     * {@link #getResetTurretRotationCommand()} if the turret is repositioned after power-on.
+     */
+    private void resetEncoder() {
+        turretMotor.getEncoder().setPosition(0.0);
+    }
+
+    /**
      * Returns the current turret angle in degrees from home.
      *
      * <p>Computed as: {@code motorRotations / gearRatio × 360}.
@@ -204,28 +175,6 @@ public class TurretSubsystem extends SubsystemBase {
      */
     public boolean isOnTarget(double targetDegrees) {
         return Math.abs(targetDegrees - getCurrentAngleDegrees()) <= context.getTurretPositionToleranceDegrees();
-    }
-
-    // -------------------------------------------------------------------------
-    // Through-bore helpers
-    // -------------------------------------------------------------------------
-
-    /**
-     * Returns true if the through-bore encoder reading is within tolerance of the configured
-     * home (0°, facing forward) angle.
-     *
-     * <p>Uses wrap-around arithmetic to handle the 0↔1 boundary correctly.
-     * The counter shaft turns 4× per turret revolution, so 0.025 rotations tolerance
-     * at the counter ≈ 2.25° of turret travel.
-     *
-     * @return true if the through-bore reading is near the home angle
-     */
-    private boolean isAbsoluteAtHome() {
-        double raw = throughBoreEncoder.getPosition();
-        double home = context.getThroughBoreHomeAngleRotations();
-        double diff = Math.abs(raw - home);
-        double wrappedDiff = Math.min(diff, 1.0 - diff); // handle 0↔1 wrap-around
-        return wrappedDiff <= context.getThroughBoreAngleTolerance();
     }
 
     // -------------------------------------------------------------------------
@@ -257,6 +206,17 @@ public class TurretSubsystem extends SubsystemBase {
     // -------------------------------------------------------------------------
     // Command factories
     // -------------------------------------------------------------------------
+
+    /**
+     * Reset command — zeros the SparkMax encoder, declaring the current turret position as home.
+     *
+     * <p>Use this if the encoder drifted or the turret was manually repositioned after boot.
+     *
+     * @return Command that resets the turret encoder to zero
+     */
+    public Command getResetTurretRotationCommand() {
+        return this.runOnce(this::resetEncoder).withName("Turret.ResetEncoder");
+    }
 
     /**
      * Jog-left command — slowly rotates the turret counterclockwise for bring-up testing.
@@ -368,21 +328,12 @@ public class TurretSubsystem extends SubsystemBase {
 
         // MATCH level
         Telemetry.publish(prefix + "/State", currentState.name(), TelemetryLevel.MATCH);
-        Telemetry.publish(prefix + "/State", currentState.name(), TelemetryLevel.MATCH);
-        Telemetry.publish(prefix + "/AngleDeg", angleDegrees, TelemetryLevel.MATCH);
         Telemetry.publish(prefix + "/AngleDeg", angleDegrees, TelemetryLevel.MATCH);
         Telemetry.publish(prefix + "/OutputPercent", turretMotor.getAppliedOutput(), TelemetryLevel.MATCH);
 
         // LAB level
         Telemetry.publish(prefix + "/Current", turretMotor.getOutputCurrent(), TelemetryLevel.LAB);
         Telemetry.publish(prefix + "/EncoderRotations", turretMotor.getEncoder().getPosition(), TelemetryLevel.LAB);
-        Telemetry.publish(prefix + "/ThroughBore/RawAngle", throughBoreEncoder.getPosition(), TelemetryLevel.LAB);
-        Telemetry.publish(prefix + "/ThroughBore/AtHome", isAbsoluteAtHome() ? 1.0 : 0.0, TelemetryLevel.LAB);
-
-        // VERBOSE level
-        if (RobotBase.isSimulation()) {
-            Telemetry.record(prefix + "/VelocityRPM", turretMotorSim.getAngularVelocityRPM(), TelemetryLevel.VERBOSE);
-        }
     }
 
     // -------------------------------------------------------------------------
@@ -392,39 +343,5 @@ public class TurretSubsystem extends SubsystemBase {
     @Override
     public void periodic() {
         // Telemetry is captured by the registered subsystem callback via Telemetry.periodic()
-    }
-
-    // -------------------------------------------------------------------------
-    // Simulation
-    // -------------------------------------------------------------------------
-
-    /**
-     * Advances simulated turret motor physics each tick.
-     *
-     * <p>The moment of inertia is set slightly higher than the flywheel sims (0.005 vs 0.001)
-     * to approximate the rotational inertia of the shooter assembly. No hardstop simulation
-     * is included in the stub — the turret range limits will be enforced by the control
-     * logic once closed-loop tracking is implemented.
-     */
-    @Override
-    public void simulationPeriodic() {
-        double now = Timer.getFPGATimestamp();
-        double dt = now - lastSimTime;
-        lastSimTime = now;
-
-        double voltage = turretSparkMaxSim.getAppliedOutput() * RobotController.getBatteryVoltage();
-        turretMotorSim.setInputVoltage(voltage);
-        turretMotorSim.update(dt);
-        turretSparkMaxSim.iterate(turretMotorSim.getAngularVelocityRPM(), RobotController.getBatteryVoltage(), dt);
-
-        // Sync through-bore sim to match simulated turret angle.
-        // counter_rotations = turret_rotations × 4 (counter spins 4× faster than turret)
-        if (throughBoreEncoderSim != null) {
-            double turretRotations = turretMotor.getEncoder().getPosition() / context.getTurretGearRatio();
-            double counterRotations = turretRotations * 4.0;
-            double encoderAngle = (counterRotations + context.getThroughBoreHomeAngleRotations()) % 1.0;
-            if (encoderAngle < 0.0) encoderAngle += 1.0;
-            this.throughBoreEncoderSim.setPosition(encoderAngle);
-        }
     }
 }
