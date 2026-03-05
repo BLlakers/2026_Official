@@ -15,10 +15,12 @@ import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 import com.revrobotics.spark.config.SparkFlexConfig;
 import com.revrobotics.spark.config.SparkMaxConfig;
 import edu.wpi.first.math.VecBuilder;
+import edu.wpi.first.math.controller.ProfiledPIDController;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N2;
 import edu.wpi.first.math.system.LinearSystem;
 import edu.wpi.first.math.system.plant.DCMotor;
+import edu.wpi.first.math.trajectory.TrapezoidProfile;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.Timer;
@@ -95,6 +97,8 @@ public class IntakeSubsystem extends SubsystemBase {
     private final RelativeEncoder lift1Encoder;
     private final RelativeEncoder lift2Encoder;
 
+    private final ProfiledPIDController liftController;
+
     private State currentState = State.IDLE;
 
     /** The lift encoder target currently being sought. Used for telemetry. */
@@ -142,6 +146,14 @@ public class IntakeSubsystem extends SubsystemBase {
 
         this.lift1Encoder = liftMotor1.getEncoder();
         this.lift2Encoder = liftMotor2.getEncoder();
+
+        this.liftController = new ProfiledPIDController(
+                context.getLiftPid().p(),
+                context.getLiftPid().i(),
+                context.getLiftPid().d(),
+                new TrapezoidProfile.Constraints(
+                        context.getLiftMaxVelocityRotsPerSec(), context.getLiftMaxAccelerationRotsPerSecSq()));
+        liftController.setTolerance(context.getPositionToleranceRotations());
 
         configureRollerMotor();
         configureLiftMotors();
@@ -278,6 +290,12 @@ public class IntakeSubsystem extends SubsystemBase {
         liftMotor2.set(0);
     }
 
+    /** Applies the same duty-cycle output to both lift motors. */
+    private void applyLiftOutput(double output) {
+        liftMotor1.set(output);
+        liftMotor2.set(output);
+    }
+
     private void stopAll() {
         stopRollers();
         holdLift();
@@ -294,6 +312,15 @@ public class IntakeSubsystem extends SubsystemBase {
     private boolean isAtRetractedHardstop() {
         return getLift1Current() >= context.getHomingCurrentThresholdAmps()
                 || getLift2Current() >= context.getHomingCurrentThresholdAmps();
+    }
+
+    /**
+     * Returns true when a current spike on either lift motor indicates the intake has
+     * contacted the extended (lower) hardstop.
+     */
+    private boolean isAtExtendedHardstop() {
+        return getLift1Current() >= context.getExtendedHardstopCurrentThresholdAmps()
+                || getLift2Current() >= context.getExtendedHardstopCurrentThresholdAmps();
     }
 
     /** Zeros both lift encoders and marks homing complete after retracted hardstop contact. */
@@ -339,26 +366,27 @@ public class IntakeSubsystem extends SubsystemBase {
     }
 
     /**
-     * Raise command — lifts the hopper to the stowed (raised) position.
+     * Raise command — lifts the hopper to the stowed (raised) position using a
+     * ProfiledPIDController for smooth trapezoidal motion.
      *
      * <p>Used before and during climb to retract the hopper within the frame perimeter.
-     * Stops rollers on entry.
+     * Stops rollers on entry. The controller is reset from the current position to avoid
+     * velocity jumps if the command is interrupted and re-triggered mid-travel.
      *
      * @return Command that raises the hopper to stowed position
      */
     public Command getRaiseCommand() {
-        return this.run(() -> {
+        return this.runOnce(() -> {
                     stopRollers();
-                    targetRotations = context.getRaisedPositionRotations();
-                    if (!atTarget(context.getRaisedPositionRotations())) {
-                        setState(State.RAISING);
-                        raiseLift();
-                    } else {
-                        setState(State.RAISED);
-                        holdLift();
-                    }
+                    liftController.reset(getLiftPosition());
+                    liftController.setGoal(context.getRaisedPositionRotations());
+                    setState(State.RAISING);
                 })
-                .until(() -> atTarget(context.getRaisedPositionRotations()))
+                .andThen(this.run(() -> {
+                    targetRotations = context.getRaisedPositionRotations();
+                    applyLiftOutput(liftController.calculate(getLiftPosition()));
+                }))
+                .until(liftController::atGoal)
                 .andThen(this.runOnce(() -> {
                     holdLift();
                     setState(State.RAISED);
@@ -367,24 +395,25 @@ public class IntakeSubsystem extends SubsystemBase {
     }
 
     /**
-     * Lower command — returns the hopper to the match (lowered) position.
+     * Lower command — returns the hopper to the match (lowered) position using a
+     * ProfiledPIDController for smooth trapezoidal motion.
      *
-     * <p>Used at the start of teleop or after a climb attempt to bring the hopper back down
-     * for normal operation.
+     * <p>Terminates when either the position goal is reached ({@code atGoal()}) OR a current
+     * spike signals physical contact with the extended (lower) hardstop. This prevents motor
+     * stall if the mechanism reaches the floor before the encoder reads at the exact setpoint.
      *
      * @return Command that lowers the hopper to match position
      */
     public Command getLowerCommand() {
-        return this.run(() -> {
-                    targetRotations = context.getLoweredPositionRotations();
-                    if (!atTarget(context.getLoweredPositionRotations())) {
-                        lowerLift();
-                    } else {
-                        setState(State.LOWERED);
-                        holdLift();
-                    }
+        return this.runOnce(() -> {
+                    liftController.reset(getLiftPosition());
+                    liftController.setGoal(context.getLoweredPositionRotations());
                 })
-                .until(() -> atTarget(context.getLoweredPositionRotations()))
+                .andThen(this.run(() -> {
+                    targetRotations = context.getLoweredPositionRotations();
+                    applyLiftOutput(liftController.calculate(getLiftPosition()));
+                }))
+                .until(() -> liftController.atGoal() || isAtExtendedHardstop())
                 .andThen(this.runOnce(() -> {
                     holdLift();
                     setState(State.LOWERED);
@@ -508,6 +537,17 @@ public class IntakeSubsystem extends SubsystemBase {
         Telemetry.record(prefix + "/Roller/OutputPercent", rollerMotor.getAppliedOutput(), TelemetryLevel.LAB);
         Telemetry.record(
                 prefix + "/Homing/CurrentThreshold", context.getHomingCurrentThresholdAmps(), TelemetryLevel.LAB);
+        Telemetry.publish(
+                prefix + "/Lift/PID/SetpointPosition", liftController.getSetpoint().position, TelemetryLevel.LAB);
+        Telemetry.publish(
+                prefix + "/Lift/PID/SetpointVelocity", liftController.getSetpoint().velocity, TelemetryLevel.LAB);
+        Telemetry.publish(prefix + "/Lift/PID/AtGoal", liftController.atGoal() ? 1.0 : 0.0, TelemetryLevel.LAB);
+        Telemetry.publish(
+                prefix + "/Lift/ExtendedHardstop/Active", isAtExtendedHardstop() ? 1.0 : 0.0, TelemetryLevel.LAB);
+        Telemetry.publish(
+                prefix + "/Homing/ExtendedCurrentThreshold",
+                context.getExtendedHardstopCurrentThresholdAmps(),
+                TelemetryLevel.LAB);
 
         // VERBOSE level
         Telemetry.record(prefix + "/Lift/Motor1/OutputPercent", liftMotor1.getAppliedOutput(), TelemetryLevel.VERBOSE);

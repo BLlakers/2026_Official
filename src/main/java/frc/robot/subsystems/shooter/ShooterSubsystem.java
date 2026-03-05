@@ -304,8 +304,7 @@ public class ShooterSubsystem extends SubsystemBase {
      * @return Instant command that bumps the front setpoint up one step
      */
     public Command getIncreaseFrontSpeedCommand() {
-        return Commands.runOnce(() -> adjustFrontSpeed(SPEED_STEP))
-                .withName("Shooter.FrontSpeed+");
+        return Commands.runOnce(() -> adjustFrontSpeed(SPEED_STEP)).withName("Shooter.FrontSpeed+");
     }
 
     /**
@@ -314,8 +313,7 @@ public class ShooterSubsystem extends SubsystemBase {
      * @return Instant command that bumps the front setpoint down one step
      */
     public Command getDecreaseFrontSpeedCommand() {
-        return Commands.runOnce(() -> adjustFrontSpeed(-SPEED_STEP))
-                .withName("Shooter.FrontSpeed-");
+        return Commands.runOnce(() -> adjustFrontSpeed(-SPEED_STEP)).withName("Shooter.FrontSpeed-");
     }
 
     /**
@@ -324,8 +322,7 @@ public class ShooterSubsystem extends SubsystemBase {
      * @return Instant command that bumps the rear setpoint up one step
      */
     public Command getIncreaseRearSpeedCommand() {
-        return Commands.runOnce(() -> adjustRearSpeed(SPEED_STEP))
-                .withName("Shooter.RearSpeed+");
+        return Commands.runOnce(() -> adjustRearSpeed(SPEED_STEP)).withName("Shooter.RearSpeed+");
     }
 
     /**
@@ -334,8 +331,7 @@ public class ShooterSubsystem extends SubsystemBase {
      * @return Instant command that bumps the rear setpoint down one step
      */
     public Command getDecreaseRearSpeedCommand() {
-        return Commands.runOnce(() -> adjustRearSpeed(-SPEED_STEP))
-                .withName("Shooter.RearSpeed-");
+        return Commands.runOnce(() -> adjustRearSpeed(-SPEED_STEP)).withName("Shooter.RearSpeed-");
     }
 
     // -------------------------------------------------------------------------

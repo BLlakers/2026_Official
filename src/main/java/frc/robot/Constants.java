@@ -406,6 +406,53 @@ public final class Constants {
          * TODO: tighten after physical testing.
          */
         public static final double POSITION_TOLERANCE_ROTATIONS = 1.0;
+
+        // -------------------------------------------------------------------------
+        // ProfiledPIDController gains (duty-cycle output per rotation of tracking error)
+        // Start conservative — the profile does most of the work; PID corrects small
+        // deviations from the trapezoidal trajectory.
+        // -------------------------------------------------------------------------
+
+        /** Proportional gain. At 10-rotation tracking error → 0.5 duty cycle output. TODO: tune. */
+        public static final double LIFT_PID_KP = 0.05;
+        /** Integral gain. Start at 0; add only if mechanism consistently undershoots. */
+        public static final double LIFT_PID_KI = 0.0;
+        /** Derivative gain. Add only if mechanism oscillates at the setpoint. TODO: tune. */
+        public static final double LIFT_PID_KD = 0.005;
+
+        // -------------------------------------------------------------------------
+        // TrapezoidProfile motion constraints (motor rotations / second)
+        // Total travel ≈ 50 rotations. At 20 rot/s max, the traverse takes ~2.5 s.
+        // -------------------------------------------------------------------------
+
+        /**
+         * Maximum profiled velocity in motor rotations per second.
+         * 20 rot/s ≈ 480 RPM through 25:1 (conservative). Increase if motion is too slow.
+         * TODO: tune on robot.
+         */
+        public static final double LIFT_MAX_VELOCITY_ROTS_PER_SEC = 20.0;
+
+        /**
+         * Maximum profiled acceleration in motor rotations per second squared.
+         * 10 rot/s² → 2-second ramp to max velocity. Reduce if start/stop is too abrupt.
+         * TODO: tune on robot.
+         */
+        public static final double LIFT_MAX_ACCEL_ROTS_PER_SEC_SQ = 10.0;
+
+        // -------------------------------------------------------------------------
+        // Extended (lower) hardstop current detection
+        // Mirrors the retracted hardstop detection used during homing.
+        // -------------------------------------------------------------------------
+
+        /**
+         * Current threshold (amps) signalling extended (lower) hardstop contact.
+         * getLowerCommand() terminates when EITHER motor exceeds this value.
+         *
+         * <p>Tune empirically: run getLowerCommand(), watch
+         * {@code Intake/Lift/Motor1/Current} and {@code Intake/Lift/Motor2/Current},
+         * note the spike when the intake contacts the lower hardstop, then set just below it.
+         */
+        public static final double EXTENDED_HARDSTOP_CURRENT_THRESHOLD_AMPS = 20.0; // TODO: tune
     }
 
     public static class RelayConstants {

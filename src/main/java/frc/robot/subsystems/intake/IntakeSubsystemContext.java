@@ -2,6 +2,7 @@ package frc.robot.subsystems.intake;
 
 import static frc.robot.Constants.IntakeConstants.*;
 
+import frc.robot.support.PIDSettings;
 import lombok.Builder;
 import lombok.Data;
 
@@ -198,4 +199,45 @@ public class IntakeSubsystemContext {
      */
     @Builder.Default
     private final double positionToleranceRotations = POSITION_TOLERANCE_ROTATIONS;
+
+    // -------------------------------------------------------------------------
+    // ProfiledPIDController — lift position control
+    // -------------------------------------------------------------------------
+
+    /**
+     * PID gains for the lift ProfiledPIDController.
+     * Output is duty cycle [-1, 1]; units are duty-cycle per motor-rotation tracking error.
+     * <b>TODO: tune kP and kD on robot.</b>
+     */
+    @Builder.Default
+    private final PIDSettings liftPid = new PIDSettings(LIFT_PID_KP, LIFT_PID_KI, LIFT_PID_KD);
+
+    /**
+     * Maximum lift velocity (motor rotations per second) for the TrapezoidProfile constraint.
+     * <b>TODO: tune on robot.</b>
+     */
+    @Builder.Default
+    private final double liftMaxVelocityRotsPerSec = LIFT_MAX_VELOCITY_ROTS_PER_SEC;
+
+    /**
+     * Maximum lift acceleration (motor rotations per second squared) for the TrapezoidProfile constraint.
+     * <b>TODO: tune on robot.</b>
+     */
+    @Builder.Default
+    private final double liftMaxAccelerationRotsPerSecSq = LIFT_MAX_ACCEL_ROTS_PER_SEC_SQ;
+
+    // -------------------------------------------------------------------------
+    // Extended (lower) hardstop current detection
+    // -------------------------------------------------------------------------
+
+    /**
+     * Current threshold (amps) signalling extended (lower) hardstop contact during
+     * {@code getLowerCommand()}. The command exits when EITHER lift motor current exceeds this.
+     *
+     * <p>Tune empirically: run lower command, watch {@code Intake/Lift/Motor1/Current}
+     * and {@code Intake/Lift/Motor2/Current}, note the spike at lower hardstop contact,
+     * set just below it.
+     */
+    @Builder.Default
+    private final double extendedHardstopCurrentThresholdAmps = EXTENDED_HARDSTOP_CURRENT_THRESHOLD_AMPS;
 }
