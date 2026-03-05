@@ -107,7 +107,7 @@ public class TurretSubsystemContext {
      * <b>TODO: confirm during first motor test.</b>
      */
     @Builder.Default
-    private final boolean turretMotorInverted = false;
+    private final boolean turretMotorInverted = true;
 
     // -------------------------------------------------------------------------
     // Manual jog speed — for initial bring-up testing only

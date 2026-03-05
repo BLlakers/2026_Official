@@ -19,6 +19,7 @@ import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.simulation.DCMotorSim;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.support.Telemetry;
 import frc.robot.support.TelemetryLevel;
@@ -78,6 +79,12 @@ public class ShooterSubsystem extends SubsystemBase {
 
     private static final String TELEMETRY_PREFIX = "Shooter";
 
+    /**
+     * Step size applied to a flywheel speed setpoint on each increase/decrease command tap.
+     * 0.02 = 2% motor output per tap → 50 steps across the full [0, 1] range.
+     */
+    private static final double SPEED_STEP = 0.02;
+
     /** Operating states of the shooter mechanism. */
     public enum State {
         /** Both flywheel motors stopped. */
@@ -93,6 +100,11 @@ public class ShooterSubsystem extends SubsystemBase {
     // Motors — one per flywheel
     private final SparkMax frontMotor; // NEO — front flywheel A, 3" diameter
     private final SparkMax rearMotor; // NEO — rear flywheel B, 4" diameter
+
+    // Runtime-adjustable speed setpoints — initialised from context, tunable via debug commands.
+    // runForward() reads these each loop so changes take effect immediately while shooting.
+    private double frontSpeedSetpoint;
+    private double rearSpeedSetpoint;
 
     private State currentState = State.IDLE;
 
@@ -128,6 +140,9 @@ public class ShooterSubsystem extends SubsystemBase {
 
         this.frontMotor = new SparkMax(context.getShooterFrontMotorId(), MotorType.kBrushless);
         this.rearMotor = new SparkMax(context.getShooterRearMotorId(), MotorType.kBrushless);
+
+        this.frontSpeedSetpoint = context.getShooterFrontSpeed();
+        this.rearSpeedSetpoint = context.getShooterRearSpeed();
 
         configureMotors();
 
@@ -190,8 +205,16 @@ public class ShooterSubsystem extends SubsystemBase {
     // -------------------------------------------------------------------------
 
     private void runForward() {
-        frontMotor.set(context.getShooterFrontSpeed());
-        rearMotor.set(context.getShooterRearSpeed());
+        frontMotor.set(frontSpeedSetpoint);
+        rearMotor.set(rearSpeedSetpoint);
+    }
+
+    private void adjustFrontSpeed(double delta) {
+        frontSpeedSetpoint = Math.min(1.0, Math.max(0.0, frontSpeedSetpoint + delta));
+    }
+
+    private void adjustRearSpeed(double delta) {
+        rearSpeedSetpoint = Math.min(1.0, Math.max(0.0, rearSpeedSetpoint + delta));
     }
 
     private void runReverse() {
@@ -271,6 +294,50 @@ public class ShooterSubsystem extends SubsystemBase {
                 .withName("Shooter.Stop");
     }
 
+    /**
+     * Increases the front flywheel speed setpoint by {@value #SPEED_STEP} (clamped to 1.0).
+     *
+     * <p>Does <em>not</em> require the shooter subsystem, so it can be tapped while
+     * {@link #getShootCommand()} is held — the running command reads the updated setpoint
+     * on its next loop.
+     *
+     * @return Instant command that bumps the front setpoint up one step
+     */
+    public Command getIncreaseFrontSpeedCommand() {
+        return Commands.runOnce(() -> adjustFrontSpeed(SPEED_STEP))
+                .withName("Shooter.FrontSpeed+");
+    }
+
+    /**
+     * Decreases the front flywheel speed setpoint by {@value #SPEED_STEP} (clamped to 0.0).
+     *
+     * @return Instant command that bumps the front setpoint down one step
+     */
+    public Command getDecreaseFrontSpeedCommand() {
+        return Commands.runOnce(() -> adjustFrontSpeed(-SPEED_STEP))
+                .withName("Shooter.FrontSpeed-");
+    }
+
+    /**
+     * Increases the rear flywheel speed setpoint by {@value #SPEED_STEP} (clamped to 1.0).
+     *
+     * @return Instant command that bumps the rear setpoint up one step
+     */
+    public Command getIncreaseRearSpeedCommand() {
+        return Commands.runOnce(() -> adjustRearSpeed(SPEED_STEP))
+                .withName("Shooter.RearSpeed+");
+    }
+
+    /**
+     * Decreases the rear flywheel speed setpoint by {@value #SPEED_STEP} (clamped to 0.0).
+     *
+     * @return Instant command that bumps the rear setpoint down one step
+     */
+    public Command getDecreaseRearSpeedCommand() {
+        return Commands.runOnce(() -> adjustRearSpeed(-SPEED_STEP))
+                .withName("Shooter.RearSpeed-");
+    }
+
     // -------------------------------------------------------------------------
     // Telemetry
     // -------------------------------------------------------------------------
@@ -286,12 +353,14 @@ public class ShooterSubsystem extends SubsystemBase {
         // MATCH level
         Telemetry.record(prefix + "/State", currentState.name(), TelemetryLevel.MATCH);
         Telemetry.publish(prefix + "/State", currentState.name(), TelemetryLevel.MATCH);
-        Telemetry.record(prefix + "/Front/OutputPercent", frontMotor.getAppliedOutput(), TelemetryLevel.MATCH);
-        Telemetry.record(prefix + "/Rear/OutputPercent", rearMotor.getAppliedOutput(), TelemetryLevel.MATCH);
+        Telemetry.publish(prefix + "/Front/OutputPercent", frontMotor.getAppliedOutput(), TelemetryLevel.MATCH);
+        Telemetry.publish(prefix + "/Rear/OutputPercent", rearMotor.getAppliedOutput(), TelemetryLevel.MATCH);
 
         // LAB level
         Telemetry.record(prefix + "/Front/Current", frontMotor.getOutputCurrent(), TelemetryLevel.LAB);
         Telemetry.record(prefix + "/Rear/Current", rearMotor.getOutputCurrent(), TelemetryLevel.LAB);
+        Telemetry.publish(prefix + "/Front/SpeedSetpoint", frontSpeedSetpoint, TelemetryLevel.LAB);
+        Telemetry.publish(prefix + "/Rear/SpeedSetpoint", rearSpeedSetpoint, TelemetryLevel.LAB);
 
         // VERBOSE level
         if (RobotBase.isSimulation()) {
