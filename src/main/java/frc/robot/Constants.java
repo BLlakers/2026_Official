@@ -452,7 +452,7 @@ public final class Constants {
          * {@code Intake/Lift/Motor1/Current} and {@code Intake/Lift/Motor2/Current},
          * note the spike when the intake contacts the lower hardstop, then set just below it.
          */
-        public static final double EXTENDED_HARDSTOP_CURRENT_THRESHOLD_AMPS = 20.0; // TODO: tune
+        public static final double EXTENDED_HARDSTOP_CURRENT_THRESHOLD_AMPS = 40.0; // TODO: tune
     }
 
     public static class RelayConstants {

@@ -525,17 +525,17 @@ public class IntakeSubsystem extends SubsystemBase {
         double liftPos = getLiftPosition();
 
         // MATCH level
-        Telemetry.record(prefix + "/State", currentState.name(), TelemetryLevel.MATCH);
         Telemetry.publish(prefix + "/State", currentState.name(), TelemetryLevel.MATCH);
-        Telemetry.record(prefix + "/Lift/Position", liftPos, TelemetryLevel.MATCH);
-        Telemetry.record(prefix + "/Lift/Target", targetRotations, TelemetryLevel.MATCH);
-        Telemetry.record(prefix + "/Lift/AtTarget", atTarget(targetRotations) ? 1.0 : 0.0, TelemetryLevel.MATCH);
+        Telemetry.publish(prefix + "/State", currentState.name(), TelemetryLevel.MATCH);
+        Telemetry.publish(prefix + "/Lift/Position", liftPos, TelemetryLevel.MATCH);
+        Telemetry.publish(prefix + "/Lift/Target", targetRotations, TelemetryLevel.MATCH);
+        Telemetry.publish(prefix + "/Lift/AtTarget", atTarget(targetRotations) ? 1.0 : 0.0, TelemetryLevel.MATCH);
 
         // LAB level
-        Telemetry.record(prefix + "/Lift/Motor1/Current", getLift1Current(), TelemetryLevel.LAB);
-        Telemetry.record(prefix + "/Lift/Motor2/Current", getLift2Current(), TelemetryLevel.LAB);
-        Telemetry.record(prefix + "/Roller/OutputPercent", rollerMotor.getAppliedOutput(), TelemetryLevel.LAB);
-        Telemetry.record(
+        Telemetry.publish(prefix + "/Lift/Motor1/Current", getLift1Current(), TelemetryLevel.LAB);
+        Telemetry.publish(prefix + "/Lift/Motor2/Current", getLift2Current(), TelemetryLevel.LAB);
+        Telemetry.publish(prefix + "/Roller/OutputPercent", rollerMotor.getAppliedOutput(), TelemetryLevel.LAB);
+        Telemetry.publish(
                 prefix + "/Homing/CurrentThreshold", context.getHomingCurrentThresholdAmps(), TelemetryLevel.LAB);
         Telemetry.publish(
                 prefix + "/Lift/PID/SetpointPosition", liftController.getSetpoint().position, TelemetryLevel.LAB);
@@ -550,13 +550,13 @@ public class IntakeSubsystem extends SubsystemBase {
                 TelemetryLevel.LAB);
 
         // VERBOSE level
-        Telemetry.record(prefix + "/Lift/Motor1/OutputPercent", liftMotor1.getAppliedOutput(), TelemetryLevel.VERBOSE);
-        Telemetry.record(prefix + "/Lift/Motor2/OutputPercent", liftMotor2.getAppliedOutput(), TelemetryLevel.VERBOSE);
-        Telemetry.record(
+        Telemetry.publish(prefix + "/Lift/Motor1/OutputPercent", liftMotor1.getAppliedOutput(), TelemetryLevel.VERBOSE);
+        Telemetry.publish(prefix + "/Lift/Motor2/OutputPercent", liftMotor2.getAppliedOutput(), TelemetryLevel.VERBOSE);
+        Telemetry.publish(
                 prefix + "/Lift/Motor1/EncoderRaw",
                 RobotBase.isSimulation() ? simLift1Position : lift1Encoder.getPosition(),
                 TelemetryLevel.VERBOSE);
-        Telemetry.record(
+        Telemetry.publish(
                 prefix + "/Lift/Motor2/EncoderRaw",
                 RobotBase.isSimulation() ? simLift2Position : lift2Encoder.getPosition(),
                 TelemetryLevel.VERBOSE);
