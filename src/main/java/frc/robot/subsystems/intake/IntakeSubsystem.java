@@ -169,12 +169,18 @@ public class IntakeSubsystem extends SubsystemBase {
             this.lastSimTime = Timer.getFPGATimestamp();
         }
 
+        resetEncoders();
         initializeTelemetry();
     }
 
     // -------------------------------------------------------------------------
     // Configuration
     // -------------------------------------------------------------------------
+
+    private void resetEncoders() {
+        liftMotor1.getEncoder().setPosition(0.0);
+        liftMotor2.getEncoder().setPosition(0.0);
+    }
 
     private void configureRollerMotor() {
         SparkFlexConfig config = new SparkFlexConfig();
