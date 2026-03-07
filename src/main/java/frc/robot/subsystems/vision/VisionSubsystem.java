@@ -137,7 +137,7 @@ public class VisionSubsystem extends SubsystemBase {
         SimCameraProperties frontRightProps = createSimCameraProperties();
         frontRightCameraSim = new PhotonCameraSim(frontRightCamera, frontRightProps);
         visionSim.addCamera(frontRightCameraSim, context.getRobotToRightFrontCamera());
-        frontRightCameraSim.enableDrawWireframe(false);
+        frontRightCameraSim.enableDrawWireframe(true);
         frontRightCameraSim.enableRawStream(context.isEnablePhotonCameraSimStreams());
         frontRightCameraSim.enableProcessedStream(context.isEnablePhotonCameraSimStreams());
 
@@ -145,7 +145,7 @@ public class VisionSubsystem extends SubsystemBase {
         SimCameraProperties frontLeftProps = createSimCameraProperties();
         frontLeftCameraSim = new PhotonCameraSim(frontLeftCamera, frontLeftProps);
         visionSim.addCamera(frontLeftCameraSim, context.getRobotToLeftFrontCamera());
-        frontLeftCameraSim.enableDrawWireframe(false);
+        frontLeftCameraSim.enableDrawWireframe(true);
         // Disable video streaming to avoid CameraServer handle issues
         frontLeftCameraSim.enableRawStream(false);
         frontLeftCameraSim.enableProcessedStream(false);
@@ -154,7 +154,7 @@ public class VisionSubsystem extends SubsystemBase {
         SimCameraProperties rightSideProps = createSimCameraProperties();
         rightSideCameraSim = new PhotonCameraSim(rightSideCamera, rightSideProps);
         visionSim.addCamera(rightSideCameraSim, context.getRobotToRightSideCamera());
-        rightSideCameraSim.enableDrawWireframe(false);
+        rightSideCameraSim.enableDrawWireframe(true);
         // Disable video streaming to avoid CameraServer handle issues
         rightSideCameraSim.enableRawStream(false);
         rightSideCameraSim.enableProcessedStream(false);
@@ -163,7 +163,7 @@ public class VisionSubsystem extends SubsystemBase {
         SimCameraProperties leftSideProps = createSimCameraProperties();
         leftSideCameraSim = new PhotonCameraSim(leftSideCamera, leftSideProps);
         visionSim.addCamera(leftSideCameraSim, context.getRobotToLeftSideCamera());
-        leftSideCameraSim.enableDrawWireframe(false);
+        leftSideCameraSim.enableDrawWireframe(true);
         // Disable video streaming to avoid CameraServer handle issues
         leftSideCameraSim.enableRawStream(false);
         leftSideCameraSim.enableProcessedStream(false);
@@ -342,9 +342,9 @@ public class VisionSubsystem extends SubsystemBase {
         List<PhotonPipelineResult> leftSideResults = leftSideCamera.getAllUnreadResults();
 
         processCamera(frontRightPoseEstimator, "FrontRight", frontRightConnected, frontRightResults);
-        processCamera(frontLeftPoseEstimator, "FrontLeft", frontLeftConnected, frontLeftResults);
         processCamera(rightSidePoseEstimator, "RightSide", rightSideConnected, rightSideResults);
-        processCamera(leftSidePoseEstimator, "LeftSide", leftSideConnected, leftSideResults);
+        //processCamera(leftSidePoseEstimator, "LeftSide", leftSideConnected, leftSideResults);
+        //processCamera(frontLeftPoseEstimator, "FrontLeft", frontLeftConnected, frontLeftResults);
 
         updateSystemStatus(
                 frontRightConnected,
