@@ -272,6 +272,11 @@ public class RobotContainer {
         this.driverController.rightStick().onTrue(this.driveTrain.toggleWheelLockCommand()); // lock wheels
         this.driverController.b().onTrue(this.driveTrain.resetNavXSensorModule());
 
+        // Turret Tracker Override test
+        this.driverController.start().toggleOnTrue(this.turretTracker.getHubCenterOverrideCommand());
+        this.driverController.x().onTrue(this.turretTracker.getHubCenterOverrideToBlueCommand());
+        this.driverController.y().onTrue(this.turretTracker.getHubCenterOverrideToRedCommand());
+
         // Manipulator Controller - Climb Subsystem commands (only if climb is enabled)
         // TODO: Confirm all button assignments with drive team before first climb test.
         //

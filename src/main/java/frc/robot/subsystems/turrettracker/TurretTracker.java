@@ -51,11 +51,14 @@ public class TurretTracker extends SubsystemBase {
     private final Translation2d blueHubCenter;
     private final Translation2d redHubCenter;
 
+    private boolean hubCenterOverride = false;
+    private boolean hubCenterOverrideIsBlue = true;
+
     // Field dimensions (from AprilTag field layout)
     private final double fieldLengthMeters;
     private final double fieldWidthMeters;
 
-    private boolean enabledByCommand = false;
+    private boolean enabledByCommand = true;
 
     // Current tracking mode (auto-determined each cycle based on robot position)
     @Getter
@@ -211,12 +214,20 @@ public class TurretTracker extends SubsystemBase {
     }
 
     private Translation2d resolveHubCenter() {
+        if(this.hubCenterOverride){
+            return this.resolveHubCenterOverride();
+        }
+
         Optional<Alliance> alliance = DriverStation.getAlliance();
         if (alliance.isPresent()) {
             return alliance.get() == Alliance.Blue ? blueHubCenter : redHubCenter;
         }
         // Default to blue if alliance not set (common in sim)
         return blueHubCenter;
+    }
+
+    private Translation2d resolveHubCenterOverride(){
+        return hubCenterOverrideIsBlue ? this.blueHubCenter : this.redHubCenter;
     }
 
     /**
@@ -322,5 +333,29 @@ public class TurretTracker extends SubsystemBase {
                             this.enabledByCommand = false;
                         })
                 .withName("TurretTracker.EnabledByCommand");
+    }
+
+    public Command getHubCenterOverrideCommand() {
+        return this.runOnce(
+                        () -> {
+                            this.hubCenterOverride = !this.hubCenterOverride;
+                        })
+                .withName("TurretTracker.HubCenterOverride");
+    }
+
+    public Command getHubCenterOverrideToRedCommand() {
+        return this.runOnce(
+                        () -> {
+                            this.hubCenterOverrideIsBlue = false;
+                        })
+                .withName("TurretTracker.HubCenterOverrideToRed");
+    }
+
+    public Command getHubCenterOverrideToBlueCommand() {
+        return this.runOnce(
+                        () -> {
+                            this.hubCenterOverrideIsBlue = true;
+                        })
+                .withName("TurretTracker.HubCenterOverrideToBlue");
     }
 }
