@@ -17,6 +17,7 @@ import edu.wpi.first.math.Matrix;
 import edu.wpi.first.math.estimator.SwerveDrivePoseEstimator;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.*;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
@@ -561,6 +562,12 @@ public class Drivetrain extends SubsystemBase {
      */
     public Command getResetOdometryCommand() {
         return this.runOnce(() -> this.resetOdometry(new Pose2d()));
+    }
+
+    public Command getTestPoseCommand() {
+        Translation2d t = new Translation2d(1.995, 2.515);
+        Rotation2d r = new Rotation2d(0.000);
+        return this.runOnce(() -> this.resetOdometry(new Pose2d(t, r)));
     }
 
     /**

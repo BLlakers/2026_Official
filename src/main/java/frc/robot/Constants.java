@@ -25,7 +25,7 @@ public final class Constants {
      * true as hardware becomes available on the robot.
      */
     public static final class FeatureFlags {
-        public static final boolean ENABLE_TURRET_TRACKER = false;
+        public static final boolean ENABLE_TURRET_TRACKER = true;
         public static final boolean ENABLE_LED_STRAND = false;
         public static final boolean ENABLE_VISION = true;
         public static final boolean ENABLE_CLIMB = false;
@@ -583,13 +583,13 @@ public final class Constants {
          * Open-loop speed for the front flywheel (A, 3") when shooting. Positive.
          * <b>TODO: replace with physics-solver RPM target after SHOOTER.md calibration sessions.</b>
          */
-        public static final double SHOOTER_FRONT_SPEED = 0.2; // TODO: tune
+        public static final double SHOOTER_FRONT_SPEED = 0.5; // TODO: tune
 
         /**
          * Open-loop speed for the rear flywheel (B, 4") when shooting. Positive.
          * <b>TODO: replace with physics-solver RPM target after SHOOTER.md calibration sessions.</b>
          */
-        public static final double SHOOTER_REAR_SPEED = 0.35; // TODO: tune
+        public static final double SHOOTER_REAR_SPEED = .75; // TODO: tune
 
         /**
          * Open-loop speed for the front flywheel when reversing. Negative.

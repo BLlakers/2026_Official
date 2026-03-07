@@ -8,6 +8,7 @@ import edu.wpi.first.math.geometry.*;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
+import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants;
 import frc.robot.subsystems.drivetrain.Drivetrain;
@@ -53,6 +54,8 @@ public class TurretTracker extends SubsystemBase {
     // Field dimensions (from AprilTag field layout)
     private final double fieldLengthMeters;
     private final double fieldWidthMeters;
+
+    private boolean enabledByCommand = false;
 
     // Current tracking mode (auto-determined each cycle based on robot position)
     @Getter
@@ -146,6 +149,11 @@ public class TurretTracker extends SubsystemBase {
 
     @Override
     public void periodic() {
+
+        if (!enabledByCommand) {
+            return;
+        }
+
         Pose2d robotPose = drivetrain.getPose2dEstimator();
 
         // Auto-select tracking mode based on robot position relative to hub
@@ -303,5 +311,16 @@ public class TurretTracker extends SubsystemBase {
                         modeLabel, turretAngleDegrees, elevationAngleDegrees, distanceToTargetMeters)
                 : String.format("Out of Range (%.1f deg)", rawAngleDegrees);
         Telemetry.publish(prefix + "/Status", status, TelemetryLevel.MATCH);
+    }
+
+    public Command getTurrentEnableCommand() {
+        return this.runEnd(
+                        () -> {
+                            this.enabledByCommand = true;
+                        },
+                        () -> {
+                            this.enabledByCommand = false;
+                        })
+                .withName("TurretTracker.EnabledByCommand");
     }
 }

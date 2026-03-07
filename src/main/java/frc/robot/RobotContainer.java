@@ -285,7 +285,7 @@ public class RobotContainer {
         if (this.climbSubsystem != null) {
             this.manipController.a().onTrue(this.climbSubsystem.getClimbNextBarCommand());
             this.manipController.b().onTrue(this.climbSubsystem.getExtendToBarCommand());
-            this.manipController.back().onTrue(this.climbSubsystem.getHomingCommand());
+            // this.manipController.back().onTrue(this.climbSubsystem.getHomingCommand());
         }
 
         // Manipulator Controller - Intake commands (only if intake is enabled)
@@ -301,7 +301,6 @@ public class RobotContainer {
             this.manipController.leftBumper().whileTrue(this.intakeSubsystem.getReverseCommand());
             this.manipController.y().onTrue(this.intakeSubsystem.getRaiseCommand());
             this.manipController.x().onTrue(this.intakeSubsystem.getLowerCommand());
-            this.manipController.start().onTrue(this.intakeSubsystem.getHomingCommand());
         }
 
         // Manipulator Controller - Relay + Indexer + Shooter commands (only if all three are enabled)
@@ -331,6 +330,8 @@ public class RobotContainer {
         if (this.turretSubsystem != null && this.turretTracker != null) {
             this.turretSubsystem.setDefaultCommand(
                     this.turretSubsystem.getTrackCommand(this.turretTracker::getTurretAngleDegrees));
+            this.manipController.start().whileTrue(this.turretTracker.getTurrentEnableCommand());
+            this.manipController.back().onTrue(this.driveTrain.getTestPoseCommand());
         }
 
         // Debug Controller - Turret manual jog commands (only if turret is enabled)
