@@ -583,13 +583,13 @@ public final class Constants {
          * Open-loop speed for the front flywheel (A, 3") when shooting. Positive.
          * <b>TODO: replace with physics-solver RPM target after SHOOTER.md calibration sessions.</b>
          */
-        public static final double SHOOTER_FRONT_SPEED = 0.5; // TODO: tune
+        public static final double SHOOTER_FRONT_SPEED = 0.65; // TODO: tune
 
         /**
          * Open-loop speed for the rear flywheel (B, 4") when shooting. Positive.
          * <b>TODO: replace with physics-solver RPM target after SHOOTER.md calibration sessions.</b>
          */
-        public static final double SHOOTER_REAR_SPEED = .75; // TODO: tune
+        public static final double SHOOTER_REAR_SPEED = 0.75; // TODO: tune
 
         /**
          * Open-loop speed for the front flywheel when reversing. Negative.
