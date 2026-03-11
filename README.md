@@ -6,46 +6,37 @@ This repository contains our Java/WPILib robot code with a simulation-first work
 abstractions, and CI with test coverage. This guide explains how to set up your environment, run the sim, deploy to the
 robot, and contribute.
 
-## Current State: 2026 Season (Mechanism Bring-Up)
+## Current State: 2026 Season (Post-Competition 1 Rebuild)
 
-All game mechanisms have been stubbed out and are ready for hardware bring-up. Feature flags
-control which subsystems are active — see `INT_NEXT.md` for the full integration checklist
-and `CONTROLS.md` for the current controller layout.
+The turret, shooter, relay, indexer, and turret-tracker subsystems have been stripped from the
+codebase while their mechanisms are redesigned. Feature flags control which remaining subsystems
+are active.
 
 ### What's Complete:
-- ✓ **WPILib 2026 Migration** - Upgraded to GradleRIO 2026.2.1 / Java 17
-- ✓ **PathPlanner Integration** - Using 2026-compatible PathPlanner for autonomous path planning
-- ✓ **Swerve Drivetrain** - REV SPARK MAX NEOs, NavX-MXP gyro, field-relative drive
-- ✓ **PhotonVision Integration** - Quad-camera AprilTag setup (front-right, front-left, right-side, left-side) feeding `SwerveDrivePoseEstimator`
-- ✓ **Enhanced Telemetry System** - Level-aware data capture (NONE/MATCH/LAB/VERBOSE), USB auto-detection, AdvantageScope-compatible logging
-- ✓ **ClimbSubsystem** - Multi-bar telescope climb with homing, position-based bar sequencing, and AdvantageScope Pose3d visualization
-- ✓ **IntakeSubsystem** - 2-motor lift (25:1 NEO) + NEO Vortex roller; retracted-hardstop homing; encoder 0 = retracted
-- ✓ **RelaySubsystem** - 6-roller belt conveyor (NEO 10:1); open-loop; conveys balls from intake to indexer
-- ✓ **IndexerSubsystem** - Dual opposite-wheel tower (NEO 1:1); open-loop; advances balls to shooter
-- ✓ **ShooterSubsystem** - Differential-velocity dual flywheel (3" front + 4" rear, NEO 1:1 each); open-loop stub; see `SHOOTER.md` for physics model and calibration plan
-- ✓ **TurretSubsystem** - Horizontal rotation motor (NEO 20:1 gearbox); proportional tracking stub; brake-mode position hold
-- ✓ **TurretTracker** - Pure-software aim calculator; computes hub angle, 3D distance, and elevation from pose estimate; auto-switches SHOOTING / PASSING modes; AdvantageScope Pose3d visualization
+- **WPILib 2026 Migration** - Upgraded to GradleRIO 2026.2.1 / Java 17
+- **PathPlanner Integration** - Using 2026-compatible PathPlanner for autonomous path planning
+- **Swerve Drivetrain** - REV SPARK MAX NEOs, NavX-MXP gyro, field-relative drive
+- **PhotonVision Integration** - Quad-camera AprilTag setup (front-right, front-left, right-side, left-side) feeding `SwerveDrivePoseEstimator`
+- **Enhanced Telemetry System** - Level-aware data capture (NONE/MATCH/LAB/VERBOSE), USB auto-detection, AdvantageScope-compatible logging
+- **ClimbSubsystem** - Multi-bar telescope climb with homing, position-based bar sequencing, and AdvantageScope Pose3d visualization
+- **IntakeSubsystem** - 2-motor lift (25:1 NEO) + NEO Vortex roller; retracted-hardstop homing; encoder 0 = retracted
 
 ### Architecture Pattern:
 This codebase uses a **Context-based configuration pattern**:
-- **Context Classes**: Lombok `@Builder` pattern for testable, flexible configuration (e.g., `RelaySubsystemContext`, `DrivetrainContext`)
+- **Context Classes**: Lombok `@Builder` pattern for testable, flexible configuration (e.g., `DrivetrainContext`, `ClimbSubsystemContext`)
 - **Subsystems**: Accept Context objects via constructor dependency injection
-- **Command Factories**: Subsystems expose command factory methods (e.g., `getRunCommand()`, `getReverseCommand()`, `getStopCommand()`)
+- **Command Factories**: Subsystems expose command factory methods (e.g., `getHomingCommand()`, `getStopCommand()`)
 - **Feature Flags**: `Constants.FeatureFlags` enables/disables subsystems at compile time for incremental hardware bring-up
 - **SparkMax Best Practices**: `SparkMaxConfig` with `ResetMode.kResetSafeParameters` + `PersistMode.kPersistParameters`
 
 ### What's Next:
 - MK5i Swerve Module integration (planned hardware upgrade)
-- Hardware bring-up: flip feature flags as motors are wired (see `INT_NEXT.md`)
-- Shooter closed-loop RPM control + physics-based inverse solver (see `SHOOTER.md`)
-- Turret closed-loop PID position control (pending full gear ratio from CAD)
+- Redesigned mechanisms (turret, shooter, relay, indexer) — code will be re-added when hardware is ready
 - PathPlanner autonomous routine development
-- Resolve displaced climb manual override buttons (see `CONTROLS.md`)
 
 For new subsystem development, refer to:
-- `RelaySubsystem` - Simplest single-motor open-loop pattern (SparkMax / NEO / coast)
-- `TurretSubsystem` - Position-tracking pattern (SparkMax / NEO / brake + proportional control)
-- `TemplateMechanism` - TalonFX-based mechanism baseline
+- `IntakeSubsystem` - Multi-motor mechanism with homing and position control (SparkMax / NEO / brake)
+- `ClimbSubsystem` - Position-based sequencing pattern with through-bore encoder homing
 - `Drivetrain.captureTelemetry()` - Example of telemetry integration pattern
 
 ---
@@ -104,7 +95,7 @@ cd <repo-dir>
 ```
 src/main/java/frc/robot/
   commands/            # Command-based routines (e.g., swervedrive/)
-  subsystems/          # Subsystems (drivetrain/, fuel/, vision/, template/)
+  subsystems/          # Subsystems (drivetrain/, climb/, intake/, vision/)
   sim/                 # Simulation helpers (SwerveModuleSim, physics)
   support/             # Utilities and abstractions
     ├── Telemetry.java       # Enhanced telemetry API
@@ -120,20 +111,13 @@ vendordeps/            # Vendor JSONs (REV, CTRE Phoenix6, PathPlanner, etc.)
 
 ## Driver Station Controls
 
-> **See [`CONTROLS.md`](CONTROLS.md) for the full, current controller layout.**
-
 Three Xbox controllers are used (USB 0–2). Quick reference:
 
 | Port | Controller | Role |
 |---|---|---|
 | USB 0 | Driver | Swerve driving only |
-| USB 1 | Manipulator | All mechanism operation (intake, relay, indexer, shooter, climb) |
-| USB 2 | Debug | Bring-up testing and overrides (turret jog, reserved mirrors) |
-
-Key changes from 2025:
-- **Half-speed mode removed** — driver left trigger is now unbound
-- **All mechanism controls moved to manipulator controller**
-- Right trigger fires relay + indexer + shooter in parallel; left trigger runs intake rollers
+| USB 1 | Manipulator | Mechanism operation (intake, climb) |
+| USB 2 | Debug | Bring-up testing and overrides |
 
 ## Running the Simulator
 
@@ -457,7 +441,7 @@ The **Telemetry** system provides high-fidelity data capture for post-match anal
 ┌─────────────────────────────────────────────────────────────────────────┐
 │                         Robot Code                                       │
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐    │
-│  │ Drivetrain  │  │   Vision    │  │    Fuel     │  │  Commands   │    │
+│  │ Drivetrain  │  │   Vision    │  │   Climb     │  │  Commands   │    │
 │  └──────┬──────┘  └──────┬──────┘  └──────┬──────┘  └──────┬──────┘    │
 │         │                │                │                │            │
 │         └────────────────┴────────────────┴────────────────┘            │

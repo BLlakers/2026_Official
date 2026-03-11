@@ -27,11 +27,8 @@ public class Robot extends TimedRobot {
         Telemetry.shutdown();
     }
 
-    // commit
     @Override
     public void robotInit() {
-        // Initialize telemetry first - attempts USB detection, falls back to default location
-        // Configuration can be overridden via telemetry.properties in deploy directory
         Telemetry.initialize(TelemetryConfig.fromDeployDirectory());
 
         if (m_robotContainer.getLedStrand() != null) {
@@ -48,7 +45,6 @@ public class Robot extends TimedRobot {
 
         Telemetry.publish("Code Version", codeVersion, TelemetryLevel.MATCH);
 
-        // Register PDH as a Sendable (only needs to be done once)
         Telemetry.putData(PDH);
 
         // TODO: Evaluate port forwarding setup
@@ -56,16 +52,14 @@ public class Robot extends TimedRobot {
 
     @Override
     public void robotPeriodic() {
-        // Capture telemetry from all registered subsystems
         Telemetry.periodic();
 
-        // Battery / brownout monitoring
         double batteryVoltage = RobotController.getBatteryVoltage();
         boolean brownedOut = RobotController.isBrownedOut();
         Telemetry.publish("Robot/Battery/VoltageV", batteryVoltage, TelemetryLevel.MATCH);
         Telemetry.publish("Robot/Battery/BrownedOut", brownedOut, TelemetryLevel.MATCH);
-        Telemetry.record("Robot/Battery/VoltageV", batteryVoltage, TelemetryLevel.MATCH);
-        Telemetry.record("Robot/Battery/BrownedOut", brownedOut, TelemetryLevel.MATCH);
+        Telemetry.publish("Robot/Battery/VoltageV", batteryVoltage, TelemetryLevel.MATCH);
+        Telemetry.publish("Robot/Battery/BrownedOut", brownedOut, TelemetryLevel.MATCH);
         if (brownedOut && !lastBrownedOut) {
             Telemetry.event("Robot/Battery/Brownout", String.format("Voltage=%.2fV", batteryVoltage));
         }

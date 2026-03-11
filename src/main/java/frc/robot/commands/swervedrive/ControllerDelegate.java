@@ -37,13 +37,6 @@ public class ControllerDelegate {
         this.driver = driver;
     }
 
-    public void logRawAxes() {
-        for (int i = 0; i < 10; i++) {
-            double value = edu.wpi.first.wpilibj.DriverStation.getStickAxis(0, i);
-            System.out.println("Axis[" + i + "]: " + value);
-        }
-    }
-
     public double getLeftX() {
         return this.leftXSupplier.getAsDouble();
     }
@@ -76,8 +69,7 @@ public class ControllerDelegate {
      * An enumeration of available drivers and their associated label
      */
     public enum Driver {
-        ASA(Constants.DriverLabels.ASA),
-        BEN(Constants.DriverLabels.BEN);
+        ASA(Constants.DriverLabels.ASA);
 
         private final String label;
 

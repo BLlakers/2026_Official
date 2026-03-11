@@ -49,8 +49,8 @@ import java.util.function.Consumer;
  * Telemetry.initialize(TelemetryConfig.fromDeployDirectory());
  *
  * // In subsystems
- * Telemetry.record("Drivetrain/Pose", pose, TelemetryLevel.MATCH);
- * Telemetry.record("Drivetrain/FL/Current", current, TelemetryLevel.LAB);
+ * Telemetry.publish("Drivetrain/Pose", pose, TelemetryLevel.MATCH);
+ * Telemetry.publish("Drivetrain/FL/Current", current, TelemetryLevel.LAB);
  * Telemetry.event("Intake/Acquired", "Coral detected");
  * Telemetry.error("Launcher", "Overcurrent detected", 42.3);
  *
@@ -62,10 +62,6 @@ import java.util.function.Consumer;
  * @see TelemetryConfig
  */
 public final class Telemetry {
-
-    // ═══════════════════════════════════════════════════════════════════════════
-    // STATE
-    // ═══════════════════════════════════════════════════════════════════════════
 
     private static boolean initialized = false;
     private static TelemetryConfig config;
@@ -99,10 +95,6 @@ public final class Telemetry {
     private Telemetry() {
         // Prevent instantiation
     }
-
-    // ═══════════════════════════════════════════════════════════════════════════
-    // INITIALIZATION
-    // ═══════════════════════════════════════════════════════════════════════════
 
     /**
      * Initializes the telemetry system with the given configuration.
@@ -174,10 +166,6 @@ public final class Telemetry {
         table.getEntry("LogPath").setString(logPath != null ? logPath : "default");
     }
 
-    // ═══════════════════════════════════════════════════════════════════════════
-    // PERIODIC (call from Robot.robotPeriodic)
-    // ═══════════════════════════════════════════════════════════════════════════
-
     /**
      * Periodic update - captures all registered subsystems and checks for level changes.
      * Call this from Robot.robotPeriodic().
@@ -245,10 +233,6 @@ public final class Telemetry {
         }
     }
 
-    // ═══════════════════════════════════════════════════════════════════════════
-    // SUBSYSTEM REGISTRATION
-    // ═══════════════════════════════════════════════════════════════════════════
-
     /**
      * Registers a subsystem for automatic telemetry capture during periodic().
      *
@@ -259,8 +243,8 @@ public final class Telemetry {
      *
      * // Capture method
      * private void captureTelemetry(String prefix) {
-     *     Telemetry.record(prefix + "/Pose", getPose(), TelemetryLevel.MATCH);
-     *     Telemetry.record(prefix + "/Speeds", getSpeeds(), TelemetryLevel.LAB);
+     *     Telemetry.publish(prefix + "/Pose", getPose(), TelemetryLevel.MATCH);
+     *     Telemetry.publish(prefix + "/Speeds", getSpeeds(), TelemetryLevel.LAB);
      * }
      * }</pre>
      *
@@ -282,10 +266,6 @@ public final class Telemetry {
     public static void unregisterSubsystem(String name) {
         subsystemCaptures.remove(name);
     }
-
-    // ═══════════════════════════════════════════════════════════════════════════
-    // PRIMITIVE RECORDING (Level-aware)
-    // ═══════════════════════════════════════════════════════════════════════════
 
     /**
      * Records a double value if the specified level permits.
@@ -354,10 +334,6 @@ public final class Telemetry {
         entry.append(values);
     }
 
-    // ═══════════════════════════════════════════════════════════════════════════
-    // NETWORKTABLES PUBLISHING (Level-aware, for live dashboard visibility)
-    // ═══════════════════════════════════════════════════════════════════════════
-
     /**
      * Publishes a double value to NetworkTables if the specified level permits.
      * Use this for live dashboard visibility (SmartDashboard/Shuffleboard).
@@ -416,10 +392,6 @@ public final class Telemetry {
         publisher.set(value);
     }
 
-    // ═══════════════════════════════════════════════════════════════════════════
-    // SENDABLE REGISTRATION (Interactive dashboard widgets)
-    // ═══════════════════════════════════════════════════════════════════════════
-
     /**
      * Registers a {@link Sendable} object (subsystem, command, mechanism) with NetworkTables
      * for interactive dashboard display in Shuffleboard/Glass.
@@ -458,10 +430,6 @@ public final class Telemetry {
         requireNonNull(data, "data cannot be null");
         SmartDashboard.putData(data);
     }
-
-    // ═══════════════════════════════════════════════════════════════════════════
-    // STRUCTURED TYPE RECORDING (WPILib structs for AdvantageScope)
-    // ═══════════════════════════════════════════════════════════════════════════
 
     /**
      * Records a Pose2d if the specified level permits.
@@ -540,10 +508,6 @@ public final class Telemetry {
         entry.append(values);
     }
 
-    // ═══════════════════════════════════════════════════════════════════════════
-    // EVENT AND ERROR LOGGING (Always captured regardless of level)
-    // ═══════════════════════════════════════════════════════════════════════════
-
     /**
      * Logs a significant event. Events are ALWAYS captured regardless of level.
      * Use for: command starts/ends, state transitions, game piece acquisitions.
@@ -608,10 +572,6 @@ public final class Telemetry {
         error(subsystem, full);
     }
 
-    // ═══════════════════════════════════════════════════════════════════════════
-    // LEGACY API (backward compatible with existing code)
-    // ═══════════════════════════════════════════════════════════════════════════
-
     /**
      * Records a string value at MATCH level (legacy API).
      * @deprecated Use {@link #record(String, String, TelemetryLevel)} instead
@@ -651,10 +611,6 @@ public final class Telemetry {
         requireNonNull(value, "value cannot be null");
         DataLogManager.log(value);
     }
-
-    // ═══════════════════════════════════════════════════════════════════════════
-    // UTILITY METHODS
-    // ═══════════════════════════════════════════════════════════════════════════
 
     /**
      * Returns the current telemetry level.

@@ -33,7 +33,6 @@ public class SwerveDriveCommand extends Command {
         addRequirements(this.drivetrain);
     }
 
-    // Called every time the scheduler runs while the command is scheduled.
     @Override
     public void execute() {
         double x, y, rot;
@@ -43,17 +42,9 @@ public class SwerveDriveCommand extends Command {
         double rightX = this.controllerDelegate.getRightX();
         double elevatorDecelerationRatio = this.controllerDelegate.getElevatorDecelerateRatio();
 
-        // Finds the X Value of the Left Stick on the Controller and Takes Care of
-        // Joystick Drift
-        x = MathUtil.applyDeadband(-leftX, Constants.Controller.deadzone);
-
-        // Finds the Y Value of the Left Stick on the Controller and Takes Care of
-        // Joystick Drift
-        y = MathUtil.applyDeadband(-leftY, Constants.Controller.deadzone);
-
-        // Finds the X Value of the Right Stick on the Controller and Takes Care of
-        // Joystick Drift
-        rot = MathUtil.applyDeadband(-rightX, Constants.Controller.deadzone);
+        x = MathUtil.applyDeadband(-leftX, Constants.Controller.DEADZONE);
+        y = MathUtil.applyDeadband(-leftY, Constants.Controller.DEADZONE);
+        rot = MathUtil.applyDeadband(-rightX, Constants.Controller.DEADZONE);
         double xSpeed;
         double ySpeed;
         double rotSpeed = rot * this.turnMaxSpeed * elevatorDecelerationRatio;

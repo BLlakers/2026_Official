@@ -46,9 +46,9 @@ class SwerveDriveCommandTest {
 
         command.execute();
 
-        double x = applyDeadband(-leftY, Controller.deadzone);
-        double y = applyDeadband(-leftX, Controller.deadzone);
-        double rot = applyDeadband(-rightX, Controller.deadzone);
+        double x = applyDeadband(-leftY, Controller.DEADZONE);
+        double y = applyDeadband(-leftX, Controller.DEADZONE);
+        double rot = applyDeadband(-rightX, Controller.DEADZONE);
 
         // From your command constants:
         double driveMax = MAX_DRIVE_SPEED_ADJUSTMENT * maxSpeed;

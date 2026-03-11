@@ -119,10 +119,6 @@ public class ClimbSubsystem extends SubsystemBase {
     /** The encoder target currently being sought by a position command. Used for telemetry. */
     private double targetRotations = 0.0;
 
-    // -------------------------------------------------------------------------
-    // Simulation fields (only initialized when RobotBase.isSimulation())
-    // -------------------------------------------------------------------------
-
     /** Motor dynamics engine for integrating position from applied voltage. */
     private DCMotorSim winchMotorSim;
 
@@ -140,10 +136,6 @@ public class ClimbSubsystem extends SubsystemBase {
 
     /** Sim bridge for the through-bore encoder — drives the duty-cycle value in simulation. */
     private DutyCycleEncoderSim throughBoreEncoderSim;
-
-    // -------------------------------------------------------------------------
-    // Construction
-    // -------------------------------------------------------------------------
 
     /**
      * Instantiates a new ClimbSubsystem with default context and no drivetrain reference.
@@ -209,25 +201,14 @@ public class ClimbSubsystem extends SubsystemBase {
         initializeTelemetry();
     }
 
-    // -------------------------------------------------------------------------
-    // Configuration
-    // -------------------------------------------------------------------------
-
-    /**
-     * Configures the winch motor controller with current limits, brake mode, and safe parameters.
-     */
     private void configureMotor() {
         SparkMaxConfig config = new SparkMaxConfig();
         config.smartCurrentLimit(this.context.getMotorCurrentLimit());
         config.idleMode(IdleMode.kBrake); // Brake mode holds arm position when motor is stopped
-        // TODO: Set config.inverted(true/false) once motor direction is confirmed with build team.
-        //       Convention: positive output = telescope extends UPWARD, negative = retracts.
+        // TODO: Set config.inverted() once motor direction is confirmed. Convention: positive = extend UP, negative =
+        // retract.
         this.winchMotor.configure(config, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
     }
-
-    // -------------------------------------------------------------------------
-    // Sim-aware sensor helpers
-    // -------------------------------------------------------------------------
 
     /**
      * Returns the encoder position, routing through the simulation state when running in sim.
@@ -246,10 +227,6 @@ public class ClimbSubsystem extends SubsystemBase {
     private double getMotorCurrent() {
         return RobotBase.isSimulation() ? simCurrent : winchMotor.getOutputCurrent();
     }
-
-    // -------------------------------------------------------------------------
-    // State & position helpers
-    // -------------------------------------------------------------------------
 
     private void setState(State state) {
         this.currentState = state;
@@ -307,10 +284,6 @@ public class ClimbSubsystem extends SubsystemBase {
         };
     }
 
-    // -------------------------------------------------------------------------
-    // Motor actions (private — exposed through command factories)
-    // -------------------------------------------------------------------------
-
     /** Lets cord out, extending the telescope upward (positive motor output). */
     private void extend() {
         winchMotor.set(this.context.getExtendUpSpeed());
@@ -333,10 +306,6 @@ public class ClimbSubsystem extends SubsystemBase {
         setState(State.IDLE);
         winchMotor.set(0);
     }
-
-    // -------------------------------------------------------------------------
-    // Homing helpers
-    // -------------------------------------------------------------------------
 
     /**
      * Returns true when a current spike indicates the telescope has reached the ground-contact
@@ -379,10 +348,6 @@ public class ClimbSubsystem extends SubsystemBase {
         targetRotations = 0.0;
         setState(State.STORED);
     }
-
-    // -------------------------------------------------------------------------
-    // Command factories
-    // -------------------------------------------------------------------------
 
     /**
      * Homing command — slowly retracts the telescope until the through-bore encoder reads the
@@ -594,48 +559,34 @@ public class ClimbSubsystem extends SubsystemBase {
         return this.runOnce(this::stop).withName("Climb.Stop");
     }
 
-    // -------------------------------------------------------------------------
-    // Telemetry
-    // -------------------------------------------------------------------------
-
     private void initializeTelemetry() {
         Telemetry.registerSubsystem(TELEMETRY_PREFIX, this::captureTelemetry);
         Telemetry.event(TELEMETRY_PREFIX + "/Started", "MotorID=" + context.getMotorId());
-        Telemetry.record(TELEMETRY_PREFIX + "/Config/MotorId", context.getMotorId(), TelemetryLevel.MATCH);
-        Telemetry.record(TELEMETRY_PREFIX + "/Config/GearRatio", context.getGearRatio(), TelemetryLevel.MATCH);
+        Telemetry.publish(TELEMETRY_PREFIX + "/Config/MotorId", context.getMotorId(), TelemetryLevel.MATCH);
+        Telemetry.publish(TELEMETRY_PREFIX + "/Config/GearRatio", context.getGearRatio(), TelemetryLevel.MATCH);
     }
 
     private void captureTelemetry(String prefix) {
         double position = getEncoderPosition();
         visualizer.update(position, isHomed());
-        Telemetry.record(prefix + "/State", currentState.name(), TelemetryLevel.MATCH);
-        Telemetry.record(prefix + "/CurrentBar", currentBar, TelemetryLevel.MATCH);
         Telemetry.publish(prefix + "/State", currentState.name(), TelemetryLevel.MATCH);
         Telemetry.publish(prefix + "/CurrentBar", currentBar, TelemetryLevel.MATCH);
-        Telemetry.record(prefix + "/Encoder/PositionRotations", position, TelemetryLevel.MATCH);
-        Telemetry.record(prefix + "/Encoder/TargetRotations", targetRotations, TelemetryLevel.MATCH);
-        Telemetry.record(prefix + "/Encoder/AtTarget", atTarget(targetRotations) ? 1.0 : 0.0, TelemetryLevel.MATCH);
-        Telemetry.record(prefix + "/Motor/OutputPercent", winchMotor.getAppliedOutput(), TelemetryLevel.MATCH);
-        Telemetry.record(prefix + "/Motor/Current", getMotorCurrent(), TelemetryLevel.LAB);
-        Telemetry.record(
+        Telemetry.publish(prefix + "/State", currentState.name(), TelemetryLevel.MATCH);
+        Telemetry.publish(prefix + "/CurrentBar", currentBar, TelemetryLevel.MATCH);
+        Telemetry.publish(prefix + "/Encoder/PositionRotations", position, TelemetryLevel.MATCH);
+        Telemetry.publish(prefix + "/Encoder/TargetRotations", targetRotations, TelemetryLevel.MATCH);
+        Telemetry.publish(prefix + "/Encoder/AtTarget", atTarget(targetRotations) ? 1.0 : 0.0, TelemetryLevel.MATCH);
+        Telemetry.publish(prefix + "/Motor/OutputPercent", winchMotor.getAppliedOutput(), TelemetryLevel.MATCH);
+        Telemetry.publish(prefix + "/Motor/Current", getMotorCurrent(), TelemetryLevel.LAB);
+        Telemetry.publish(
                 prefix + "/Homing/CurrentThreshold", context.getHomingCurrentThresholdAmps(), TelemetryLevel.LAB);
-        Telemetry.record(prefix + "/ThroughBore/RawAngle", throughBoreEncoder.get(), TelemetryLevel.LAB);
-        Telemetry.record(
+        Telemetry.publish(prefix + "/ThroughBore/RawAngle", throughBoreEncoder.get(), TelemetryLevel.LAB);
+        Telemetry.publish(
                 prefix + "/ThroughBore/AtStoredPosition", isAbsoluteAtStoredPosition() ? 1.0 : 0.0, TelemetryLevel.LAB);
     }
 
-    // -------------------------------------------------------------------------
-    // Periodic
-    // -------------------------------------------------------------------------
-
     @Override
-    public void periodic() {
-        // Telemetry is captured by the registered subsystem callback via Telemetry.periodic()
-    }
-
-    // -------------------------------------------------------------------------
-    // Simulation
-    // -------------------------------------------------------------------------
+    public void periodic() {}
 
     /**
      * Advances the simulated winch motor physics each tick when running in simulation.

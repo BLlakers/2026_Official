@@ -35,7 +35,7 @@ public class SwerveModule extends SubsystemBase {
     private static final double TOTAL_ROTATIONAL_RANGE = 2 * Math.PI;
 
     private static final double POSITION_CONVERSION_FACTOR =
-            (Constants.Conversion.kWheelDiameterM * Math.PI) / Constants.Conversion.DriveGearRatio;
+            (Constants.Conversion.K_WHEEL_DIAMETER_M * Math.PI) / Constants.Conversion.DRIVE_GEAR_RATIO;
 
     private static final double VELOCITY_CONVERSION_FACTOR = POSITION_CONVERSION_FACTOR / 60;
 

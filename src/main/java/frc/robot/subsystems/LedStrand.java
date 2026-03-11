@@ -1,7 +1,6 @@
 package frc.robot.subsystems;
 
 import edu.wpi.first.wpilibj.SerialPort;
-import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import java.util.Random;
 
@@ -26,16 +25,8 @@ public class LedStrand extends SubsystemBase {
         }
     }
 
-    public void stopLed() {
-        sendSerialCommand("R0G0B0");
-    }
-
     public void changeLed(int r, int g, int b) {
         sendSerialCommand("R" + r + "G" + g + "B" + b);
-    }
-
-    public Command changeLedCommand() {
-        return this.runOnce(() -> changeLed(rand.nextInt(255), rand.nextInt(255), rand.nextInt(255)));
     }
 
     private void sendSerialCommand(String command) {

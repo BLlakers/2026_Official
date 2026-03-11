@@ -55,7 +55,7 @@ public class SwerveModuleSim {
     public double getWheelSpeedMetersPerSecond() {
         // motor angular velocity (rad/sec) to wheel linear speed
         double wheelRadPerSec = driveMotorSim.getAngularVelocityRadPerSec();
-        return wheelRadPerSec * Constants.Conversion.wheelRadius;
+        return wheelRadPerSec * Constants.Conversion.WHEEL_RADIUS;
     }
 
     public Rotation2d getTurnAngle() {

@@ -14,10 +14,10 @@ package frc.robot.support;
  * <p>Example usage:
  * <pre>{@code
  * // Only log if current level permits LAB-level data
- * Telemetry.record("Drivetrain/FL/Current", motorCurrent, TelemetryLevel.LAB);
+ * Telemetry.publish("Drivetrain/FL/Current", motorCurrent, TelemetryLevel.LAB);
  *
  * // Essential data always logged at MATCH level or above
- * Telemetry.record("Drivetrain/Pose", pose, TelemetryLevel.MATCH);
+ * Telemetry.publish("Drivetrain/Pose", pose, TelemetryLevel.MATCH);
  * }</pre>
  */
 public enum TelemetryLevel {

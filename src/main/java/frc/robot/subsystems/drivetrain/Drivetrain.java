@@ -58,12 +58,8 @@ public class Drivetrain extends SubsystemBase {
 
     private final SwerveDriveKinematics swerveDriveKinematics;
 
-    // The gyro object. Gyro gives the robots rotation/ where the robot is pointed.
     private final AHRS navXSensorModule;
 
-    /**
-     * Gets the current gyro rotation
-     */
     private Rotation2d getGyroRotation() {
         return navXSensorModule.getRotation2d();
     }
@@ -218,7 +214,6 @@ public class Drivetrain extends SubsystemBase {
         this.blSwerveSim = new SwerveModuleSim(context.getBlSwerveContext());
         this.brSwerveSim = new SwerveModuleSim(context.getBrSwerveContext());
 
-        // initializes odometry
         this.swerveDriveOdometry = new SwerveDriveOdometry(
                 this.swerveDriveKinematics, this.getGyroRotation(), this.getSwerveModulePositions());
 
@@ -240,33 +235,22 @@ public class Drivetrain extends SubsystemBase {
         Telemetry.registerSubsystem("Drivetrain", this::captureTelemetry);
     }
 
-    /**
-     * Captures telemetry data for this subsystem. Called automatically by Telemetry.periodic().
-     * Data is organized by telemetry level for efficient capture at different verbosity settings.
-     *
-     * @param prefix The telemetry key prefix (typically "Drivetrain")
-     */
     private void captureTelemetry(String prefix) {
-        // MATCH level - essential data for competition analysis
         Telemetry.record(prefix + "/Pose", this.getPose2dEstimator(), TelemetryLevel.MATCH);
         Telemetry.record(prefix + "/Speeds", this.getChassisSpeeds(), TelemetryLevel.MATCH);
         Telemetry.record(prefix + "/Heading", this.getHeading(), TelemetryLevel.MATCH);
-        Telemetry.record(prefix + "/FieldRelative", this.fieldRelativeEnable, TelemetryLevel.MATCH);
-        Telemetry.record(prefix + "/WheelLock", this.wheelLock, TelemetryLevel.MATCH);
-
-        // Publish effective heading to NT for dashboard visibility (works in both sim and real)
+        Telemetry.publish(prefix + "/FieldRelative", this.fieldRelativeEnable, TelemetryLevel.MATCH);
+        Telemetry.publish(prefix + "/WheelLock", this.wheelLock, TelemetryLevel.MATCH);
         Telemetry.publish(prefix + "/HeadingDeg", this.getHeading().getDegrees(), TelemetryLevel.MATCH);
 
-        // LAB level - detailed data for practice and tuning
         Telemetry.record(prefix + "/ModuleStates/Current", this.getSwerveModuleStates(), TelemetryLevel.LAB);
         Telemetry.record(prefix + "/ModuleStates/Desired", this.desiredStates, TelemetryLevel.LAB);
         Telemetry.record(prefix + "/OdometryPose", this.getPose2d(), TelemetryLevel.LAB);
-        Telemetry.record(prefix + "/GyroAngle", this.navXSensorModule.getAngle(), TelemetryLevel.LAB);
-        Telemetry.record(prefix + "/GyroPitch", this.navXSensorModule.getPitch(), TelemetryLevel.LAB);
-        Telemetry.record(prefix + "/GyroRoll", this.navXSensorModule.getRoll(), TelemetryLevel.LAB);
-        Telemetry.record(prefix + "/GyroRate", this.navXSensorModule.getRate(), TelemetryLevel.LAB);
+        Telemetry.publish(prefix + "/GyroAngle", this.navXSensorModule.getAngle(), TelemetryLevel.LAB);
+        Telemetry.publish(prefix + "/GyroPitch", this.navXSensorModule.getPitch(), TelemetryLevel.LAB);
+        Telemetry.publish(prefix + "/GyroRoll", this.navXSensorModule.getRoll(), TelemetryLevel.LAB);
+        Telemetry.publish(prefix + "/GyroRate", this.navXSensorModule.getRate(), TelemetryLevel.LAB);
 
-        // In simulation, also publish the simulated gyro values for debugging
         if (RobotBase.isSimulation()) {
             Telemetry.publish(prefix + "/Sim/YawDeg", this.simYaw.getDegrees(), TelemetryLevel.LAB);
         }
@@ -275,10 +259,9 @@ public class Drivetrain extends SubsystemBase {
             Telemetry.record(prefix + "/GoalPose", this.goalPose, TelemetryLevel.LAB);
         }
 
-        // VERBOSE level - maximum detail for deep debugging
-        Telemetry.record(prefix + "/NavX/Connected", this.navXSensorModule.isConnected(), TelemetryLevel.VERBOSE);
-        Telemetry.record(prefix + "/NavX/Calibrating", this.navXSensorModule.isCalibrating(), TelemetryLevel.VERBOSE);
-        Telemetry.record(
+        Telemetry.publish(prefix + "/NavX/Connected", this.navXSensorModule.isConnected(), TelemetryLevel.VERBOSE);
+        Telemetry.publish(prefix + "/NavX/Calibrating", this.navXSensorModule.isCalibrating(), TelemetryLevel.VERBOSE);
+        Telemetry.publish(
                 prefix + "/NavX/AngleAdjustment", this.navXSensorModule.getAngleAdjustment(), TelemetryLevel.VERBOSE);
     }
 
@@ -298,14 +281,6 @@ public class Drivetrain extends SubsystemBase {
         this.fieldRelativeEnable = enable;
     }
 
-    /**
-     * Gets our current position in meters on the field.
-     *
-     * @return A current position on the field.
-     * <p>
-     * <pi> A translation2d (X and Y on the field) -> {@link #swerveDriveKinematics} + A rotation2d (Rot X and Y
-     * on the field) -> {@link #navXSensorModule}
-     */
     private Pose2d getPose2d() {
         return this.swerveDriveOdometry.getPoseMeters();
     }
@@ -331,9 +306,6 @@ public class Drivetrain extends SubsystemBase {
         Telemetry.publish("Vision/AcceptedPose/Timestamp", timestampSeconds, TelemetryLevel.MATCH);
     }
 
-    /**
-     * Tells our modules what speed to go to
-     */
     private void setModuleStates(SwerveModuleState[] swerveModuleStates) {
         SwerveDriveKinematics.desaturateWheelSpeeds(swerveModuleStates, this.context.getDriveMotorMaxSpeed());
         this.flSwerve.setDesiredState(swerveModuleStates[0]);
@@ -342,9 +314,6 @@ public class Drivetrain extends SubsystemBase {
         this.brSwerve.setDesiredState(swerveModuleStates[3]);
     }
 
-    /**
-     * Tells our wheels to go to the Wheel Locking position (0 m/s, forming an X)
-     */
     private void lockWheels() {
         this.blSwerve.setDesiredState(this.context.getFullStopAt135Degrees());
         this.flSwerve.setDesiredState(this.context.getFullStopAt45Degrees());
@@ -352,12 +321,6 @@ public class Drivetrain extends SubsystemBase {
         this.frSwerve.setDesiredState(this.context.getFullStopAt135Degrees());
     }
 
-    /**
-     * Gets the Position of the four SwerveModules.
-     *
-     * <p>
-     * This gets the encoder in the motor (drive) and the encoder on the swerve module.
-     */
     private SwerveModulePosition[] getSwerveModulePositions() {
         return new SwerveModulePosition[] {
             this.flSwerve.getModulePosition(),
@@ -373,18 +336,11 @@ public class Drivetrain extends SubsystemBase {
         this.setModuleStates(this.desiredStates);
     }
 
-    /**
-     * Updates our current Odometry
-     */
     private void updateOdometry() {
         if (RobotBase.isSimulation()) return;
         this.swerveDriveOdometry.update(this.getGyroRotation(), this.getSwerveModulePositions());
     }
 
-    /**
-     * Updates odometry using simulated module positions.
-     * Called from simulationPeriodic() after physics update.
-     */
     private void updateOdometrySim(Rotation2d heading, SwerveModulePosition[] positions) {
         this.swerveDriveOdometry.update(heading, positions);
     }
@@ -394,11 +350,6 @@ public class Drivetrain extends SubsystemBase {
         this.swerveDrivePoseEstimator.update(this.getHeading(), this.getSwerveModulePositions());
     }
 
-    /**
-     * Reset's the Robots Odometry using the Gyro's Current Rotational Position
-     *
-     * @param pose2d
-     */
     public void resetOdometry(final Pose2d pose2d) {
         this.swerveDriveOdometry.resetPosition(this.getGyroRotation(), this.getSwerveModulePositions(), pose2d);
 
@@ -428,11 +379,6 @@ public class Drivetrain extends SubsystemBase {
         }
     }
 
-    /**
-     * Utility to obtain the heading of the robot in real or sim
-     *
-     * @return The heading
-     */
     private Rotation2d getHeading() {
         if (RobotBase.isSimulation()) {
             return this.simYaw;
@@ -441,20 +387,11 @@ public class Drivetrain extends SubsystemBase {
         }
     }
 
-    /**
-     * Converts raw module states into chassis speeds
-     *
-     * @return chassisSpeeds --> A reading of the speed in m/s our robot is going.
-     */
     private ChassisSpeeds getChassisSpeeds() {
         return this.swerveDriveKinematics.toChassisSpeeds(this.getSwerveModuleStates());
     }
 
     /**
-     * This command gets the 4 individual SwerveModule States, and groups it into 1 array. <pi> Used for getting our
-     * chassis (robots) speed.
-     *
-     * @return 4 different SwerveModuleStates
      * @author Jared Forchheimer, Dimitri Lezcano
      */
     private SwerveModuleState[] getSwerveModuleStates() {
@@ -466,16 +403,6 @@ public class Drivetrain extends SubsystemBase {
         };
     }
 
-    private Pose2d refreshGoalPose2d() {
-        // NOTE: This is hard-coded to red, because the field is 0'd to the blue wall. So our goal
-        // is naturally opposite blue.
-        this.goalPose = this.getPose2dEstimator().nearest(Constants.Poses.PositionsRed);
-        return this.goalPose;
-    }
-
-    /**
-     * Stops all the motors on the SwerveModules
-     */
     public void stopModules() {
         this.flSwerve.stopMotors();
         this.frSwerve.stopMotors();
@@ -491,7 +418,6 @@ public class Drivetrain extends SubsystemBase {
      * @param rot    Angular rate of the robot.
      */
     public void drive(double xSpeed, double ySpeed, double rot) {
-        // Commanded inputs (m/s, rad/s)
         Telemetry.publish("Drivetrain/Cmd/xSpeed_in", xSpeed, TelemetryLevel.LAB);
         Telemetry.publish("Drivetrain/Cmd/ySpeed_in", ySpeed, TelemetryLevel.LAB);
         Telemetry.publish("Drivetrain/Cmd/rot_in", rot, TelemetryLevel.LAB);
@@ -506,17 +432,11 @@ public class Drivetrain extends SubsystemBase {
         // IMPORTANT: NavX is CW+, WPILib is CCW+. Negate heading for fromFieldRelativeSpeeds.
         Telemetry.publish("Drivetrain/HeadingUsedDeg", rawHeading.getDegrees(), TelemetryLevel.LAB);
 
-        // What we will pass to kinematics
         Telemetry.publish("Drivetrain/Chassis/vx", speeds.vxMetersPerSecond, TelemetryLevel.LAB);
         Telemetry.publish("Drivetrain/Chassis/vy", speeds.vyMetersPerSecond, TelemetryLevel.LAB);
         Telemetry.publish("Drivetrain/Chassis/omega", speeds.omegaRadiansPerSecond, TelemetryLevel.LAB);
 
-        // Compute and apply
         this.desiredStates = this.swerveDriveKinematics.toSwerveModuleStates(speeds);
-
-        // NOTE: This may be causing issues. It's a duplicate invocation. @see setModuleStates for the original and
-        // potentially correct invocation
-        // SwerveDriveKinematics.desaturateWheelSpeeds(this.desiredStates, SwerveModule.DRIVE_MAX_SPEED);
 
         if (!this.wheelLock) {
             this.setModuleStates(this.desiredStates);
@@ -525,38 +445,15 @@ public class Drivetrain extends SubsystemBase {
         }
     }
 
-    /**
-     * Runnable Command.
-     *
-     * <p>
-     * Tells the Wheels when to stop or not based off of a boolean variable named {@link #wheelLock}.
-     *
-     * <p>
-     * Used in drive Method
-     */
     public Command toggleWheelLockCommand() {
         return this.runOnce(() -> this.wheelLock = !this.wheelLock);
     }
 
-    /**
-     * Runnable Command.
-     *
-     * <p>
-     * Tells the Gyro to reset its heading/which way its facing.
-     *
-     * <p>
-     * Used in drive Method.
-     */
     public Command resetNavXSensorModule() {
         return this.runOnce(this.navXSensorModule::reset);
     }
 
     /**
-     * This is a runnable command.
-     * <li>This resets the gyro's position.
-     * <li>This is needed for Auto and the DriveTrain.
-     *
-     * @return Pose2d
      * @author Jared Forchheimer, Dimitri Lezcano
      */
     public Command getResetOdometryCommand() {
@@ -564,20 +461,12 @@ public class Drivetrain extends SubsystemBase {
     }
 
     /**
-     * This is a runnable command.
-     * <li>This toggles field relative on and off.
-     * <li>If
-     *
-     * @return Pose2d
      * @author Jared Forchheimer, Dimitri Lezcano
      */
     public Command getToggleFieldRelativeCommand() {
         return this.runOnce(() -> this.fieldRelativeEnable = !this.fieldRelativeEnable);
     }
 
-    /**
-     * Runnable Command. Runs the {@link #stopModules()} Command.
-     */
     public Command getStopModulesCommand() {
         return this.run(this::stopModules);
     }
@@ -604,30 +493,24 @@ public class Drivetrain extends SubsystemBase {
         this.currentPoseEstimatorPublisher.set(this.getPose2dEstimator());
         this.goalPosePublisher.set(this.goalPose);
 
-        // Log alliance for debugging path flipping
         Optional<Alliance> alliance = DriverStation.getAlliance();
         Telemetry.publish("Auto/Alliance", alliance.map(Enum::name).orElse("NOT SET"), TelemetryLevel.MATCH);
     }
 
     @Override
     public void simulationPeriodic() {
-        // 1. Compute elapsed time since last loop
         double currentTime = Timer.getFPGATimestamp();
         double dt = currentTime - this.lastSimTime;
         this.lastSimTime = currentTime;
 
-        // 2. Skip if no desired states yet (e.g., before first drive command)
         if (this.desiredStates == null) {
             return;
         }
 
-        // 3. Compute each module’s commanded (optimized) state
         SwerveModuleState frontLeftOptimized = optimize(this.desiredStates[0], this.flSwerveSim.getTurnAngle());
         SwerveModuleState frontRightOptimized = optimize(this.desiredStates[1], this.frSwerveSim.getTurnAngle());
         SwerveModuleState backLeftOptimized = optimize(this.desiredStates[2], this.blSwerveSim.getTurnAngle());
         SwerveModuleState backRightOptimized = optimize(this.desiredStates[3], this.brSwerveSim.getTurnAngle());
-
-        // 4. Apply drive voltages (scale m/s → ±12 V)
         this.flSwerveSim.setDriveVoltage(Math.copySign(
                 min(Math.abs(frontLeftOptimized.speedMetersPerSecond) * this.simVoltsMetPerSec, NOMINAL_BATT_VOLTS),
                 frontLeftOptimized.speedMetersPerSecond));
@@ -641,7 +524,6 @@ public class Drivetrain extends SubsystemBase {
                 min(Math.abs(backRightOptimized.speedMetersPerSecond) * this.simVoltsMetPerSec, NOMINAL_BATT_VOLTS),
                 backRightOptimized.speedMetersPerSecond));
 
-        // 5. Apply turn voltages (simple proportional control on angle error)
         double frontLeftError =
                 frontLeftOptimized.angle.minus(flSwerveSim.getTurnAngle()).getRadians();
         double frontRightError =
@@ -665,7 +547,6 @@ public class Drivetrain extends SubsystemBase {
         blSwerveSim.update(dt);
         brSwerveSim.update(dt);
 
-        // 7. Build module states for kinematics
         SwerveModuleState[] states = new SwerveModuleState[] {
             new SwerveModuleState(this.flSwerveSim.getWheelSpeedMetersPerSecond(), this.flSwerveSim.getTurnAngle()),
             new SwerveModuleState(this.frSwerveSim.getWheelSpeedMetersPerSecond(), this.frSwerveSim.getTurnAngle()),
@@ -673,11 +554,9 @@ public class Drivetrain extends SubsystemBase {
             new SwerveModuleState(this.brSwerveSim.getWheelSpeedMetersPerSecond(), this.brSwerveSim.getTurnAngle())
         };
 
-        // 8. Convert to chassis speeds and integrate heading
         ChassisSpeeds chassisSpeeds = this.swerveDriveKinematics.toChassisSpeeds(states);
         this.simYaw = this.simYaw.plus(Rotation2d.fromRadians(chassisSpeeds.omegaRadiansPerSecond * dt));
 
-        // 9. Update pose estimator and odometry with sim yaw and module positions
         SwerveModulePosition[] simPositions = new SwerveModulePosition[] {
             this.flSwerveSim.getPosition(),
             this.frSwerveSim.getPosition(),
@@ -688,7 +567,6 @@ public class Drivetrain extends SubsystemBase {
         this.swerveDrivePoseEstimator.update(this.simYaw, simPositions);
         this.updateOdometrySim(this.simYaw, simPositions);
 
-        // 10. Push pose to Field2d for visualization
         this.field.setRobotPose(this.swerveDrivePoseEstimator.getEstimatedPosition());
     }
 
@@ -719,10 +597,6 @@ public class Drivetrain extends SubsystemBase {
                 "EstimatedOdometry/Pose/Rot",
                 () -> this.getPose2dEstimator().getRotation().getDegrees(),
                 null);
-        builder.addDoubleProperty("GOALPOSE/X", () -> this.refreshGoalPose2d().getX(), null);
-        builder.addDoubleProperty("GOALPOSE/Y", () -> this.refreshGoalPose2d().getY(), null);
-        builder.addDoubleProperty(
-                "GOALPOSE/ROT", () -> this.refreshGoalPose2d().getRotation().getRadians(), null);
 
         Telemetry.putData("DriveTrain/" + this.flSwerve.getName(), this.flSwerve);
         Telemetry.putData("DriveTrain/" + this.frSwerve.getName(), this.frSwerve);
