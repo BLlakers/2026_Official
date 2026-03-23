@@ -352,7 +352,7 @@ public final class Constants {
         // -------------------------------------------------------------------------
 
         /** Intake speed — rollers spin inward to collect balls. Positive. */
-        public static final double INTAKE_SPEED = 0.85; // TDO: tune
+        public static final double INTAKE_SPEED = 0.8; // TDO: tune
 
         /** Reverse speed — rollers spin outward to eject. Negative. */
         public static final double REVERSE_SPEED = -0.6; // TODO: tune
@@ -584,7 +584,7 @@ public final class Constants {
          * Open-loop speed for the front flywheel (A, 3") when shooting. Positive.
          * <b>TODO: replace with physics-solver RPM target after SHOOTER.md calibration sessions.</b>
          */
-        public static final double SHOOTER_FRONT_SPEED = 0.75; // TODO: tune
+        public static final double SHOOTER_FRONT_SPEED = 0.5; // TODO: tune
 
         /**
          * Open-loop speed for the rear flywheel (B, 4") when shooting. Positive.
