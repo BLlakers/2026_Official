@@ -19,6 +19,7 @@ import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.simulation.DCMotorSim;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.support.Telemetry;
 import frc.robot.support.TelemetryLevel;
@@ -116,7 +117,7 @@ public class RelaySubsystem extends SubsystemBase {
     private void configureMotor() {
         SparkMaxConfig config = new SparkMaxConfig();
         config.smartCurrentLimit(context.getRelayCurrentLimit());
-        config.idleMode(IdleMode.kCoast); // Coast so rollers don't snap-stop and jam balls
+        config.idleMode(IdleMode.kBrake); // Coast so rollers don't snap-stop and jam balls
         config.inverted(context.isRelayMotorInverted());
         relayMotor.configure(config, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
     }
@@ -127,6 +128,10 @@ public class RelaySubsystem extends SubsystemBase {
 
     private void setState(State state) {
         this.currentState = state;
+    }
+
+    private double getRelayPosition() {
+        return relayMotor.getEncoder().getPosition();
     }
 
     /**
@@ -143,15 +148,35 @@ public class RelaySubsystem extends SubsystemBase {
     // -------------------------------------------------------------------------
 
     private void runForward() {
-        relayMotor.set(context.getRelaySpeed());
+        if (getRelayPosition() <= 7.0) {
+            relayMotor.set(context.getRelaySpeed());
+        } else {
+            stop();
+        }
     }
 
     private void runReverse() {
-        relayMotor.set(context.getRelayReverseSpeed());
+        if (getRelayPosition() >= 0.0) {
+            relayMotor.set(context.getRelayReverseSpeed());
+        } else {
+            stop();
+        }
     }
 
     private void stop() {
         relayMotor.set(0);
+    }
+
+    private boolean relayAtTop() {
+        return getRelayPosition() >= 4.5;
+    }
+
+    private boolean relayAtMiddle() {
+        return getRelayPosition() <= 3.1;
+    }
+
+    private boolean relayAtBottom() {
+        return getRelayPosition() <= 0.3;
     }
 
     // -------------------------------------------------------------------------
@@ -211,6 +236,29 @@ public class RelaySubsystem extends SubsystemBase {
                 .withName("Relay.Stop");
     }
 
+    /**
+     * Agitate command — spins the relay rollers in reverse to clear jams.
+     *
+     * <p>Held-button command: rollers spin in reverse while held, stop on release.
+     *
+     * @return Command that agitates the relay while held
+     */
+    public Command getAgitateCommand() {
+        return Commands.repeatingSequence(
+                        getRunCommand().until(() -> relayAtTop()),
+                        getReverseCommand().until(() -> relayAtMiddle()))
+                .finallyDo(interrupted -> {
+                    if (interrupted) {
+                        getHommingCommand().schedule();
+                    }
+                })
+                .withName("Relay.Agitate");
+    }
+
+    public Command getHommingCommand() {
+        return getReverseCommand().until(() -> relayAtBottom()).withName("Relay.Homing");
+    }
+
     // -------------------------------------------------------------------------
     // Telemetry
     // -------------------------------------------------------------------------
@@ -225,6 +273,7 @@ public class RelaySubsystem extends SubsystemBase {
         Telemetry.record(prefix + "/State", currentState.name(), TelemetryLevel.MATCH);
         Telemetry.publish(prefix + "/State", currentState.name(), TelemetryLevel.MATCH);
         Telemetry.record(prefix + "/OutputPercent", relayMotor.getAppliedOutput(), TelemetryLevel.MATCH);
+        Telemetry.publish(prefix + "/Position", getRelayPosition(), TelemetryLevel.MATCH);
 
         // LAB level
         Telemetry.record(prefix + "/Current", relayMotor.getOutputCurrent(), TelemetryLevel.LAB);

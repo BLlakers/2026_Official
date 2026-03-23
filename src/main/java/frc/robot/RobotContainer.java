@@ -10,6 +10,7 @@ import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
+import frc.robot.commands.LimelightAlignCommand;
 import frc.robot.commands.auto.ClimbTestCommand;
 import frc.robot.commands.auto.VisionAlignmentTestCommand;
 import frc.robot.commands.swervedrive.ControllerDelegate;
@@ -63,6 +64,8 @@ public class RobotContainer {
 
     private final Command resetPoseAuto =
             Commands.runOnce(() -> this.driveTrain.resetOdometry(this.currentPath.get(0)), this.driveTrain);
+
+    LimelightAlignCommand alignLL = new LimelightAlignCommand(this.driveTrain);
 
     /**
      * Creates buttons and controller for: - the driver controller (port 0) - the manipulator controller (port 1) - the
@@ -231,9 +234,17 @@ public class RobotContainer {
             NamedCommands.registerCommand("IntakeHome", this.intakeSubsystem.getHomingCommand());
             NamedCommands.registerCommand("IntakeRaise", this.intakeSubsystem.getRaiseCommand());
             NamedCommands.registerCommand("IntakeLower", this.intakeSubsystem.getLowerCommand());
+            NamedCommands.registerCommand("IntakeLowerManual", this.intakeSubsystem.getLowerManualCommand());
             NamedCommands.registerCommand("IntakeIntake", this.intakeSubsystem.getIntakeCommand());
             NamedCommands.registerCommand("IntakeStop", this.intakeSubsystem.getStopCommand());
         }
+
+        NamedCommands.registerCommand(
+                "Shoot",
+                Commands.parallel(
+                        this.relaySubsystem.getRunCommand(),
+                        this.indexerSubsystem.getIndexCommand(),
+                        this.shooterSubsystem.getShootCommand()));
     }
 
     /**
@@ -271,6 +282,7 @@ public class RobotContainer {
         // Driver Controller commands
         this.driverController.rightStick().onTrue(this.driveTrain.toggleWheelLockCommand()); // lock wheels
         this.driverController.b().onTrue(this.driveTrain.resetNavXSensorModule());
+        this.driverController.rightTrigger().whileTrue(alignLL);
 
         // Manipulator Controller - Climb Subsystem commands (only if climb is enabled)
         // TODO: Confirm all button assignments with drive team before first climb test.
@@ -283,8 +295,8 @@ public class RobotContainer {
         //       intake (LB) and the future reverse-all command (RB). Candidates: chord (Back+A/B),
         //       debug controller, or stick-click buttons.
         if (this.climbSubsystem != null) {
-            this.manipController.a().onTrue(this.climbSubsystem.getClimbNextBarCommand());
-            this.manipController.b().onTrue(this.climbSubsystem.getExtendToBarCommand());
+            this.manipController.a().whileTrue(this.climbSubsystem.getExtendManualCommand());
+            this.manipController.b().whileTrue(this.climbSubsystem.getRetractManualCommand());
             // this.manipController.back().onTrue(this.climbSubsystem.getHomingCommand());
         }
 
@@ -299,7 +311,7 @@ public class RobotContainer {
         if (this.intakeSubsystem != null) {
             this.manipController.leftTrigger().whileTrue(this.intakeSubsystem.getIntakeCommand());
             this.manipController.leftBumper().whileTrue(this.intakeSubsystem.getReverseCommand());
-            this.manipController.y().onTrue(this.intakeSubsystem.getRaiseCommand());
+            this.manipController.y().onTrue(this.intakeSubsystem.getLowerManualCommand());
             this.manipController.x().onTrue(this.intakeSubsystem.getLowerCommand());
         }
 
@@ -314,15 +326,17 @@ public class RobotContainer {
             this.manipController
                     .rightTrigger()
                     .whileTrue(Commands.parallel(
-                            this.relaySubsystem.getRunCommand(),
+                            this.relaySubsystem.getAgitateCommand(),
                             this.indexerSubsystem.getIndexCommand(),
                             this.shooterSubsystem.getShootCommand()));
-            this.manipController
-                    .rightBumper()
-                    .whileTrue(Commands.parallel(
-                            this.relaySubsystem.getReverseCommand(),
-                            this.indexerSubsystem.getReverseCommand(),
-                            this.shooterSubsystem.getReverseCommand()));
+            // this.manipController().rightTrigger()
+
+            // this.manipController
+            //         .rightBumper()
+            //         .whileTrue(Commands.parallel(
+            //                 this.relaySubsystem.getReverseCommand(),
+            //                 this.indexerSubsystem.getReverseCommand(),
+            //                 this.shooterSubsystem.getReverseCommand()));
         }
 
         // Turret default command — track TurretTracker angle when both are enabled.
@@ -331,7 +345,7 @@ public class RobotContainer {
             this.turretSubsystem.setDefaultCommand(
                     this.turretSubsystem.getTrackCommand(this.turretTracker::getTurretAngleDegrees));
             this.manipController.start().whileTrue(this.turretTracker.getTurrentEnableCommand());
-            this.manipController.back().onTrue(this.driveTrain.getTestPoseCommand());
+            // this.manipController.back().onTrue(this.driveTrain.getTestPoseCommand());
         }
 
         // Debug Controller - Turret manual jog commands (only if turret is enabled)

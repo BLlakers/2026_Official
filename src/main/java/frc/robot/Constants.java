@@ -28,6 +28,7 @@ public final class Constants {
         public static final boolean ENABLE_TURRET_TRACKER = true;
         public static final boolean ENABLE_LED_STRAND = false;
         public static final boolean ENABLE_VISION = true;
+
         public static final boolean ENABLE_CLIMB = false;
         public static final boolean ENABLE_INTAKE = true;
         public static final boolean ENABLE_RELAY = true;
@@ -133,10 +134,10 @@ public final class Constants {
         // Motor output speeds [-1.0, 1.0]
         // Convention: positive = telescope extends UP, negative = telescope retracts (toward stored / through frame)
         /** Speed for extending telescope upward (reaching for bar). Should be positive. */
-        public static final double EXTEND_UP_SPEED = 1.0; // TODO: tune
+        public static final double EXTEND_UP_SPEED = 0.5; // TODO: tune
 
         /** Speed for retracting telescope (nesting stages / pulling through frame). Should be negative. */
-        public static final double RETRACT_SPEED = -1.0; // TODO: tune
+        public static final double RETRACT_SPEED = -0.5; // TODO: tune
 
         /**
          * Slow speed for homing (retracts telescope toward stored/ground hardstop).
@@ -351,7 +352,7 @@ public final class Constants {
         // -------------------------------------------------------------------------
 
         /** Intake speed — rollers spin inward to collect balls. Positive. */
-        public static final double INTAKE_SPEED = 0.8; // TDO: tune
+        public static final double INTAKE_SPEED = 0.85; // TDO: tune
 
         /** Reverse speed — rollers spin outward to eject. Negative. */
         public static final double REVERSE_SPEED = -0.6; // TODO: tune
@@ -399,13 +400,13 @@ public final class Constants {
         public static final double LOWERED_POSITION_ROTATIONS = -50.0; // TODO: measure empirically
 
         /** Encoder position at fully-retracted (stowed for climb) position. Established by homing. */
-        public static final double RAISED_POSITION_ROTATIONS = 0.0;
+        public static final double RAISED_POSITION_ROTATIONS = 1.0;
 
         /**
          * Acceptable position error (rotations) for setpoint commands.
          * TODO: tighten after physical testing.
          */
-        public static final double POSITION_TOLERANCE_ROTATIONS = 1.0;
+        public static final double POSITION_TOLERANCE_ROTATIONS = 0.2;
 
         // -------------------------------------------------------------------------
         // ProfiledPIDController gains (duty-cycle output per rotation of tracking error)
@@ -483,10 +484,10 @@ public final class Constants {
         // -------------------------------------------------------------------------
 
         /** Speed for conveying balls toward the indexer. Positive. */
-        public static final double RELAY_SPEED = 0.8;
+        public static final double RELAY_SPEED = 0.15;
 
         /** Speed for reversing to clear jams. Negative. */
-        public static final double RELAY_REVERSE_SPEED = -0.5;
+        public static final double RELAY_REVERSE_SPEED = -0.15;
     }
 
     public static class IndexerConstants {
@@ -516,11 +517,11 @@ public final class Constants {
         // Convention: positive = pull balls into chamber and advance toward shooter
         // -------------------------------------------------------------------------
 
-        /** Speed for indexing balls toward the shooter. Positive. */
-        public static final double INDEXER_SPEED = 0.45;
+        /** Speed for indexing balls toward the . Positive. */
+        public static final double INDEXER_SPEED = 0.35;
 
         /** Speed for reversing to clear jams. Negative. */
-        public static final double INDEXER_REVERSE_SPEED = -0.35;
+        public static final double INDEXER_REVERSE_SPEED = -0.47;
     }
 
     /**
@@ -583,13 +584,13 @@ public final class Constants {
          * Open-loop speed for the front flywheel (A, 3") when shooting. Positive.
          * <b>TODO: replace with physics-solver RPM target after SHOOTER.md calibration sessions.</b>
          */
-        public static final double SHOOTER_FRONT_SPEED = 0.5; // TODO: tune
+        public static final double SHOOTER_FRONT_SPEED = 0.75; // TODO: tune
 
         /**
          * Open-loop speed for the rear flywheel (B, 4") when shooting. Positive.
          * <b>TODO: replace with physics-solver RPM target after SHOOTER.md calibration sessions.</b>
          */
-        public static final double SHOOTER_REAR_SPEED = .75; // TODO: tune
+        public static final double SHOOTER_REAR_SPEED = 0.75; // TODO: tune
 
         /**
          * Open-loop speed for the front flywheel when reversing. Negative.
@@ -691,7 +692,7 @@ public final class Constants {
     }
 
     public class TurnEncoderOffsets {
-        public static final double flTurnEncoderOffset = 4.911;
+        public static final double flTurnEncoderOffset = 0.741;
         public static final double frTurnEncoderOffset = 1.697;
         public static final double blTurnEncoderOffset = -0.100;
         public static final double brTurnEncoderOffset = 3.790;

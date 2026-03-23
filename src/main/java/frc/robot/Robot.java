@@ -91,7 +91,7 @@ public class Robot extends TimedRobot {
         }
 
         // Schedule teleop-init routines (e.g. climb homing) for any enabled subsystems
-        m_robotContainer.scheduleTeleopInit();
+        // m_robotContainer.scheduleTeleopInit();
     }
 
     @Override

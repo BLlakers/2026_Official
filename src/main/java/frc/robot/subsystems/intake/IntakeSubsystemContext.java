@@ -110,7 +110,7 @@ public class IntakeSubsystemContext {
     private final boolean liftMotor2Inverted = false;
 
     @Builder.Default
-    private final boolean rollorMotorInverted = true;
+    private final boolean rollorMotorInverted = false;
 
     // -------------------------------------------------------------------------
     // Roller speeds [-1.0, 1.0]

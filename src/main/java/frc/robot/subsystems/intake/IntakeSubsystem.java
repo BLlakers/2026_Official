@@ -12,7 +12,6 @@ import com.revrobotics.spark.SparkFlex;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
 import com.revrobotics.spark.SparkMax;
 import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
-import com.revrobotics.spark.config.SparkFlexConfig;
 import com.revrobotics.spark.config.SparkMaxConfig;
 import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.controller.ProfiledPIDController;
@@ -177,7 +176,7 @@ public class IntakeSubsystem extends SubsystemBase {
     // -------------------------------------------------------------------------
 
     private void configureRollerMotor() {
-        SparkFlexConfig config = new SparkFlexConfig();
+        SparkMaxConfig config = new SparkMaxConfig();
         config.smartCurrentLimit(context.getRollerCurrentLimit());
         config.idleMode(IdleMode.kCoast); // Coast so rollers don't snap-stop and jam balls
         // TODO: Set config.inverted(true/false) once roller direction is confirmed with build team.
@@ -421,6 +420,19 @@ public class IntakeSubsystem extends SubsystemBase {
                 .withName("Intake.Lower");
     }
 
+    public Command getLowerManualCommand() {
+        return this.runEnd(
+                        () -> {
+                            applyLiftOutput(.1);
+                            ;
+                        },
+                        () -> {
+                            applyLiftOutput(0);
+                        })
+                .withName("Intake.LowerManualCommand")
+                .withTimeout(.25);
+    }
+
     /**
      * Intake command — runs the rollers inward to collect fuel balls.
      *
@@ -525,17 +537,17 @@ public class IntakeSubsystem extends SubsystemBase {
         double liftPos = getLiftPosition();
 
         // MATCH level
-        Telemetry.record(prefix + "/State", currentState.name(), TelemetryLevel.MATCH);
         Telemetry.publish(prefix + "/State", currentState.name(), TelemetryLevel.MATCH);
-        Telemetry.record(prefix + "/Lift/Position", liftPos, TelemetryLevel.MATCH);
-        Telemetry.record(prefix + "/Lift/Target", targetRotations, TelemetryLevel.MATCH);
-        Telemetry.record(prefix + "/Lift/AtTarget", atTarget(targetRotations) ? 1.0 : 0.0, TelemetryLevel.MATCH);
+        Telemetry.publish(prefix + "/State", currentState.name(), TelemetryLevel.MATCH);
+        Telemetry.publish(prefix + "/Lift/Position", liftPos, TelemetryLevel.MATCH);
+        Telemetry.publish(prefix + "/Lift/Target", targetRotations, TelemetryLevel.MATCH);
+        Telemetry.publish(prefix + "/Lift/AtTarget", atTarget(targetRotations) ? 1.0 : 0.0, TelemetryLevel.MATCH);
 
         // LAB level
-        Telemetry.record(prefix + "/Lift/Motor1/Current", getLift1Current(), TelemetryLevel.LAB);
-        Telemetry.record(prefix + "/Lift/Motor2/Current", getLift2Current(), TelemetryLevel.LAB);
-        Telemetry.record(prefix + "/Roller/OutputPercent", rollerMotor.getAppliedOutput(), TelemetryLevel.LAB);
-        Telemetry.record(
+        Telemetry.publish(prefix + "/Lift/Motor1/Current", getLift1Current(), TelemetryLevel.LAB);
+        Telemetry.publish(prefix + "/Lift/Motor2/Current", getLift2Current(), TelemetryLevel.LAB);
+        Telemetry.publish(prefix + "/Roller/OutputPercent", rollerMotor.getAppliedOutput(), TelemetryLevel.LAB);
+        Telemetry.publish(
                 prefix + "/Homing/CurrentThreshold", context.getHomingCurrentThresholdAmps(), TelemetryLevel.LAB);
         Telemetry.publish(
                 prefix + "/Lift/PID/SetpointPosition", liftController.getSetpoint().position, TelemetryLevel.LAB);
