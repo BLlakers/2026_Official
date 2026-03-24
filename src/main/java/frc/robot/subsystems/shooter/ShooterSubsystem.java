@@ -22,7 +22,15 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.support.Telemetry;
+import edu.wpi.first.math.controller.PIDController;
+import edu.wpi.first.math.controller.SimpleMotorFeedforward;
+import java.util.function.DoubleSupplier;
 import frc.robot.support.TelemetryLevel;
+import edu.wpi.first.networktables.NetworkTable;
+import edu.wpi.first.networktables.NetworkTableEntry;
+import edu.wpi.first.networktables.NetworkTableInstance;
+import frc.robot.support.limelight.LimelightHelpers;
+import edu.wpi.first.math.geometry.Pose3d;
 
 /**
  * Shooter subsystem — receives fuel balls from the indexer and fires them into the hub.
@@ -106,6 +114,29 @@ public class ShooterSubsystem extends SubsystemBase {
     private double frontSpeedSetpoint;
     private double rearSpeedSetpoint;
 
+    // Closed-loop control fields (feedforward + PID)
+    private SimpleMotorFeedforward frontFeedforward;
+    private SimpleMotorFeedforward rearFeedforward;
+    private final PIDController frontPid;
+    private final PIDController rearPid;
+
+    // NetworkTable entries for live tuning via Shuffleboard
+    private final NetworkTable shooterTable;
+    private final NetworkTableEntry kPEntry;
+    private final NetworkTableEntry kIEntry;
+    private final NetworkTableEntry kDEntry;
+    private final NetworkTableEntry kSEntry;
+    private final NetworkTableEntry kVEntry;
+    private final NetworkTableEntry kAEntry;
+    private final NetworkTableEntry targetRPMEntry;
+
+    // Target RPMs for closed-loop control
+    private double targetFrontRPM = 0.0;
+    private double targetRearRPM = 0.0;
+
+    // Whether closed-loop velocity control is active
+    private boolean closedLoopEnabled = false;
+
     private State currentState = State.IDLE;
 
     // -------------------------------------------------------------------------
@@ -145,6 +176,46 @@ public class ShooterSubsystem extends SubsystemBase {
         this.rearSpeedSetpoint = context.getShooterRearSpeed();
 
         configureMotors();
+
+    // Initialize feedforward and PID controllers with constants from Constants.ShooterConstants
+    // Create PID controllers (gains will be updated from Shuffleboard entries at runtime)
+    this.frontPid = new PIDController(
+        frc.robot.Constants.ShooterConstants.SHOOTER_kP,
+        frc.robot.Constants.ShooterConstants.SHOOTER_kI,
+        frc.robot.Constants.ShooterConstants.SHOOTER_kD);
+    this.rearPid = new PIDController(
+        frc.robot.Constants.ShooterConstants.SHOOTER_kP,
+        frc.robot.Constants.ShooterConstants.SHOOTER_kI,
+        frc.robot.Constants.ShooterConstants.SHOOTER_kD);
+
+    // NetworkTables / Shuffleboard tuning table
+    this.shooterTable = NetworkTableInstance.getDefault().getTable("Shooter");
+    this.kPEntry = shooterTable.getEntry("kP");
+    this.kIEntry = shooterTable.getEntry("kI");
+    this.kDEntry = shooterTable.getEntry("kD");
+    this.kSEntry = shooterTable.getEntry("kS");
+    this.kVEntry = shooterTable.getEntry("kV");
+    this.kAEntry = shooterTable.getEntry("kA");
+    this.targetRPMEntry = shooterTable.getEntry("TargetRPM");
+
+    // Initialize entries with defaults from Constants (setDefault ensures Shuffleboard doesn't overwrite existing values)
+    this.kPEntry.setDouble(frc.robot.Constants.ShooterConstants.SHOOTER_kP);
+    this.kIEntry.setDouble(frc.robot.Constants.ShooterConstants.SHOOTER_kI);
+    this.kDEntry.setDouble(frc.robot.Constants.ShooterConstants.SHOOTER_kD);
+    this.kSEntry.setDouble(frc.robot.Constants.ShooterConstants.SHOOTER_KS);
+    this.kVEntry.setDouble(frc.robot.Constants.ShooterConstants.SHOOTER_KV);
+    this.kAEntry.setDouble(frc.robot.Constants.ShooterConstants.SHOOTER_KA);
+    this.targetRPMEntry.setDouble(3000.0);
+
+    // Initialize feedforward objects from constants (they will be refreshed from NT in periodic())
+    this.frontFeedforward = new SimpleMotorFeedforward(
+        frc.robot.Constants.ShooterConstants.SHOOTER_KS,
+        frc.robot.Constants.ShooterConstants.SHOOTER_KV,
+        frc.robot.Constants.ShooterConstants.SHOOTER_KA);
+    this.rearFeedforward = new SimpleMotorFeedforward(
+        frc.robot.Constants.ShooterConstants.SHOOTER_KS,
+        frc.robot.Constants.ShooterConstants.SHOOTER_KV,
+        frc.robot.Constants.ShooterConstants.SHOOTER_KA);
 
         if (RobotBase.isSimulation()) {
             this.frontSparkMaxSim = new SparkMaxSim(frontMotor, DCMotor.getNEO(1));
@@ -365,6 +436,17 @@ public class ShooterSubsystem extends SubsystemBase {
             Telemetry.record(
                     prefix + "/Rear/VelocityRPM", rearMotorSim.getAngularVelocityRPM(), TelemetryLevel.VERBOSE);
         }
+        // Real robot velocity telemetry (LAB level)
+        try {
+            double frontRpm = frontMotor.getEncoder().getVelocity();
+            double rearRpm = rearMotor.getEncoder().getVelocity();
+            Telemetry.publish(prefix + "/Front/VelocityRPM", frontRpm, TelemetryLevel.LAB);
+            Telemetry.publish(prefix + "/Rear/VelocityRPM", rearRpm, TelemetryLevel.LAB);
+        } catch (Exception ignore) {
+            // Encoder may not be available in some build configs — ignore telemetry in that case.
+        }
+        Telemetry.publish(prefix + "/Front/TargetRPM", targetFrontRPM, TelemetryLevel.LAB);
+        Telemetry.publish(prefix + "/Rear/TargetRPM", targetRearRPM, TelemetryLevel.LAB);
     }
 
     // -------------------------------------------------------------------------
@@ -373,7 +455,154 @@ public class ShooterSubsystem extends SubsystemBase {
 
     @Override
     public void periodic() {
-        // Telemetry is captured by the registered subsystem callback via Telemetry.periodic()
+        // Refresh gains from Shuffleboard / NetworkTables so they can be tuned live
+        double kp = kPEntry.getDouble(frc.robot.Constants.ShooterConstants.SHOOTER_kP);
+        double ki = kIEntry.getDouble(frc.robot.Constants.ShooterConstants.SHOOTER_kI);
+        double kd = kDEntry.getDouble(frc.robot.Constants.ShooterConstants.SHOOTER_kD);
+        double ks = kSEntry.getDouble(frc.robot.Constants.ShooterConstants.SHOOTER_KS);
+        double kv = kVEntry.getDouble(frc.robot.Constants.ShooterConstants.SHOOTER_KV);
+        double ka = kAEntry.getDouble(frc.robot.Constants.ShooterConstants.SHOOTER_KA);
+
+        // Apply gains to controllers and feedforward instances
+        frontPid.setP(kp);
+        frontPid.setI(ki);
+        frontPid.setD(kd);
+        rearPid.setP(kp);
+        rearPid.setI(ki);
+        rearPid.setD(kd);
+
+        this.frontFeedforward = new SimpleMotorFeedforward(ks, kv, ka);
+        this.rearFeedforward = new SimpleMotorFeedforward(ks, kv, ka);
+
+        // If closed-loop control is enabled, compute feedforward+PID and apply voltages.
+        if (closedLoopEnabled) {
+            // Measure RPMs
+            double measuredFrontRPM = RobotBase.isSimulation() && frontMotorSim != null
+                    ? frontMotorSim.getAngularVelocityRPM()
+                    : frontMotor.getEncoder().getVelocity();
+            double measuredRearRPM = RobotBase.isSimulation() && rearMotorSim != null
+                    ? rearMotorSim.getAngularVelocityRPM()
+                    : rearMotor.getEncoder().getVelocity();
+
+            // Feedforward expects angular velocity (rad/s). Convert RPM -> rad/s.
+            double targetFrontRadPerSec = targetFrontRPM / 60.0 * 2.0 * Math.PI;
+            double targetRearRadPerSec = targetRearRPM / 60.0 * 2.0 * Math.PI;
+
+            double ffFront = frontFeedforward.calculate(targetFrontRadPerSec);
+            double ffRear = rearFeedforward.calculate(targetRearRadPerSec);
+
+            // PID controllers operate in RPM space (gains are volts per RPM)
+            double pidFront = frontPid.calculate(measuredFrontRPM, targetFrontRPM);
+            double pidRear = rearPid.calculate(measuredRearRPM, targetRearRPM);
+
+            double outFrontVolts = ffFront + pidFront;
+            double outRearVolts = ffRear + pidRear;
+
+            // Clamp to battery voltage for safety
+            double vmax = RobotController.getBatteryVoltage();
+            outFrontVolts = Math.max(-vmax, Math.min(vmax, outFrontVolts));
+            outRearVolts = Math.max(-vmax, Math.min(vmax, outRearVolts));
+
+            // Apply voltages
+            try {
+                frontMotor.setVoltage(outFrontVolts);
+                rearMotor.setVoltage(outRearVolts);
+            } catch (Exception e) {
+                // Fallback to percent output if voltage API unavailable
+                frontMotor.set(outFrontVolts / Math.max(0.1, vmax));
+                rearMotor.set(outRearVolts / Math.max(0.1, vmax));
+            }
+        }
+    }
+
+    /**
+     * Returns a command that uses Limelight AprilTag pose to compute a target RPM and
+     * runs closed-loop shooter control while held.
+     * Uses constants in {@link frc.robot.Constants.ShooterConstants} for mapping.
+     */
+    public Command getShootWithLimelightCommand() {
+        return this.runEnd(
+                        () -> {
+                            setState(State.SHOOTING);
+                            closedLoopEnabled = true;
+                            // Sample Limelight pose and compute target RPM
+                            try {
+                                if (frc.robot.support.limelight.LimelightHelpers.getTargetCount("limelight-front") > 0) {
+                                    var pose3d = frc.robot.support.limelight.LimelightHelpers.getTargetPose3d_RobotSpace("limelight-front");
+                                    double distance = pose3d.getTranslation().getNorm();
+                                    double rpm = frc.robot.Constants.ShooterConstants.SHOOTER_RPM_OFFSET
+                                            + frc.robot.Constants.ShooterConstants.SHOOTER_RPM_PER_METER * distance;
+                                    setTargetRPMs(rpm, rpm);
+                                }
+                            } catch (Exception ignore) {
+                                // Don't update target if limelight data unavailable
+                            }
+                        },
+                        () -> {
+                            closedLoopEnabled = false;
+                            stop();
+                            if (currentState == State.SHOOTING) setState(State.IDLE);
+                        })
+                .withName("Shooter.VisionShoot");
+    }
+
+    // -------------------------------------------------------------------------
+    // Closed-loop helpers & command factories
+    // -------------------------------------------------------------------------
+
+    /** Set both target RPMs for closed-loop control. */
+    public void setTargetRPMs(double frontRpm, double rearRpm) {
+        this.targetFrontRPM = frontRpm;
+        this.targetRearRPM = rearRpm;
+    }
+
+    /** Convenience: set both targets to the same RPM. */
+    public void setTargetRPM(double rpm) {
+        setTargetRPMs(rpm, rpm);
+    }
+
+    /** Returns the current measured front flywheel velocity in RPM (best-effort). */
+    public double getFrontVelocityRPM() {
+        if (RobotBase.isSimulation() && frontMotorSim != null) return frontMotorSim.getAngularVelocityRPM();
+        try {
+            return frontMotor.getEncoder().getVelocity();
+        } catch (Exception e) {
+            return 0.0;
+        }
+    }
+
+    /** Returns the current measured rear flywheel velocity in RPM (best-effort). */
+    public double getRearVelocityRPM() {
+        if (RobotBase.isSimulation() && rearMotorSim != null) return rearMotorSim.getAngularVelocityRPM();
+        try {
+            return rearMotor.getEncoder().getVelocity();
+        } catch (Exception e) {
+            return 0.0;
+        }
+    }
+
+    /**
+     * Returns a command that runs closed-loop velocity control while held. The provided suppliers
+     * are sampled each scheduler iteration and the subsystem periodic loop applies voltages.
+     */
+    public Command getShootRPMCommand(DoubleSupplier frontRpmSupplier, DoubleSupplier rearRpmSupplier) {
+        return this.runEnd(
+                        () -> {
+                            setState(State.SHOOTING);
+                            closedLoopEnabled = true;
+                            setTargetRPMs(frontRpmSupplier.getAsDouble(), rearRpmSupplier.getAsDouble());
+                        },
+                        () -> {
+                            closedLoopEnabled = false;
+                            stop();
+                            if (currentState == State.SHOOTING) setState(State.IDLE);
+                        })
+                .withName("Shooter.ShootRPM");
+    }
+
+    /** Convenience: fixed-target RPM command (both wheels same RPM). */
+    public Command getShootRPMCommand(double rpm) {
+        return getShootRPMCommand(() -> rpm, () -> rpm);
     }
 
     // -------------------------------------------------------------------------
