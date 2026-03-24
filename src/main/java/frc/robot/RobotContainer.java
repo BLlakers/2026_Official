@@ -243,9 +243,9 @@ public class RobotContainer {
         NamedCommands.registerCommand(
                 "Shoot",
                 Commands.parallel(
-                        this.relaySubsystem.getAgitateCommand().beforeStarting(new WaitCommand(1)),
+                        this.relaySubsystem.getRunCommand().beforeStarting(new WaitCommand(1)),
                         this.indexerSubsystem.getIndexCommand().beforeStarting(new WaitCommand(1)),
-                        this.shooterSubsystem.getShootCommand()));
+                        this.shooterSubsystem.getShootCommand()).withTimeout(6));
     }
 
     /**
