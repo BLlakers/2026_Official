@@ -7,13 +7,19 @@
         {
           "type": "path",
           "data": {
-            "pathName": "TestingPath"
+            "pathName": "HubBack"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "Shoot"
           }
         }
       ]
     }
   },
-  "resetOdom": false,
+  "resetOdom": true,
   "folder": null,
   "choreoAuto": false
 }

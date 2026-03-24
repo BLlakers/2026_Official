@@ -15,13 +15,15 @@ public class LimelightAlignCommand extends Command {
     private static final TrapezoidProfile.Constraints OMEGA_CONSTRAINTS =
             new TrapezoidProfile.Constraints(Units.degreesToRadians(400), Units.degreesToRadians(360));
 
-    private final ProfiledPIDController m_omegaController = new ProfiledPIDController(2, 0, 0.0, OMEGA_CONSTRAINTS);
+    private final ProfiledPIDController m_omegaController = new ProfiledPIDController(0.08, 0, 0.0, OMEGA_CONSTRAINTS);
 
     private Drivetrain m_drivetrain;
 
     public LimelightAlignCommand(Drivetrain drivetrainSubsystem) {
         m_drivetrain = drivetrainSubsystem;
         addRequirements(drivetrainSubsystem);
+    //Acceptable anglar error for alignment: 1 degree
+    m_omegaController.setTolerance(Units.degreesToRadians(1.0));
     }
 
     @Override

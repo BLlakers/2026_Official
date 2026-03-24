@@ -8,6 +8,7 @@ import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
+import edu.wpi.first.wpilibj2.command.WaitCommand;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.commands.LimelightAlignCommand;
@@ -242,8 +243,8 @@ public class RobotContainer {
         NamedCommands.registerCommand(
                 "Shoot",
                 Commands.parallel(
-                        this.relaySubsystem.getRunCommand(),
-                        this.indexerSubsystem.getIndexCommand(),
+                        this.relaySubsystem.getAgitateCommand().beforeStarting(new WaitCommand(0.5)),
+                        this.indexerSubsystem.getIndexCommand().beforeStarting(new WaitCommand(0.5)),
                         this.shooterSubsystem.getShootCommand()));
     }
 
@@ -326,8 +327,8 @@ public class RobotContainer {
             this.manipController
                     .rightTrigger()
                     .whileTrue(Commands.parallel(
-                            this.relaySubsystem.getAgitateCommand(),
-                            this.indexerSubsystem.getIndexCommand(),
+                            this.relaySubsystem.getAgitateCommand().beforeStarting(new WaitCommand(0.5)),
+                            this.indexerSubsystem.getIndexCommand().beforeStarting(new WaitCommand(0.5)),
                             this.shooterSubsystem.getShootCommand()));
             // this.manipController().rightTrigger()
 
