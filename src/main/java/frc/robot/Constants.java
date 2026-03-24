@@ -352,7 +352,7 @@ public final class Constants {
         // -------------------------------------------------------------------------
 
         /** Intake speed — rollers spin inward to collect balls. Positive. */
-        public static final double INTAKE_SPEED = 0.8; // TDO: tune
+        public static final double INTAKE_SPEED = 0.7; // TDO: tune
 
         /** Reverse speed — rollers spin outward to eject. Negative. */
         public static final double REVERSE_SPEED = -0.6; // TODO: tune
@@ -363,13 +363,13 @@ public final class Constants {
         // -------------------------------------------------------------------------
 
         /** Speed for raising intake to stowed position. Positive. */
-        public static final double RAISE_SPEED = 0.4; // TODO: tune
+        public static final double RAISE_SPEED = 0.1; // TODO: tune
 
         /**
          * Speed for lowering intake to match position.
          * Negative; kept slower than raise since gravity assists.
          */
-        public static final double LOWER_SPEED = -0.3; // TODO: tune
+        public static final double LOWER_SPEED = -0.1; // TODO: tune
 
         /**
          * Speed for homing — slow upward creep until the retracted hardstop is detected via current.

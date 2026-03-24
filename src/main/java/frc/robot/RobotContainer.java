@@ -243,8 +243,8 @@ public class RobotContainer {
         NamedCommands.registerCommand(
                 "Shoot",
                 Commands.parallel(
-                        this.relaySubsystem.getAgitateCommand().beforeStarting(new WaitCommand(0.5)),
-                        this.indexerSubsystem.getIndexCommand().beforeStarting(new WaitCommand(0.5)),
+                        this.relaySubsystem.getAgitateCommand().beforeStarting(new WaitCommand(1)),
+                        this.indexerSubsystem.getIndexCommand().beforeStarting(new WaitCommand(1)),
                         this.shooterSubsystem.getShootCommand()));
     }
 
@@ -327,8 +327,8 @@ public class RobotContainer {
             this.manipController
                     .rightTrigger()
                     .whileTrue(Commands.parallel(
-                            this.relaySubsystem.getAgitateCommand().beforeStarting(new WaitCommand(0.5)),
-                            this.indexerSubsystem.getIndexCommand().beforeStarting(new WaitCommand(0.5)),
+                            this.relaySubsystem.getAgitateCommand().beforeStarting(new WaitCommand(1)),
+                            this.indexerSubsystem.getIndexCommand().beforeStarting(new WaitCommand(1)),
                             this.shooterSubsystem.getShootCommand()));
             // this.manipController().rightTrigger()
 
