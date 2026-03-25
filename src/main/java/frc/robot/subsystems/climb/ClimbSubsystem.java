@@ -477,6 +477,28 @@ public class ClimbSubsystem extends SubsystemBase {
                 .withName("Climb.ExtendToBar");
     }
 
+    public Command getRetractManualCommand() {
+        return this.runEnd(
+                        () -> {
+                            retract();
+                        },
+                        () -> {
+                            stop();
+                        })
+                .withName("Climb.RetractManualCommand");
+    }
+
+    public Command getExtendManualCommand() {
+        return this.runEnd(
+                        () -> {
+                            extend();
+                        },
+                        () -> {
+                            stop();
+                        })
+                .withName("Climb.ExtendManualCommand");
+    }
+
     /**
      * Climb-next-bar command — the primary teleop climb command.
      *

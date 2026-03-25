@@ -342,9 +342,9 @@ public class VisionSubsystem extends SubsystemBase {
         List<PhotonPipelineResult> leftSideResults = leftSideCamera.getAllUnreadResults();
 
         processCamera(frontRightPoseEstimator, "FrontRight", frontRightConnected, frontRightResults);
+        processCamera(frontLeftPoseEstimator, "FrontLeft", frontLeftConnected, frontLeftResults);
         processCamera(rightSidePoseEstimator, "RightSide", rightSideConnected, rightSideResults);
-        //processCamera(leftSidePoseEstimator, "LeftSide", leftSideConnected, leftSideResults);
-        //processCamera(frontLeftPoseEstimator, "FrontLeft", frontLeftConnected, frontLeftResults);
+        processCamera(leftSidePoseEstimator, "LeftSide", leftSideConnected, leftSideResults);
 
         updateSystemStatus(
                 frontRightConnected,

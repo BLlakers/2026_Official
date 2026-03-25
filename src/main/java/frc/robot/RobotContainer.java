@@ -8,8 +8,10 @@ import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
+import edu.wpi.first.wpilibj2.command.WaitCommand;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
+import frc.robot.commands.LimelightAlignCommand;
 import frc.robot.commands.auto.ClimbTestCommand;
 import frc.robot.commands.auto.VisionAlignmentTestCommand;
 import frc.robot.commands.swervedrive.ControllerDelegate;
@@ -63,6 +65,8 @@ public class RobotContainer {
 
     private final Command resetPoseAuto =
             Commands.runOnce(() -> this.driveTrain.resetOdometry(this.currentPath.get(0)), this.driveTrain);
+
+    LimelightAlignCommand alignLL = new LimelightAlignCommand(this.driveTrain);
 
     /**
      * Creates buttons and controller for: - the driver controller (port 0) - the manipulator controller (port 1) - the
@@ -231,9 +235,17 @@ public class RobotContainer {
             NamedCommands.registerCommand("IntakeHome", this.intakeSubsystem.getHomingCommand());
             NamedCommands.registerCommand("IntakeRaise", this.intakeSubsystem.getRaiseCommand());
             NamedCommands.registerCommand("IntakeLower", this.intakeSubsystem.getLowerCommand());
+            NamedCommands.registerCommand("IntakeLowerManual", this.intakeSubsystem.getLowerManualCommand());
             NamedCommands.registerCommand("IntakeIntake", this.intakeSubsystem.getIntakeCommand());
             NamedCommands.registerCommand("IntakeStop", this.intakeSubsystem.getStopCommand());
         }
+
+        NamedCommands.registerCommand(
+                "Shoot",
+                Commands.parallel(
+                        this.relaySubsystem.getRunCommand().beforeStarting(new WaitCommand(1)),
+                        this.indexerSubsystem.getIndexCommand().beforeStarting(new WaitCommand(1)),
+                        this.shooterSubsystem.getShootCommand()).withTimeout(6));
     }
 
     /**
@@ -271,6 +283,7 @@ public class RobotContainer {
         // Driver Controller commands
         this.driverController.rightStick().onTrue(this.driveTrain.toggleWheelLockCommand()); // lock wheels
         this.driverController.b().onTrue(this.driveTrain.resetNavXSensorModule());
+        this.driverController.rightTrigger().whileTrue(alignLL);
 
         // Turret Tracker Override test
         this.driverController.start().toggleOnTrue(this.turretTracker.getHubCenterOverrideCommand());
@@ -288,8 +301,8 @@ public class RobotContainer {
         //       intake (LB) and the future reverse-all command (RB). Candidates: chord (Back+A/B),
         //       debug controller, or stick-click buttons.
         if (this.climbSubsystem != null) {
-            this.manipController.a().onTrue(this.climbSubsystem.getClimbNextBarCommand());
-            this.manipController.b().onTrue(this.climbSubsystem.getExtendToBarCommand());
+            this.manipController.a().whileTrue(this.climbSubsystem.getExtendManualCommand());
+            this.manipController.b().whileTrue(this.climbSubsystem.getRetractManualCommand());
             // this.manipController.back().onTrue(this.climbSubsystem.getHomingCommand());
         }
 
@@ -304,7 +317,7 @@ public class RobotContainer {
         if (this.intakeSubsystem != null) {
             this.manipController.leftTrigger().whileTrue(this.intakeSubsystem.getIntakeCommand());
             this.manipController.leftBumper().whileTrue(this.intakeSubsystem.getReverseCommand());
-            this.manipController.y().onTrue(this.intakeSubsystem.getRaiseCommand());
+            this.manipController.y().onTrue(this.intakeSubsystem.getLowerManualCommand());
             this.manipController.x().onTrue(this.intakeSubsystem.getLowerCommand());
         }
 
@@ -319,15 +332,17 @@ public class RobotContainer {
             this.manipController
                     .rightTrigger()
                     .whileTrue(Commands.parallel(
-                            this.relaySubsystem.getRunCommand(),
-                            this.indexerSubsystem.getIndexCommand(),
+                            this.relaySubsystem.getAgitateCommand().beforeStarting(new WaitCommand(1)),
+                            this.indexerSubsystem.getIndexCommand().beforeStarting(new WaitCommand(1)),
                             this.shooterSubsystem.getShootCommand()));
-            this.manipController
-                    .rightBumper()
-                    .whileTrue(Commands.parallel(
-                            this.relaySubsystem.getReverseCommand(),
-                            this.indexerSubsystem.getReverseCommand(),
-                            this.shooterSubsystem.getReverseCommand()));
+            // this.manipController().rightTrigger()
+
+            // this.manipController
+            //         .rightBumper()
+            //         .whileTrue(Commands.parallel(
+            //                 this.relaySubsystem.getReverseCommand(),
+            //                 this.indexerSubsystem.getReverseCommand(),
+            //                 this.shooterSubsystem.getReverseCommand()));
         }
 
         // Turret default command — track TurretTracker angle when both are enabled.
@@ -336,7 +351,7 @@ public class RobotContainer {
             this.turretSubsystem.setDefaultCommand(
                     this.turretSubsystem.getTrackCommand(this.turretTracker::getTurretAngleDegrees));
             this.manipController.start().whileTrue(this.turretTracker.getTurrentEnableCommand());
-            this.manipController.back().onTrue(this.driveTrain.getTestPoseCommand());
+            // this.manipController.back().onTrue(this.driveTrain.getTestPoseCommand());
         }
 
         // Debug Controller - Turret manual jog commands (only if turret is enabled)
@@ -377,13 +392,30 @@ public class RobotContainer {
         //
         // Watch Shooter/Front/SpeedSetpoint and Shooter/Rear/SpeedSetpoint in telemetry
         // to confirm the current values before writing them back to Constants.
-        if (this.shooterSubsystem != null) {
-            this.debugController.leftTrigger().whileTrue(this.shooterSubsystem.getShootCommand());
-            this.debugController.y().onTrue(this.shooterSubsystem.getIncreaseFrontSpeedCommand());
-            this.debugController.a().onTrue(this.shooterSubsystem.getDecreaseFrontSpeedCommand());
-            this.debugController.b().onTrue(this.shooterSubsystem.getIncreaseRearSpeedCommand());
-            this.debugController.x().onTrue(this.shooterSubsystem.getDecreaseRearSpeedCommand());
-        }
+    if (this.shooterSubsystem != null) {
+        // OLD debug bindings (commented out) — replaced by tunable / vision RPM commands
+        // this.debugController.leftTrigger().whileTrue(this.shooterSubsystem.getShootCommand());
+        // this.debugController.y().onTrue(this.shooterSubsystem.getIncreaseFrontSpeedCommand());
+        // this.debugController.a().onTrue(this.shooterSubsystem.getDecreaseFrontSpeedCommand());
+        // this.debugController.b().onTrue(this.shooterSubsystem.getIncreaseRearSpeedCommand());
+        // this.debugController.x().onTrue(this.shooterSubsystem.getDecreaseRearSpeedCommand());
+
+        // New debug bindings:
+        // Button A (held) -> Run shooter closed-loop with TargetRPM read from Shuffleboard (Shooter/TargetRPM)
+        this.debugController.a().whileTrue(
+            this.shooterSubsystem.getShootRPMCommand(
+                () -> edu.wpi.first.networktables.NetworkTableInstance.getDefault()
+                    .getTable("Shooter")
+                    .getEntry("TargetRPM")
+                    .getDouble(3000.0),
+                () -> edu.wpi.first.networktables.NetworkTableInstance.getDefault()
+                    .getTable("Shooter")
+                    .getEntry("TargetRPM")
+                    .getDouble(3000.0)));
+
+        // Button B (held) -> Vision (Limelight)-guided shooter closed-loop
+        this.debugController.b().whileTrue(this.shooterSubsystem.getShootWithLimelightCommand());
+    }
     }
 
     private void configureShuffleboard() {
