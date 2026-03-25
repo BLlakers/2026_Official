@@ -604,28 +604,28 @@ public final class Constants {
          */
         public static final double SHOOTER_REAR_REVERSE_SPEED = -0.5; // TODO: tune
 
-    // ---------------------------------------------------------------------
-    // Feedforward & PID defaults for closed-loop RPM control (tuning required)
-    // ---------------------------------------------------------------------
+        // ---------------------------------------------------------------------
+        // Feedforward & PID defaults for closed-loop RPM control (tuning required)
+        // ---------------------------------------------------------------------
 
-    /** Static gain (volts) to overcome stiction / breakaway. Measured during tuning. */
-    public static final double SHOOTER_KS = 0.0;
+        /** Static gain (volts) to overcome stiction / breakaway. Measured during tuning. */
+        public static final double SHOOTER_KS = 0.0;
 
-    /** Velocity gain (volts per rad/s) — measured from V vs omega data. */
-    public static final double SHOOTER_KV = 0.0;
+        /** Velocity gain (volts per rad/s) — measured from V vs omega data. */
+        public static final double SHOOTER_KV = 0.0;
 
-    /** Acceleration gain (volts per rad/s^2) — optional for aggressive control. */
-    public static final double SHOOTER_KA = 0.0;
+        /** Acceleration gain (volts per rad/s^2) — optional for aggressive control. */
+        public static final double SHOOTER_KA = 0.0;
 
-    // PID gains (units: volts per RPM for P, etc.). Start at zero and tune on robot.
-    public static final double SHOOTER_kP = 0.0;
-    public static final double SHOOTER_kI = 0.0;
-    public static final double SHOOTER_kD = 0.0;
+        // PID gains (units: volts per RPM for P, etc.). Start at zero and tune on robot.
+        public static final double SHOOTER_kP = 0.0042;
+        public static final double SHOOTER_kI = 0.0;
+        public static final double SHOOTER_kD = 0.0;
 
-    // Mapping from Limelight-measured distance (meters) to RPM: RPM = OFFSET + PER_METER * distance
-    // These defaults are placeholders; tune on the robot or provide a lookup table for accuracy.
-    public static final double SHOOTER_RPM_OFFSET = 2000.0; // RPM at zero distance (placeholder)
-    public static final double SHOOTER_RPM_PER_METER = 300.0; // additional RPM per meter (placeholder)
+        // Mapping from Limelight-measured distance (meters) to RPM: RPM = OFFSET + PER_METER * distance
+        // These defaults are placeholders; tune on the robot or provide a lookup table for accuracy.
+        public static final double SHOOTER_RPM_OFFSET = 2000.0; // RPM at zero distance (placeholder)
+        public static final double SHOOTER_RPM_PER_METER = 300.0; // additional RPM per meter (placeholder)
     }
 
     /**

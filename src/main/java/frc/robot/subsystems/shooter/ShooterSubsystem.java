@@ -10,10 +10,15 @@ import com.revrobotics.spark.SparkLowLevel.MotorType;
 import com.revrobotics.spark.SparkMax;
 import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 import com.revrobotics.spark.config.SparkMaxConfig;
+import edu.wpi.first.math.controller.PIDController;
+import edu.wpi.first.math.controller.SimpleMotorFeedforward;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N2;
 import edu.wpi.first.math.system.LinearSystem;
 import edu.wpi.first.math.system.plant.DCMotor;
+import edu.wpi.first.networktables.NetworkTable;
+import edu.wpi.first.networktables.NetworkTableEntry;
+import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.Timer;
@@ -22,15 +27,8 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.support.Telemetry;
-import edu.wpi.first.math.controller.PIDController;
-import edu.wpi.first.math.controller.SimpleMotorFeedforward;
-import java.util.function.DoubleSupplier;
 import frc.robot.support.TelemetryLevel;
-import edu.wpi.first.networktables.NetworkTable;
-import edu.wpi.first.networktables.NetworkTableEntry;
-import edu.wpi.first.networktables.NetworkTableInstance;
-import frc.robot.support.limelight.LimelightHelpers;
-import edu.wpi.first.math.geometry.Pose3d;
+import java.util.function.DoubleSupplier;
 
 /**
  * Shooter subsystem — receives fuel balls from the indexer and fires them into the hub.
@@ -177,45 +175,46 @@ public class ShooterSubsystem extends SubsystemBase {
 
         configureMotors();
 
-    // Initialize feedforward and PID controllers with constants from Constants.ShooterConstants
-    // Create PID controllers (gains will be updated from Shuffleboard entries at runtime)
-    this.frontPid = new PIDController(
-        frc.robot.Constants.ShooterConstants.SHOOTER_kP,
-        frc.robot.Constants.ShooterConstants.SHOOTER_kI,
-        frc.robot.Constants.ShooterConstants.SHOOTER_kD);
-    this.rearPid = new PIDController(
-        frc.robot.Constants.ShooterConstants.SHOOTER_kP,
-        frc.robot.Constants.ShooterConstants.SHOOTER_kI,
-        frc.robot.Constants.ShooterConstants.SHOOTER_kD);
+        // Initialize feedforward and PID controllers with constants from Constants.ShooterConstants
+        // Create PID controllers (gains will be updated from Shuffleboard entries at runtime)
+        this.frontPid = new PIDController(
+                frc.robot.Constants.ShooterConstants.SHOOTER_kP,
+                frc.robot.Constants.ShooterConstants.SHOOTER_kI,
+                frc.robot.Constants.ShooterConstants.SHOOTER_kD);
+        this.rearPid = new PIDController(
+                frc.robot.Constants.ShooterConstants.SHOOTER_kP,
+                frc.robot.Constants.ShooterConstants.SHOOTER_kI,
+                frc.robot.Constants.ShooterConstants.SHOOTER_kD);
 
-    // NetworkTables / Shuffleboard tuning table
-    this.shooterTable = NetworkTableInstance.getDefault().getTable("Shooter");
-    this.kPEntry = shooterTable.getEntry("kP");
-    this.kIEntry = shooterTable.getEntry("kI");
-    this.kDEntry = shooterTable.getEntry("kD");
-    this.kSEntry = shooterTable.getEntry("kS");
-    this.kVEntry = shooterTable.getEntry("kV");
-    this.kAEntry = shooterTable.getEntry("kA");
-    this.targetRPMEntry = shooterTable.getEntry("TargetRPM");
+        // NetworkTables / Shuffleboard tuning table
+        this.shooterTable = NetworkTableInstance.getDefault().getTable("Shooter");
+        this.kPEntry = shooterTable.getEntry("kP");
+        this.kIEntry = shooterTable.getEntry("kI");
+        this.kDEntry = shooterTable.getEntry("kD");
+        this.kSEntry = shooterTable.getEntry("kS");
+        this.kVEntry = shooterTable.getEntry("kV");
+        this.kAEntry = shooterTable.getEntry("kA");
+        this.targetRPMEntry = shooterTable.getEntry("TargetRPM");
 
-    // Initialize entries with defaults from Constants (setDefault ensures Shuffleboard doesn't overwrite existing values)
-    this.kPEntry.setDouble(frc.robot.Constants.ShooterConstants.SHOOTER_kP);
-    this.kIEntry.setDouble(frc.robot.Constants.ShooterConstants.SHOOTER_kI);
-    this.kDEntry.setDouble(frc.robot.Constants.ShooterConstants.SHOOTER_kD);
-    this.kSEntry.setDouble(frc.robot.Constants.ShooterConstants.SHOOTER_KS);
-    this.kVEntry.setDouble(frc.robot.Constants.ShooterConstants.SHOOTER_KV);
-    this.kAEntry.setDouble(frc.robot.Constants.ShooterConstants.SHOOTER_KA);
-    this.targetRPMEntry.setDouble(3000.0);
+        // Initialize entries with defaults from Constants (setDefault ensures Shuffleboard doesn't overwrite existing
+        // values)
+        this.kPEntry.setDouble(frc.robot.Constants.ShooterConstants.SHOOTER_kP);
+        this.kIEntry.setDouble(frc.robot.Constants.ShooterConstants.SHOOTER_kI);
+        this.kDEntry.setDouble(frc.robot.Constants.ShooterConstants.SHOOTER_kD);
+        this.kSEntry.setDouble(frc.robot.Constants.ShooterConstants.SHOOTER_KS);
+        this.kVEntry.setDouble(frc.robot.Constants.ShooterConstants.SHOOTER_KV);
+        this.kAEntry.setDouble(frc.robot.Constants.ShooterConstants.SHOOTER_KA);
+        this.targetRPMEntry.setDouble(3000.0);
 
-    // Initialize feedforward objects from constants (they will be refreshed from NT in periodic())
-    this.frontFeedforward = new SimpleMotorFeedforward(
-        frc.robot.Constants.ShooterConstants.SHOOTER_KS,
-        frc.robot.Constants.ShooterConstants.SHOOTER_KV,
-        frc.robot.Constants.ShooterConstants.SHOOTER_KA);
-    this.rearFeedforward = new SimpleMotorFeedforward(
-        frc.robot.Constants.ShooterConstants.SHOOTER_KS,
-        frc.robot.Constants.ShooterConstants.SHOOTER_KV,
-        frc.robot.Constants.ShooterConstants.SHOOTER_KA);
+        // Initialize feedforward objects from constants (they will be refreshed from NT in periodic())
+        this.frontFeedforward = new SimpleMotorFeedforward(
+                frc.robot.Constants.ShooterConstants.SHOOTER_KS,
+                frc.robot.Constants.ShooterConstants.SHOOTER_KV,
+                frc.robot.Constants.ShooterConstants.SHOOTER_KA);
+        this.rearFeedforward = new SimpleMotorFeedforward(
+                frc.robot.Constants.ShooterConstants.SHOOTER_KS,
+                frc.robot.Constants.ShooterConstants.SHOOTER_KV,
+                frc.robot.Constants.ShooterConstants.SHOOTER_KA);
 
         if (RobotBase.isSimulation()) {
             this.frontSparkMaxSim = new SparkMaxSim(frontMotor, DCMotor.getNEO(1));
@@ -527,8 +526,11 @@ public class ShooterSubsystem extends SubsystemBase {
                             closedLoopEnabled = true;
                             // Sample Limelight pose and compute target RPM
                             try {
-                                if (frc.robot.support.limelight.LimelightHelpers.getTargetCount("limelight-front") > 0) {
-                                    var pose3d = frc.robot.support.limelight.LimelightHelpers.getTargetPose3d_RobotSpace("limelight-front");
+                                if (frc.robot.support.limelight.LimelightHelpers.getTargetCount("limelight-front")
+                                        > 0) {
+                                    var pose3d =
+                                            frc.robot.support.limelight.LimelightHelpers.getTargetPose3d_RobotSpace(
+                                                    "limelight-front");
                                     double distance = pose3d.getTranslation().getNorm();
                                     double rpm = frc.robot.Constants.ShooterConstants.SHOOTER_RPM_OFFSET
                                             + frc.robot.Constants.ShooterConstants.SHOOTER_RPM_PER_METER * distance;
