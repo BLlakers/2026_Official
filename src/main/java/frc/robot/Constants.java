@@ -25,16 +25,16 @@ public final class Constants {
      * true as hardware becomes available on the robot.
      */
     public static final class FeatureFlags {
-        public static final boolean ENABLE_TURRET_TRACKER = true;
+        public static final boolean ENABLE_TURRET_TRACKER = false;
         public static final boolean ENABLE_LED_STRAND = false;
-        public static final boolean ENABLE_VISION = true;
+        public static final boolean ENABLE_VISION = false;
 
         public static final boolean ENABLE_CLIMB = false;
         public static final boolean ENABLE_INTAKE = true;
         public static final boolean ENABLE_RELAY = true;
         public static final boolean ENABLE_INDEXER = true;
         public static final boolean ENABLE_SHOOTER = true;
-        public static final boolean ENABLE_TURRET = true;
+        public static final boolean ENABLE_TURRET = false;
     }
 
     public static final class DriverLabels {
@@ -527,24 +527,9 @@ public final class Constants {
     /**
      * Constants for the Shooter subsystem.
      *
-     * <p>The shooter is a differential-velocity dual-roller launcher. Two flywheels of different
-     * diameters grip opposite sides of the 5.91" fuel ball as it passes through a fixed-angle
-     * channel. By independently controlling the speed of each flywheel, the shooter controls
-     * both exit velocity and backspin (Magnus lift), which together determine the trajectory.
-     *
-     * <p>Flywheel geometry:
-     * <ul>
-     *   <li>Front flywheel (A): 3.0" (0.0762 m) diameter</li>
-     *   <li>Rear flywheel (B): 4.0" (0.1016 m) diameter</li>
-     * </ul>
-     *
-     * <p>Speed convention: positive output → ball is fired toward the target. One flywheel
-     * motor must be inverted to grip opposite sides — see
-     * {@link frc.robot.subsystems.shooter.ShooterSubsystemContext}.
-     *
-     * <p>All speed values are open-loop percent output placeholders. The physics-based
-     * inverse solver (see SHOOTER.md) will provide calibrated RPM targets once coefficients
-     * are measured.
+     * <p>Single-flywheel shooter. Speed convention: positive output fires the ball toward
+     * the target. All speed values are open-loop percent output placeholders until
+     * calibrated RPM targets are established.
      */
     public static class ShooterConstants {
 
@@ -552,11 +537,8 @@ public final class Constants {
         // CAN IDs — confirm with build team before first power-on
         // -------------------------------------------------------------------------
 
-        /** CAN ID for the front flywheel motor — flywheel A, 3" diameter (NEO on SparkMax). */
-        public static final int SHOOTER_FRONT_MOTOR_ID = 17;
-
-        /** CAN ID for the rear flywheel motor — flywheel B, 4" diameter (NEO on SparkMax). */
-        public static final int SHOOTER_REAR_MOTOR_ID = 16;
+        /** CAN ID for the shooter flywheel motor (NEO on SparkMax). */
+        public static final int SHOOTER_MOTOR_ID = 16;
 
         // -------------------------------------------------------------------------
         // Current limits
@@ -565,14 +547,11 @@ public final class Constants {
         public static final int SHOOTER_CURRENT_LIMIT = 40; // amps
 
         // -------------------------------------------------------------------------
-        // Gear ratios — both flywheels are direct-drive (motor shaft = flywheel axle)
+        // Gear ratios — direct-drive (motor shaft = flywheel axle)
         // -------------------------------------------------------------------------
 
-        /** Front flywheel gear ratio — direct drive, NEO shaft to 3" flywheel. 1:1. */
-        public static final double SHOOTER_FRONT_GEAR_RATIO = 1.0;
-
-        /** Rear flywheel gear ratio — direct drive, NEO shaft to 4" flywheel. 1:1. */
-        public static final double SHOOTER_REAR_GEAR_RATIO = 1.0;
+        /** Flywheel gear ratio — direct drive, NEO shaft to flywheel. 1:1. */
+        public static final double SHOOTER_GEAR_RATIO = 1.0;
 
         // -------------------------------------------------------------------------
         // Open-loop speeds [-1.0, 1.0]
@@ -581,51 +560,39 @@ public final class Constants {
         // -------------------------------------------------------------------------
 
         /**
-         * Open-loop speed for the front flywheel (A, 3") when shooting. Positive.
-         * <b>TODO: replace with physics-solver RPM target after SHOOTER.md calibration sessions.</b>
+         * Open-loop speed for the flywheel when shooting. Positive.
+         * <b>TODO: replace with physics-solver RPM target after calibration sessions.</b>
          */
-        public static final double SHOOTER_FRONT_SPEED = 0.3; // TODO: tune
+        public static final double SHOOTER_SPEED = 0.68; // TODO: tune
 
         /**
-         * Open-loop speed for the rear flywheel (B, 4") when shooting. Positive.
-         * <b>TODO: replace with physics-solver RPM target after SHOOTER.md calibration sessions.</b>
-         */
-        public static final double SHOOTER_REAR_SPEED = 0.68; // TODO: tune
-
-        /**
-         * Open-loop speed for the front flywheel when reversing. Negative.
+         * Open-loop speed for the flywheel when reversing. Negative.
          * <b>TODO: tune for effective jam clearing.</b>
          */
-        public static final double SHOOTER_FRONT_REVERSE_SPEED = -0.5; // TODO: tune
+        public static final double SHOOTER_REVERSE_SPEED = -0.5; // TODO: tune
 
-        /**
-         * Open-loop speed for the rear flywheel when reversing. Negative.
-         * <b>TODO: tune for effective jam clearing.</b>
-         */
-        public static final double SHOOTER_REAR_REVERSE_SPEED = -0.5; // TODO: tune
+        // ---------------------------------------------------------------------
+        // Feedforward & PID defaults for closed-loop RPM control (tuning required)
+        // ---------------------------------------------------------------------
 
-    // ---------------------------------------------------------------------
-    // Feedforward & PID defaults for closed-loop RPM control (tuning required)
-    // ---------------------------------------------------------------------
+        /** Static gain (volts) to overcome stiction / breakaway. Measured during tuning. */
+        public static final double SHOOTER_KS = 0.0;
 
-    /** Static gain (volts) to overcome stiction / breakaway. Measured during tuning. */
-    public static final double SHOOTER_KS = 0.0;
+        /** Velocity gain (volts per rad/s) — measured from V vs omega data. */
+        public static final double SHOOTER_KV = 0.0;
 
-    /** Velocity gain (volts per rad/s) — measured from V vs omega data. */
-    public static final double SHOOTER_KV = 0.0;
+        /** Acceleration gain (volts per rad/s^2) — optional for aggressive control. */
+        public static final double SHOOTER_KA = 0.0;
 
-    /** Acceleration gain (volts per rad/s^2) — optional for aggressive control. */
-    public static final double SHOOTER_KA = 0.0;
+        // PID gains (units: volts per RPM for P, etc.). Start at zero and tune on robot.
+        public static final double SHOOTER_kP = 0.0;
+        public static final double SHOOTER_kI = 0.0;
+        public static final double SHOOTER_kD = 0.0;
 
-    // PID gains (units: volts per RPM for P, etc.). Start at zero and tune on robot.
-    public static final double SHOOTER_kP = 0.0;
-    public static final double SHOOTER_kI = 0.0;
-    public static final double SHOOTER_kD = 0.0;
-
-    // Mapping from Limelight-measured distance (meters) to RPM: RPM = OFFSET + PER_METER * distance
-    // These defaults are placeholders; tune on the robot or provide a lookup table for accuracy.
-    public static final double SHOOTER_RPM_OFFSET = 2000.0; // RPM at zero distance (placeholder)
-    public static final double SHOOTER_RPM_PER_METER = 300.0; // additional RPM per meter (placeholder)
+        // Mapping from Limelight-measured distance (meters) to RPM: RPM = OFFSET + PER_METER * distance
+        // These defaults are placeholders; tune on the robot or provide a lookup table for accuracy.
+        public static final double SHOOTER_RPM_OFFSET = 2000.0; // RPM at zero distance (placeholder)
+        public static final double SHOOTER_RPM_PER_METER = 300.0; // additional RPM per meter (placeholder)
     }
 
     /**

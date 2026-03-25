@@ -214,7 +214,7 @@ public class TurretTracker extends SubsystemBase {
     }
 
     private Translation2d resolveHubCenter() {
-        if(this.hubCenterOverride){
+        if (this.hubCenterOverride) {
             return this.resolveHubCenterOverride();
         }
 
@@ -226,7 +226,7 @@ public class TurretTracker extends SubsystemBase {
         return blueHubCenter;
     }
 
-    private Translation2d resolveHubCenterOverride(){
+    private Translation2d resolveHubCenterOverride() {
         return hubCenterOverrideIsBlue ? this.blueHubCenter : this.redHubCenter;
     }
 
@@ -336,26 +336,23 @@ public class TurretTracker extends SubsystemBase {
     }
 
     public Command getHubCenterOverrideCommand() {
-        return this.runOnce(
-                        () -> {
-                            this.hubCenterOverride = !this.hubCenterOverride;
-                        })
+        return this.runOnce(() -> {
+                    this.hubCenterOverride = !this.hubCenterOverride;
+                })
                 .withName("TurretTracker.HubCenterOverride");
     }
 
     public Command getHubCenterOverrideToRedCommand() {
-        return this.runOnce(
-                        () -> {
-                            this.hubCenterOverrideIsBlue = false;
-                        })
+        return this.runOnce(() -> {
+                    this.hubCenterOverrideIsBlue = false;
+                })
                 .withName("TurretTracker.HubCenterOverrideToRed");
     }
 
     public Command getHubCenterOverrideToBlueCommand() {
-        return this.runOnce(
-                        () -> {
-                            this.hubCenterOverrideIsBlue = true;
-                        })
+        return this.runOnce(() -> {
+                    this.hubCenterOverrideIsBlue = true;
+                })
                 .withName("TurretTracker.HubCenterOverrideToBlue");
     }
 }

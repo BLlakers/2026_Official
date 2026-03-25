@@ -243,9 +243,10 @@ public class RobotContainer {
         NamedCommands.registerCommand(
                 "Shoot",
                 Commands.parallel(
-                        this.relaySubsystem.getRunCommand().beforeStarting(new WaitCommand(1)),
-                        this.indexerSubsystem.getIndexCommand().beforeStarting(new WaitCommand(1)),
-                        this.shooterSubsystem.getShootCommand()).withTimeout(6));
+                                this.relaySubsystem.getRunCommand().beforeStarting(new WaitCommand(1)),
+                                this.indexerSubsystem.getIndexCommand().beforeStarting(new WaitCommand(1)),
+                                this.shooterSubsystem.getShootCommand())
+                        .withTimeout(6));
     }
 
     /**
@@ -380,42 +381,24 @@ public class RobotContainer {
         }
 
         // Debug Controller - Shooter flywheel speed tuning
-        // Hold LT to spin both flywheels at the current setpoints, then tap face buttons to adjust.
-        // The adjust commands do not require the shooter subsystem, so they can be tapped
-        // concurrently while LT is held — runForward() picks up the new value on the next loop.
-        //
-        // Debug LT (held) → run shooter at current setpoints  (listen / measure)
-        // Debug Y  (tap)  → front flywheel speed +2%
-        // Debug A  (tap)  → front flywheel speed -2%
-        // Debug B  (tap)  → rear  flywheel speed +2%
-        // Debug X  (tap)  → rear  flywheel speed -2%
-        //
-        // Watch Shooter/Front/SpeedSetpoint and Shooter/Rear/SpeedSetpoint in telemetry
-        // to confirm the current values before writing them back to Constants.
-    if (this.shooterSubsystem != null) {
-        // OLD debug bindings (commented out) — replaced by tunable / vision RPM commands
-        // this.debugController.leftTrigger().whileTrue(this.shooterSubsystem.getShootCommand());
-        // this.debugController.y().onTrue(this.shooterSubsystem.getIncreaseFrontSpeedCommand());
-        // this.debugController.a().onTrue(this.shooterSubsystem.getDecreaseFrontSpeedCommand());
-        // this.debugController.b().onTrue(this.shooterSubsystem.getIncreaseRearSpeedCommand());
-        // this.debugController.x().onTrue(this.shooterSubsystem.getDecreaseRearSpeedCommand());
+        // Watch Shooter/SpeedSetpoint in telemetry to confirm values.
+        if (this.shooterSubsystem != null) {
+            // OLD debug bindings (commented out) — replaced by tunable / vision RPM commands
+            // this.debugController.leftTrigger().whileTrue(this.shooterSubsystem.getShootCommand());
+            // this.debugController.y().onTrue(this.shooterSubsystem.getIncreaseSpeedCommand());
+            // this.debugController.a().onTrue(this.shooterSubsystem.getDecreaseSpeedCommand());
 
-        // New debug bindings:
-        // Button A (held) -> Run shooter closed-loop with TargetRPM read from Shuffleboard (Shooter/TargetRPM)
-        this.debugController.a().whileTrue(
-            this.shooterSubsystem.getShootRPMCommand(
-                () -> edu.wpi.first.networktables.NetworkTableInstance.getDefault()
-                    .getTable("Shooter")
-                    .getEntry("TargetRPM")
-                    .getDouble(3000.0),
-                () -> edu.wpi.first.networktables.NetworkTableInstance.getDefault()
-                    .getTable("Shooter")
-                    .getEntry("TargetRPM")
-                    .getDouble(3000.0)));
+            // New debug bindings:
+            // Button A (held) -> Run shooter closed-loop with TargetRPM read from Shuffleboard (Shooter/TargetRPM)
+            this.debugController
+                    .a()
+                    .whileTrue(this.shooterSubsystem.getShootRPMCommand(
+                            () -> edu.wpi.first.wpilibj.smartdashboard.SmartDashboard.getNumber(
+                                    "Shooter/TargetRPM", 3000.0)));
 
-        // Button B (held) -> Vision (Limelight)-guided shooter closed-loop
-        this.debugController.b().whileTrue(this.shooterSubsystem.getShootWithLimelightCommand());
-    }
+            // Button B (held) -> Vision (Limelight)-guided shooter closed-loop
+            this.debugController.b().whileTrue(this.shooterSubsystem.getShootWithLimelightCommand());
+        }
     }
 
     private void configureShuffleboard() {

@@ -6,8 +6,6 @@ import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.subsystems.drivetrain.Drivetrain;
-import frc.robot.support.Telemetry;
-import frc.robot.support.TelemetryLevel;
 import frc.robot.support.limelight.LimelightHelpers;
 
 public class LimelightAlignCommand extends Command {
@@ -22,8 +20,8 @@ public class LimelightAlignCommand extends Command {
     public LimelightAlignCommand(Drivetrain drivetrainSubsystem) {
         m_drivetrain = drivetrainSubsystem;
         addRequirements(drivetrainSubsystem);
-    //Acceptable anglar error for alignment: 1 degree
-    m_omegaController.setTolerance(Units.degreesToRadians(1.0));
+        // Acceptable anglar error for alignment: 1 degree
+        m_omegaController.setTolerance(Units.degreesToRadians(1.0));
     }
 
     @Override
@@ -32,9 +30,8 @@ public class LimelightAlignCommand extends Command {
     @Override
     public void execute() {
         int numTargets = LimelightHelpers.getTargetCount("limelight-front");
-         SmartDashboard.putNumber(m_drivetrain.getName() + "/LimelightAlign/numTargets", numTargets);
-        if (numTargets
-                == 0) { // is valid if > 0: we update our current estimate of where the april tag is
+        SmartDashboard.putNumber(m_drivetrain.getName() + "/LimelightAlign/numTargets", numTargets);
+        if (numTargets == 0) { // is valid if > 0: we update our current estimate of where the april tag is
             // relative to the robot
             m_drivetrain.stopModules();
             return;

@@ -10,6 +10,8 @@ import com.revrobotics.spark.SparkLowLevel.MotorType;
 import com.revrobotics.spark.SparkMax;
 import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 import com.revrobotics.spark.config.SparkMaxConfig;
+import edu.wpi.first.math.controller.PIDController;
+import edu.wpi.first.math.controller.SimpleMotorFeedforward;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N2;
 import edu.wpi.first.math.system.LinearSystem;
@@ -18,48 +20,16 @@ import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.simulation.DCMotorSim;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.support.Telemetry;
-import edu.wpi.first.math.controller.PIDController;
-import edu.wpi.first.math.controller.SimpleMotorFeedforward;
-import java.util.function.DoubleSupplier;
 import frc.robot.support.TelemetryLevel;
-import edu.wpi.first.networktables.NetworkTable;
-import edu.wpi.first.networktables.NetworkTableEntry;
-import edu.wpi.first.networktables.NetworkTableInstance;
-import frc.robot.support.limelight.LimelightHelpers;
-import edu.wpi.first.math.geometry.Pose3d;
+import java.util.function.DoubleSupplier;
 
 /**
- * Shooter subsystem — receives fuel balls from the indexer and fires them into the hub.
- *
- * <h2>Mechanism Overview</h2>
- * <p>The shooter is a differential-velocity dual-roller launcher. A fixed-angle channel
- * (~23°) guides each ball past two independently controlled flywheels:
- * <ul>
- *   <li><b>Front flywheel (A)</b> — 3.0" diameter, contacts one side of the ball</li>
- *   <li><b>Rear flywheel (B)</b> — 4.0" diameter, contacts the opposite side</li>
- * </ul>
- * Both wheels spin in the same physical direction relative to the ball to eject it; because
- * they grip opposite sides, exactly one motor must be inverted so that positive output
- * on both motors fires the ball forward.
- *
- * <h2>Physics</h2>
- * <p>Exit velocity and backspin are both determined by the flywheel surface speeds:
- * <pre>
- *   v_exit = eta * (v_A + v_B) / 2        (controls range)
- *   omega  = eta_spin * (v_A - v_B) / d   (controls Magnus lift)
- * </pre>
- * where {@code v_A} and {@code v_B} are the surface speeds (m/s) of the front and rear
- * flywheels, {@code eta} is the energy transfer efficiency, and {@code d} is the ball
- * diameter. More backspin → more Magnus lift → higher, more arched trajectory.
- *
- * <p>The two flywheels are independently commanded to exploit the 4"/3" diameter ratio
- * (1.33× surface speed difference at equal RPM) for backspin control. The open-loop
- * speed stubs here are temporary — see {@code SHOOTER.md} for the calibration plan and
- * physics-based inverse solver that will replace them.
+ * Shooter subsystem — single-flywheel launcher.
  *
  * <h2>Speed Convention</h2>
  * <ul>
@@ -69,70 +39,50 @@ import edu.wpi.first.math.geometry.Pose3d;
  *
  * <h2>Coordination</h2>
  * <p>The shooter is commanded in unison with the relay and indexer via a
- * {@code Commands.parallel()} group bound to the manipulator right trigger. It is not
- * intended to run independently during normal match play.
- *
- * <h2>Build Team TODOs</h2>
- * <ul>
- *   <li>Confirm motor inversion — exactly one motor must be inverted so that positive
- *       output on both motors fires the ball forward.
- *       See {@link ShooterSubsystemContext#isShooterFrontMotorInverted()} and
- *       {@link ShooterSubsystemContext#isShooterRearMotorInverted()}</li>
- *   <li>Tune open-loop speeds as an initial smoke-test before calibration</li>
- *   <li>After SHOOTER.md calibration sessions, replace percent-output control with
- *       PID velocity closed-loop and the physics-based inverse solver</li>
- * </ul>
+ * {@code Commands.parallel()} group bound to the manipulator right trigger.
  */
 public class ShooterSubsystem extends SubsystemBase {
 
     private static final String TELEMETRY_PREFIX = "Shooter";
 
     /**
-     * Step size applied to a flywheel speed setpoint on each increase/decrease command tap.
+     * Step size applied to the flywheel speed setpoint on each increase/decrease command tap.
      * 0.02 = 2% motor output per tap → 50 steps across the full [0, 1] range.
      */
     private static final double SPEED_STEP = 0.02;
 
     /** Operating states of the shooter mechanism. */
     public enum State {
-        /** Both flywheel motors stopped. */
+        /** Flywheel motor stopped. */
         IDLE,
-        /** Both flywheel motors spinning to fire balls. */
+        /** Flywheel motor spinning to fire balls. */
         SHOOTING,
-        /** Both flywheel motors spinning in reverse to clear jams / eject balls. */
+        /** Flywheel motor spinning in reverse to clear jams / eject balls. */
         REVERSING,
     }
 
     private final ShooterSubsystemContext context;
 
-    // Motors — one per flywheel
-    private final SparkMax frontMotor; // NEO — front flywheel A, 3" diameter
-    private final SparkMax rearMotor; // NEO — rear flywheel B, 4" diameter
+    private final SparkMax motor;
 
-    // Runtime-adjustable speed setpoints — initialised from context, tunable via debug commands.
-    // runForward() reads these each loop so changes take effect immediately while shooting.
-    private double frontSpeedSetpoint;
-    private double rearSpeedSetpoint;
+    // Runtime-adjustable speed setpoint — initialised from context, tunable via debug commands.
+    private double speedSetpoint;
 
     // Closed-loop control fields (feedforward + PID)
-    private SimpleMotorFeedforward frontFeedforward;
-    private SimpleMotorFeedforward rearFeedforward;
-    private final PIDController frontPid;
-    private final PIDController rearPid;
+    private SimpleMotorFeedforward feedforward;
+    private final PIDController pid;
 
-    // NetworkTable entries for live tuning via Shuffleboard
-    private final NetworkTable shooterTable;
-    private final NetworkTableEntry kPEntry;
-    private final NetworkTableEntry kIEntry;
-    private final NetworkTableEntry kDEntry;
-    private final NetworkTableEntry kSEntry;
-    private final NetworkTableEntry kVEntry;
-    private final NetworkTableEntry kAEntry;
-    private final NetworkTableEntry targetRPMEntry;
+    // SmartDashboard keys for live tuning via Shuffleboard
+    private static final String SD_KP = "Shooter/kP";
+    private static final String SD_KI = "Shooter/kI";
+    private static final String SD_KD = "Shooter/kD";
+    private static final String SD_KS = "Shooter/kS";
+    private static final String SD_KV = "Shooter/kV";
+    private static final String SD_KA = "Shooter/kA";
+    private static final String SD_TARGET_RPM = "Shooter/TargetRPM";
 
-    // Target RPMs for closed-loop control
-    private double targetFrontRPM = 0.0;
-    private double targetRearRPM = 0.0;
+    // Target RPM for closed-loop control
+    private double targetRPM = 0.0;
 
     // Whether closed-loop velocity control is active
     private boolean closedLoopEnabled = false;
@@ -143,10 +93,8 @@ public class ShooterSubsystem extends SubsystemBase {
     // Simulation fields (only initialized when RobotBase.isSimulation())
     // -------------------------------------------------------------------------
 
-    private DCMotorSim frontMotorSim;
-    private SparkMaxSim frontSparkMaxSim;
-    private DCMotorSim rearMotorSim;
-    private SparkMaxSim rearSparkMaxSim;
+    private DCMotorSim motorSim;
+    private SparkMaxSim sparkMaxSim;
     private double lastSimTime = 0.0;
 
     // -------------------------------------------------------------------------
@@ -169,64 +117,38 @@ public class ShooterSubsystem extends SubsystemBase {
         requireNonNull(context, "ShooterSubsystemContext cannot be null");
         this.context = context;
 
-        this.frontMotor = new SparkMax(context.getShooterFrontMotorId(), MotorType.kBrushless);
-        this.rearMotor = new SparkMax(context.getShooterRearMotorId(), MotorType.kBrushless);
+        this.motor = new SparkMax(context.getShooterMotorId(), MotorType.kBrushless);
 
-        this.frontSpeedSetpoint = context.getShooterFrontSpeed();
-        this.rearSpeedSetpoint = context.getShooterRearSpeed();
+        this.speedSetpoint = context.getShooterSpeed();
 
-        configureMotors();
+        configureMotor();
 
-    // Initialize feedforward and PID controllers with constants from Constants.ShooterConstants
-    // Create PID controllers (gains will be updated from Shuffleboard entries at runtime)
-    this.frontPid = new PIDController(
-        frc.robot.Constants.ShooterConstants.SHOOTER_kP,
-        frc.robot.Constants.ShooterConstants.SHOOTER_kI,
-        frc.robot.Constants.ShooterConstants.SHOOTER_kD);
-    this.rearPid = new PIDController(
-        frc.robot.Constants.ShooterConstants.SHOOTER_kP,
-        frc.robot.Constants.ShooterConstants.SHOOTER_kI,
-        frc.robot.Constants.ShooterConstants.SHOOTER_kD);
+        // Initialize PID controller (gains will be updated from Shuffleboard entries at runtime)
+        this.pid = new PIDController(
+                frc.robot.Constants.ShooterConstants.SHOOTER_kP,
+                frc.robot.Constants.ShooterConstants.SHOOTER_kI,
+                frc.robot.Constants.ShooterConstants.SHOOTER_kD);
 
-    // NetworkTables / Shuffleboard tuning table
-    this.shooterTable = NetworkTableInstance.getDefault().getTable("Shooter");
-    this.kPEntry = shooterTable.getEntry("kP");
-    this.kIEntry = shooterTable.getEntry("kI");
-    this.kDEntry = shooterTable.getEntry("kD");
-    this.kSEntry = shooterTable.getEntry("kS");
-    this.kVEntry = shooterTable.getEntry("kV");
-    this.kAEntry = shooterTable.getEntry("kA");
-    this.targetRPMEntry = shooterTable.getEntry("TargetRPM");
+        // Seed SmartDashboard with defaults — editable from Shuffleboard at runtime
+        SmartDashboard.putNumber(SD_KP, frc.robot.Constants.ShooterConstants.SHOOTER_kP);
+        SmartDashboard.putNumber(SD_KI, frc.robot.Constants.ShooterConstants.SHOOTER_kI);
+        SmartDashboard.putNumber(SD_KD, frc.robot.Constants.ShooterConstants.SHOOTER_kD);
+        SmartDashboard.putNumber(SD_KS, frc.robot.Constants.ShooterConstants.SHOOTER_KS);
+        SmartDashboard.putNumber(SD_KV, frc.robot.Constants.ShooterConstants.SHOOTER_KV);
+        SmartDashboard.putNumber(SD_KA, frc.robot.Constants.ShooterConstants.SHOOTER_KA);
+        SmartDashboard.putNumber(SD_TARGET_RPM, 3000.0);
 
-    // Initialize entries with defaults from Constants (setDefault ensures Shuffleboard doesn't overwrite existing values)
-    this.kPEntry.setDouble(frc.robot.Constants.ShooterConstants.SHOOTER_kP);
-    this.kIEntry.setDouble(frc.robot.Constants.ShooterConstants.SHOOTER_kI);
-    this.kDEntry.setDouble(frc.robot.Constants.ShooterConstants.SHOOTER_kD);
-    this.kSEntry.setDouble(frc.robot.Constants.ShooterConstants.SHOOTER_KS);
-    this.kVEntry.setDouble(frc.robot.Constants.ShooterConstants.SHOOTER_KV);
-    this.kAEntry.setDouble(frc.robot.Constants.ShooterConstants.SHOOTER_KA);
-    this.targetRPMEntry.setDouble(3000.0);
-
-    // Initialize feedforward objects from constants (they will be refreshed from NT in periodic())
-    this.frontFeedforward = new SimpleMotorFeedforward(
-        frc.robot.Constants.ShooterConstants.SHOOTER_KS,
-        frc.robot.Constants.ShooterConstants.SHOOTER_KV,
-        frc.robot.Constants.ShooterConstants.SHOOTER_KA);
-    this.rearFeedforward = new SimpleMotorFeedforward(
-        frc.robot.Constants.ShooterConstants.SHOOTER_KS,
-        frc.robot.Constants.ShooterConstants.SHOOTER_KV,
-        frc.robot.Constants.ShooterConstants.SHOOTER_KA);
+        // Initialize feedforward from constants (refreshed from NT in periodic())
+        this.feedforward = new SimpleMotorFeedforward(
+                frc.robot.Constants.ShooterConstants.SHOOTER_KS,
+                frc.robot.Constants.ShooterConstants.SHOOTER_KV,
+                frc.robot.Constants.ShooterConstants.SHOOTER_KA);
 
         if (RobotBase.isSimulation()) {
-            this.frontSparkMaxSim = new SparkMaxSim(frontMotor, DCMotor.getNEO(1));
-            LinearSystem<N2, N1, N2> frontPlant =
-                    createDCMotorSystem(DCMotor.getNEO(1), 0.001, context.getShooterFrontGearRatio());
-            this.frontMotorSim = new DCMotorSim(frontPlant, DCMotor.getNEO(1));
-
-            this.rearSparkMaxSim = new SparkMaxSim(rearMotor, DCMotor.getNEO(1));
-            LinearSystem<N2, N1, N2> rearPlant =
-                    createDCMotorSystem(DCMotor.getNEO(1), 0.001, context.getShooterRearGearRatio());
-            this.rearMotorSim = new DCMotorSim(rearPlant, DCMotor.getNEO(1));
+            this.sparkMaxSim = new SparkMaxSim(motor, DCMotor.getNEO(1));
+            LinearSystem<N2, N1, N2> plant =
+                    createDCMotorSystem(DCMotor.getNEO(1), 0.001, context.getShooterGearRatio());
+            this.motorSim = new DCMotorSim(plant, DCMotor.getNEO(1));
 
             this.lastSimTime = Timer.getFPGATimestamp();
         }
@@ -238,20 +160,12 @@ public class ShooterSubsystem extends SubsystemBase {
     // Configuration
     // -------------------------------------------------------------------------
 
-    private void configureMotors() {
-        // Front flywheel (A, 3")
-        SparkMaxConfig frontConfig = new SparkMaxConfig();
-        frontConfig.smartCurrentLimit(context.getShooterCurrentLimit());
-        frontConfig.idleMode(IdleMode.kCoast); // Coast — let flywheels spin down freely
-        frontConfig.inverted(context.isShooterFrontMotorInverted());
-        frontMotor.configure(frontConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
-
-        // Rear flywheel (B, 4")
-        SparkMaxConfig rearConfig = new SparkMaxConfig();
-        rearConfig.smartCurrentLimit(context.getShooterCurrentLimit());
-        rearConfig.idleMode(IdleMode.kCoast); // Coast — let flywheels spin down freely
-        rearConfig.inverted(context.isShooterRearMotorInverted());
-        rearMotor.configure(rearConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
+    private void configureMotor() {
+        SparkMaxConfig config = new SparkMaxConfig();
+        config.smartCurrentLimit(context.getShooterCurrentLimit());
+        config.idleMode(IdleMode.kCoast);
+        config.inverted(context.isShooterMotorInverted());
+        motor.configure(config, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
     }
 
     // -------------------------------------------------------------------------
@@ -276,26 +190,19 @@ public class ShooterSubsystem extends SubsystemBase {
     // -------------------------------------------------------------------------
 
     private void runForward() {
-        frontMotor.set(frontSpeedSetpoint);
-        rearMotor.set(rearSpeedSetpoint);
+        motor.set(speedSetpoint);
     }
 
-    private void adjustFrontSpeed(double delta) {
-        frontSpeedSetpoint = Math.min(1.0, Math.max(0.0, frontSpeedSetpoint + delta));
-    }
-
-    private void adjustRearSpeed(double delta) {
-        rearSpeedSetpoint = Math.min(1.0, Math.max(0.0, rearSpeedSetpoint + delta));
+    private void adjustSpeed(double delta) {
+        speedSetpoint = Math.min(1.0, Math.max(0.0, speedSetpoint + delta));
     }
 
     private void runReverse() {
-        frontMotor.set(context.getShooterFrontReverseSpeed());
-        rearMotor.set(context.getShooterRearReverseSpeed());
+        motor.set(context.getShooterReverseSpeed());
     }
 
     private void stop() {
-        frontMotor.set(0);
-        rearMotor.set(0);
+        motor.set(0);
     }
 
     // -------------------------------------------------------------------------
@@ -303,16 +210,9 @@ public class ShooterSubsystem extends SubsystemBase {
     // -------------------------------------------------------------------------
 
     /**
-     * Shoot command — spins both flywheels to fire balls toward the hub.
+     * Shoot command — spins the flywheel to fire balls toward the hub.
      *
-     * <p>Intended to run in parallel with {@code RelaySubsystem.getRunCommand()} and
-     * {@code IndexerSubsystem.getIndexCommand()} via a {@code Commands.parallel()} group
-     * on the manipulator right trigger.
-     * Held-button: runs while held, stops on release.
-     *
-     * <p><b>Note:</b> Current implementation uses open-loop percent output. Once the
-     * physics-based inverse solver from SHOOTER.md is integrated, this command will accept
-     * a distance-to-target supplier and set flywheel RPM targets via PID closed-loop.
+     * <p>Held-button: runs while held, stops on release.
      *
      * @return Command that runs the shooter while held
      */
@@ -330,12 +230,9 @@ public class ShooterSubsystem extends SubsystemBase {
     }
 
     /**
-     * Reverse command — spins both flywheels in reverse to clear jams or eject balls.
+     * Reverse command — spins the flywheel in reverse to clear jams or eject balls.
      *
-     * <p>Intended to run in parallel with {@code RelaySubsystem.getReverseCommand()} and
-     * {@code IndexerSubsystem.getReverseCommand()} via a {@code Commands.parallel()} group
-     * on the manipulator right bumper.
-     * Held-button: runs while held, stops on release.
+     * <p>Held-button: runs while held, stops on release.
      *
      * @return Command that reverses the shooter while held
      */
@@ -353,7 +250,7 @@ public class ShooterSubsystem extends SubsystemBase {
     }
 
     /**
-     * Stop command — stops both flywheel motors (emergency / safe shutdown).
+     * Stop command — stops the flywheel motor (emergency / safe shutdown).
      *
      * @return Command that stops the shooter
      */
@@ -366,43 +263,21 @@ public class ShooterSubsystem extends SubsystemBase {
     }
 
     /**
-     * Increases the front flywheel speed setpoint by {@value #SPEED_STEP} (clamped to 1.0).
+     * Increases the flywheel speed setpoint by {@value #SPEED_STEP} (clamped to 1.0).
      *
-     * <p>Does <em>not</em> require the shooter subsystem, so it can be tapped while
-     * {@link #getShootCommand()} is held — the running command reads the updated setpoint
-     * on its next loop.
-     *
-     * @return Instant command that bumps the front setpoint up one step
+     * @return Instant command that bumps the setpoint up one step
      */
-    public Command getIncreaseFrontSpeedCommand() {
-        return Commands.runOnce(() -> adjustFrontSpeed(SPEED_STEP)).withName("Shooter.FrontSpeed+");
+    public Command getIncreaseSpeedCommand() {
+        return Commands.runOnce(() -> adjustSpeed(SPEED_STEP)).withName("Shooter.Speed+");
     }
 
     /**
-     * Decreases the front flywheel speed setpoint by {@value #SPEED_STEP} (clamped to 0.0).
+     * Decreases the flywheel speed setpoint by {@value #SPEED_STEP} (clamped to 0.0).
      *
-     * @return Instant command that bumps the front setpoint down one step
+     * @return Instant command that bumps the setpoint down one step
      */
-    public Command getDecreaseFrontSpeedCommand() {
-        return Commands.runOnce(() -> adjustFrontSpeed(-SPEED_STEP)).withName("Shooter.FrontSpeed-");
-    }
-
-    /**
-     * Increases the rear flywheel speed setpoint by {@value #SPEED_STEP} (clamped to 1.0).
-     *
-     * @return Instant command that bumps the rear setpoint up one step
-     */
-    public Command getIncreaseRearSpeedCommand() {
-        return Commands.runOnce(() -> adjustRearSpeed(SPEED_STEP)).withName("Shooter.RearSpeed+");
-    }
-
-    /**
-     * Decreases the rear flywheel speed setpoint by {@value #SPEED_STEP} (clamped to 0.0).
-     *
-     * @return Instant command that bumps the rear setpoint down one step
-     */
-    public Command getDecreaseRearSpeedCommand() {
-        return Commands.runOnce(() -> adjustRearSpeed(-SPEED_STEP)).withName("Shooter.RearSpeed-");
+    public Command getDecreaseSpeedCommand() {
+        return Commands.runOnce(() -> adjustSpeed(-SPEED_STEP)).withName("Shooter.Speed-");
     }
 
     // -------------------------------------------------------------------------
@@ -411,42 +286,31 @@ public class ShooterSubsystem extends SubsystemBase {
 
     private void initializeTelemetry() {
         Telemetry.registerSubsystem(TELEMETRY_PREFIX, this::captureTelemetry);
-        Telemetry.event(
-                TELEMETRY_PREFIX + "/Started",
-                "FrontMotorID=" + context.getShooterFrontMotorId() + " RearMotorID=" + context.getShooterRearMotorId());
+        Telemetry.event(TELEMETRY_PREFIX + "/Started", "MotorID=" + context.getShooterMotorId());
     }
 
     private void captureTelemetry(String prefix) {
         // MATCH level
         Telemetry.record(prefix + "/State", currentState.name(), TelemetryLevel.MATCH);
         Telemetry.publish(prefix + "/State", currentState.name(), TelemetryLevel.MATCH);
-        Telemetry.publish(prefix + "/Front/OutputPercent", frontMotor.getAppliedOutput(), TelemetryLevel.MATCH);
-        Telemetry.publish(prefix + "/Rear/OutputPercent", rearMotor.getAppliedOutput(), TelemetryLevel.MATCH);
+        Telemetry.publish(prefix + "/OutputPercent", motor.getAppliedOutput(), TelemetryLevel.MATCH);
 
         // LAB level
-        Telemetry.record(prefix + "/Front/Current", frontMotor.getOutputCurrent(), TelemetryLevel.LAB);
-        Telemetry.record(prefix + "/Rear/Current", rearMotor.getOutputCurrent(), TelemetryLevel.LAB);
-        Telemetry.publish(prefix + "/Front/SpeedSetpoint", frontSpeedSetpoint, TelemetryLevel.LAB);
-        Telemetry.publish(prefix + "/Rear/SpeedSetpoint", rearSpeedSetpoint, TelemetryLevel.LAB);
+        Telemetry.record(prefix + "/Current", motor.getOutputCurrent(), TelemetryLevel.LAB);
+        Telemetry.publish(prefix + "/SpeedSetpoint", speedSetpoint, TelemetryLevel.LAB);
 
         // VERBOSE level
         if (RobotBase.isSimulation()) {
-            Telemetry.record(
-                    prefix + "/Front/VelocityRPM", frontMotorSim.getAngularVelocityRPM(), TelemetryLevel.VERBOSE);
-            Telemetry.record(
-                    prefix + "/Rear/VelocityRPM", rearMotorSim.getAngularVelocityRPM(), TelemetryLevel.VERBOSE);
+            Telemetry.record(prefix + "/VelocityRPM", motorSim.getAngularVelocityRPM(), TelemetryLevel.VERBOSE);
         }
         // Real robot velocity telemetry (LAB level)
         try {
-            double frontRpm = frontMotor.getEncoder().getVelocity();
-            double rearRpm = rearMotor.getEncoder().getVelocity();
-            Telemetry.publish(prefix + "/Front/VelocityRPM", frontRpm, TelemetryLevel.LAB);
-            Telemetry.publish(prefix + "/Rear/VelocityRPM", rearRpm, TelemetryLevel.LAB);
+            double rpm = motor.getEncoder().getVelocity();
+            Telemetry.publish(prefix + "/VelocityRPM", rpm, TelemetryLevel.LAB);
         } catch (Exception ignore) {
-            // Encoder may not be available in some build configs — ignore telemetry in that case.
+            // Encoder may not be available in some build configs
         }
-        Telemetry.publish(prefix + "/Front/TargetRPM", targetFrontRPM, TelemetryLevel.LAB);
-        Telemetry.publish(prefix + "/Rear/TargetRPM", targetRearRPM, TelemetryLevel.LAB);
+        Telemetry.publish(prefix + "/TargetRPM", targetRPM, TelemetryLevel.LAB);
     }
 
     // -------------------------------------------------------------------------
@@ -455,62 +319,44 @@ public class ShooterSubsystem extends SubsystemBase {
 
     @Override
     public void periodic() {
-        // Refresh gains from Shuffleboard / NetworkTables so they can be tuned live
-        double kp = kPEntry.getDouble(frc.robot.Constants.ShooterConstants.SHOOTER_kP);
-        double ki = kIEntry.getDouble(frc.robot.Constants.ShooterConstants.SHOOTER_kI);
-        double kd = kDEntry.getDouble(frc.robot.Constants.ShooterConstants.SHOOTER_kD);
-        double ks = kSEntry.getDouble(frc.robot.Constants.ShooterConstants.SHOOTER_KS);
-        double kv = kVEntry.getDouble(frc.robot.Constants.ShooterConstants.SHOOTER_KV);
-        double ka = kAEntry.getDouble(frc.robot.Constants.ShooterConstants.SHOOTER_KA);
+        // Refresh gains from SmartDashboard so they can be tuned live in Shuffleboard
+        double kp = SmartDashboard.getNumber(SD_KP, frc.robot.Constants.ShooterConstants.SHOOTER_kP);
+        double ki = SmartDashboard.getNumber(SD_KI, frc.robot.Constants.ShooterConstants.SHOOTER_kI);
+        double kd = SmartDashboard.getNumber(SD_KD, frc.robot.Constants.ShooterConstants.SHOOTER_kD);
+        double ks = SmartDashboard.getNumber(SD_KS, frc.robot.Constants.ShooterConstants.SHOOTER_KS);
+        double kv = SmartDashboard.getNumber(SD_KV, frc.robot.Constants.ShooterConstants.SHOOTER_KV);
+        double ka = SmartDashboard.getNumber(SD_KA, frc.robot.Constants.ShooterConstants.SHOOTER_KA);
 
-        // Apply gains to controllers and feedforward instances
-        frontPid.setP(kp);
-        frontPid.setI(ki);
-        frontPid.setD(kd);
-        rearPid.setP(kp);
-        rearPid.setI(ki);
-        rearPid.setD(kd);
+        // Apply gains to controller and feedforward
+        pid.setP(kp);
+        pid.setI(ki);
+        pid.setD(kd);
 
-        this.frontFeedforward = new SimpleMotorFeedforward(ks, kv, ka);
-        this.rearFeedforward = new SimpleMotorFeedforward(ks, kv, ka);
+        this.feedforward = new SimpleMotorFeedforward(ks, kv, ka);
 
-        // If closed-loop control is enabled, compute feedforward+PID and apply voltages.
+        // If closed-loop control is enabled, compute feedforward+PID and apply voltage.
         if (closedLoopEnabled) {
-            // Measure RPMs
-            double measuredFrontRPM = RobotBase.isSimulation() && frontMotorSim != null
-                    ? frontMotorSim.getAngularVelocityRPM()
-                    : frontMotor.getEncoder().getVelocity();
-            double measuredRearRPM = RobotBase.isSimulation() && rearMotorSim != null
-                    ? rearMotorSim.getAngularVelocityRPM()
-                    : rearMotor.getEncoder().getVelocity();
+            double measuredRPM = RobotBase.isSimulation() && motorSim != null
+                    ? motorSim.getAngularVelocityRPM()
+                    : motor.getEncoder().getVelocity();
 
             // Feedforward expects angular velocity (rad/s). Convert RPM -> rad/s.
-            double targetFrontRadPerSec = targetFrontRPM / 60.0 * 2.0 * Math.PI;
-            double targetRearRadPerSec = targetRearRPM / 60.0 * 2.0 * Math.PI;
+            double targetRadPerSec = targetRPM / 60.0 * 2.0 * Math.PI;
 
-            double ffFront = frontFeedforward.calculate(targetFrontRadPerSec);
-            double ffRear = rearFeedforward.calculate(targetRearRadPerSec);
+            double ff = feedforward.calculate(targetRadPerSec);
+            double pidOutput = pid.calculate(measuredRPM, targetRPM);
 
-            // PID controllers operate in RPM space (gains are volts per RPM)
-            double pidFront = frontPid.calculate(measuredFrontRPM, targetFrontRPM);
-            double pidRear = rearPid.calculate(measuredRearRPM, targetRearRPM);
-
-            double outFrontVolts = ffFront + pidFront;
-            double outRearVolts = ffRear + pidRear;
+            double outVolts = ff + pidOutput;
 
             // Clamp to battery voltage for safety
             double vmax = RobotController.getBatteryVoltage();
-            outFrontVolts = Math.max(-vmax, Math.min(vmax, outFrontVolts));
-            outRearVolts = Math.max(-vmax, Math.min(vmax, outRearVolts));
+            outVolts = Math.max(-vmax, Math.min(vmax, outVolts));
 
-            // Apply voltages
+            // Apply voltage
             try {
-                frontMotor.setVoltage(outFrontVolts);
-                rearMotor.setVoltage(outRearVolts);
+                motor.setVoltage(outVolts);
             } catch (Exception e) {
-                // Fallback to percent output if voltage API unavailable
-                frontMotor.set(outFrontVolts / Math.max(0.1, vmax));
-                rearMotor.set(outRearVolts / Math.max(0.1, vmax));
+                motor.set(outVolts / Math.max(0.1, vmax));
             }
         }
     }
@@ -518,21 +364,22 @@ public class ShooterSubsystem extends SubsystemBase {
     /**
      * Returns a command that uses Limelight AprilTag pose to compute a target RPM and
      * runs closed-loop shooter control while held.
-     * Uses constants in {@link frc.robot.Constants.ShooterConstants} for mapping.
      */
     public Command getShootWithLimelightCommand() {
         return this.runEnd(
                         () -> {
                             setState(State.SHOOTING);
                             closedLoopEnabled = true;
-                            // Sample Limelight pose and compute target RPM
                             try {
-                                if (frc.robot.support.limelight.LimelightHelpers.getTargetCount("limelight-front") > 0) {
-                                    var pose3d = frc.robot.support.limelight.LimelightHelpers.getTargetPose3d_RobotSpace("limelight-front");
+                                if (frc.robot.support.limelight.LimelightHelpers.getTargetCount("limelight-front")
+                                        > 0) {
+                                    var pose3d =
+                                            frc.robot.support.limelight.LimelightHelpers.getTargetPose3d_RobotSpace(
+                                                    "limelight-front");
                                     double distance = pose3d.getTranslation().getNorm();
                                     double rpm = frc.robot.Constants.ShooterConstants.SHOOTER_RPM_OFFSET
                                             + frc.robot.Constants.ShooterConstants.SHOOTER_RPM_PER_METER * distance;
-                                    setTargetRPMs(rpm, rpm);
+                                    setTargetRPM(rpm);
                                 }
                             } catch (Exception ignore) {
                                 // Don't update target if limelight data unavailable
@@ -550,47 +397,30 @@ public class ShooterSubsystem extends SubsystemBase {
     // Closed-loop helpers & command factories
     // -------------------------------------------------------------------------
 
-    /** Set both target RPMs for closed-loop control. */
-    public void setTargetRPMs(double frontRpm, double rearRpm) {
-        this.targetFrontRPM = frontRpm;
-        this.targetRearRPM = rearRpm;
-    }
-
-    /** Convenience: set both targets to the same RPM. */
+    /** Set target RPM for closed-loop control. */
     public void setTargetRPM(double rpm) {
-        setTargetRPMs(rpm, rpm);
+        this.targetRPM = rpm;
     }
 
-    /** Returns the current measured front flywheel velocity in RPM (best-effort). */
-    public double getFrontVelocityRPM() {
-        if (RobotBase.isSimulation() && frontMotorSim != null) return frontMotorSim.getAngularVelocityRPM();
+    /** Returns the current measured flywheel velocity in RPM (best-effort). */
+    public double getVelocityRPM() {
+        if (RobotBase.isSimulation() && motorSim != null) return motorSim.getAngularVelocityRPM();
         try {
-            return frontMotor.getEncoder().getVelocity();
-        } catch (Exception e) {
-            return 0.0;
-        }
-    }
-
-    /** Returns the current measured rear flywheel velocity in RPM (best-effort). */
-    public double getRearVelocityRPM() {
-        if (RobotBase.isSimulation() && rearMotorSim != null) return rearMotorSim.getAngularVelocityRPM();
-        try {
-            return rearMotor.getEncoder().getVelocity();
+            return motor.getEncoder().getVelocity();
         } catch (Exception e) {
             return 0.0;
         }
     }
 
     /**
-     * Returns a command that runs closed-loop velocity control while held. The provided suppliers
-     * are sampled each scheduler iteration and the subsystem periodic loop applies voltages.
+     * Returns a command that runs closed-loop velocity control while held.
      */
-    public Command getShootRPMCommand(DoubleSupplier frontRpmSupplier, DoubleSupplier rearRpmSupplier) {
+    public Command getShootRPMCommand(DoubleSupplier rpmSupplier) {
         return this.runEnd(
                         () -> {
                             setState(State.SHOOTING);
                             closedLoopEnabled = true;
-                            setTargetRPMs(frontRpmSupplier.getAsDouble(), rearRpmSupplier.getAsDouble());
+                            setTargetRPM(rpmSupplier.getAsDouble());
                         },
                         () -> {
                             closedLoopEnabled = false;
@@ -600,39 +430,24 @@ public class ShooterSubsystem extends SubsystemBase {
                 .withName("Shooter.ShootRPM");
     }
 
-    /** Convenience: fixed-target RPM command (both wheels same RPM). */
+    /** Convenience: fixed-target RPM command. */
     public Command getShootRPMCommand(double rpm) {
-        return getShootRPMCommand(() -> rpm, () -> rpm);
+        return getShootRPMCommand(() -> rpm);
     }
 
     // -------------------------------------------------------------------------
     // Simulation
     // -------------------------------------------------------------------------
 
-    /**
-     * Advances simulated flywheel physics each tick.
-     *
-     * <p>The shooter has no hardstops — this propagates the applied voltage through each
-     * NEO DCMotorSim independently to produce realistic velocity and current readings for
-     * telemetry. The difference in simulated RPM between front (3") and rear (4") flywheels
-     * reflects the diameter-driven surface speed asymmetry described in SHOOTER.md.
-     */
     @Override
     public void simulationPeriodic() {
         double now = Timer.getFPGATimestamp();
         double dt = now - lastSimTime;
         lastSimTime = now;
 
-        // Front flywheel (A, 3")
-        double frontVoltage = frontSparkMaxSim.getAppliedOutput() * RobotController.getBatteryVoltage();
-        frontMotorSim.setInputVoltage(frontVoltage);
-        frontMotorSim.update(dt);
-        frontSparkMaxSim.iterate(frontMotorSim.getAngularVelocityRPM(), RobotController.getBatteryVoltage(), dt);
-
-        // Rear flywheel (B, 4")
-        double rearVoltage = rearSparkMaxSim.getAppliedOutput() * RobotController.getBatteryVoltage();
-        rearMotorSim.setInputVoltage(rearVoltage);
-        rearMotorSim.update(dt);
-        rearSparkMaxSim.iterate(rearMotorSim.getAngularVelocityRPM(), RobotController.getBatteryVoltage(), dt);
+        double voltage = sparkMaxSim.getAppliedOutput() * RobotController.getBatteryVoltage();
+        motorSim.setInputVoltage(voltage);
+        motorSim.update(dt);
+        sparkMaxSim.iterate(motorSim.getAngularVelocityRPM(), RobotController.getBatteryVoltage(), dt);
     }
 }
