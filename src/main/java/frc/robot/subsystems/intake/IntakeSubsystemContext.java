@@ -187,7 +187,7 @@ public class IntakeSubsystemContext {
     private final double loweredPositionRotations = LOWERED_POSITION_ROTATIONS;
 
     /**
-     * Encoder position at fully-retracted (stowed for climb) position.
+     * Encoder position at fully-retracted (stowed) position.
      * Zero — established by homing. Intake rests on retracted hardstop here.
      */
     @Builder.Default

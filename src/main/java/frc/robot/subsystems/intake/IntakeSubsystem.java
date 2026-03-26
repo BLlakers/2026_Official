@@ -38,7 +38,7 @@ import frc.robot.support.TelemetryLevel;
  * second is connected via chain drive from the first.
  *
  * <p>A 2-motor lift (25:1 NEO × 2, one per side) articulates the entire hopper assembly up and
- * down. The hopper is lowered for most of the match and raised (stowed) before and during climb
+ * down. The hopper is lowered for most of the match and raised (stowed) as needed
  * to satisfy the frame-perimeter size rule.
  *
  * <h2>Encoder Convention (Lift)</h2>
@@ -368,7 +368,7 @@ public class IntakeSubsystem extends SubsystemBase {
      * Raise command — lifts the hopper to the stowed (raised) position using a
      * ProfiledPIDController for smooth trapezoidal motion.
      *
-     * <p>Used before and during climb to retract the hopper within the frame perimeter.
+     * <p>Used to retract the hopper within the frame perimeter.
      * Stops rollers on entry. The controller is reset from the current position to avoid
      * velocity jumps if the command is interrupted and re-triggered mid-travel.
      *
@@ -590,7 +590,7 @@ public class IntakeSubsystem extends SubsystemBase {
     /**
      * Advances simulated lift motor physics each tick.
      *
-     * <p>Mirrors the ClimbSubsystem simulation pattern: both lift motors are modelled
+     * <p>Both lift motors are modelled
      * as independent NEO DCMotorSims. Two hardstops are simulated:
      * <ul>
      *   <li>Ceiling at encoder = 0 (retracted hardstop) — stalls motor to produce a current spike

@@ -12,13 +12,10 @@ import edu.wpi.first.wpilibj2.command.WaitCommand;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.commands.LimelightAlignCommand;
-import frc.robot.commands.auto.ClimbTestCommand;
 import frc.robot.commands.auto.VisionAlignmentTestCommand;
 import frc.robot.commands.swervedrive.ControllerDelegate;
 import frc.robot.commands.swervedrive.SwerveDriveCommand;
 import frc.robot.subsystems.LedStrand;
-import frc.robot.subsystems.climb.ClimbSubsystem;
-import frc.robot.subsystems.climb.ClimbSubsystemContext;
 import frc.robot.subsystems.drivetrain.Drivetrain;
 import frc.robot.subsystems.drivetrain.DrivetrainContext;
 import frc.robot.subsystems.indexer.IndexerSubsystem;
@@ -29,10 +26,6 @@ import frc.robot.subsystems.relay.RelaySubsystem;
 import frc.robot.subsystems.relay.RelaySubsystemContext;
 import frc.robot.subsystems.shooter.ShooterSubsystem;
 import frc.robot.subsystems.shooter.ShooterSubsystemContext;
-import frc.robot.subsystems.turret.TurretSubsystem;
-import frc.robot.subsystems.turret.TurretSubsystemContext;
-import frc.robot.subsystems.turrettracker.TurretTracker;
-import frc.robot.subsystems.turrettracker.TurretTrackerContext;
 import frc.robot.subsystems.vision.VisionSubsystem;
 import frc.robot.subsystems.vision.VisionSubsystemContext;
 import frc.robot.support.Telemetry;
@@ -47,8 +40,6 @@ public class RobotContainer {
 
     private final Drivetrain driveTrain = new Drivetrain(drivetrainContext);
 
-    private final ClimbSubsystem climbSubsystem;
-
     private final IntakeSubsystem intakeSubsystem;
 
     private final RelaySubsystem relaySubsystem;
@@ -57,11 +48,7 @@ public class RobotContainer {
 
     private final ShooterSubsystem shooterSubsystem;
 
-    private final TurretSubsystem turretSubsystem;
-
     private final VisionSubsystem visionSubsystem;
-
-    private final TurretTracker turretTracker;
 
     private final Command resetPoseAuto =
             Commands.runOnce(() -> this.driveTrain.resetOdometry(this.currentPath.get(0)), this.driveTrain);
@@ -95,10 +82,6 @@ public class RobotContainer {
         // Conditionally construct subsystems based on feature flags
         this.ledStrand = Constants.FeatureFlags.ENABLE_LED_STRAND ? new LedStrand() : null;
 
-        this.climbSubsystem = Constants.FeatureFlags.ENABLE_CLIMB
-                ? new ClimbSubsystem(ClimbSubsystemContext.defaults(), this.driveTrain)
-                : null;
-
         this.intakeSubsystem =
                 Constants.FeatureFlags.ENABLE_INTAKE ? new IntakeSubsystem(IntakeSubsystemContext.defaults()) : null;
 
@@ -111,9 +94,6 @@ public class RobotContainer {
         this.shooterSubsystem =
                 Constants.FeatureFlags.ENABLE_SHOOTER ? new ShooterSubsystem(ShooterSubsystemContext.defaults()) : null;
 
-        this.turretSubsystem =
-                Constants.FeatureFlags.ENABLE_TURRET ? new TurretSubsystem(TurretSubsystemContext.defaults()) : null;
-
         this.visionSubsystem = Constants.FeatureFlags.ENABLE_VISION
                 ? new VisionSubsystem(
                         VisionSubsystemContext.builder()
@@ -123,19 +103,12 @@ public class RobotContainer {
                         driveTrain::addVisionMeasurement)
                 : null;
 
-        this.turretTracker = Constants.FeatureFlags.ENABLE_TURRET_TRACKER
-                ? new TurretTracker(TurretTrackerContext.defaults(), driveTrain)
-                : null;
-
         this.driveTrain.setName("DriveTrain");
-        if (this.climbSubsystem != null) this.climbSubsystem.setName("ClimbSubsystem");
         if (this.intakeSubsystem != null) this.intakeSubsystem.setName("IntakeSubsystem");
         if (this.relaySubsystem != null) this.relaySubsystem.setName("RelaySubsystem");
         if (this.indexerSubsystem != null) this.indexerSubsystem.setName("IndexerSubsystem");
         if (this.shooterSubsystem != null) this.shooterSubsystem.setName("ShooterSubsystem");
-        if (this.turretSubsystem != null) this.turretSubsystem.setName("TurretSubsystem");
         if (this.visionSubsystem != null) this.visionSubsystem.setName("VisionSubsystem");
-        if (this.turretTracker != null) this.turretTracker.setName("TurretTracker");
 
         this.configureShuffleboard();
         this.configureBindings();
@@ -169,10 +142,6 @@ public class RobotContainer {
         return driveTrain;
     }
 
-    public ClimbSubsystem getClimbSubsystem() {
-        return climbSubsystem;
-    }
-
     public IntakeSubsystem getIntakeSubsystem() {
         return intakeSubsystem;
     }
@@ -185,32 +154,8 @@ public class RobotContainer {
         return visionSubsystem;
     }
 
-    public TurretTracker getTurretTracker() {
-        return turretTracker;
-    }
-
     public void periodic() {
         // us trying to set pose for field2d
-    }
-
-    /**
-     * Called by {@link Robot#teleopInit()} to schedule any subsystem init routines for teleop.
-     *
-     * <p>For the climb subsystem: first lowers the robot to the ground (in case it was lifted
-     * during auto), then re-homes the encoder so it is valid for the full teleop climb cycle.
-     * If the robot was never lifted, the lower command exits immediately and homing proceeds.
-     *
-     * <p><strong>The lower step is required, not just convenient</strong> — there is no internal
-     * hardstop between the telescope stages. Homing relies on ground contact to produce the
-     * current spike that zeroes the encoder.
-     */
-    public void scheduleTeleopInit() {
-        if (this.climbSubsystem != null) {
-            this.climbSubsystem
-                    .getLowerToGroundCommand()
-                    .andThen(this.climbSubsystem.getHomingCommand())
-                    .schedule();
-        }
     }
 
     private void registerCommands() {
@@ -218,17 +163,6 @@ public class RobotContainer {
         NamedCommands.registerCommand("ResetOdom", this.driveTrain.getResetOdometryCommand());
         NamedCommands.registerCommand("ToggleFieldRelative", this.driveTrain.getToggleFieldRelativeCommand());
         NamedCommands.registerCommand("StopDrive", this.driveTrain.getStopModulesCommand());
-
-        // Climb subsystem commands (only if climb is enabled)
-        if (this.climbSubsystem != null) {
-            // Auto command: extends to bar 1, then partial retract to lift off ground
-            NamedCommands.registerCommand("ClimbAuto", this.climbSubsystem.getRetractToAutoHeightCommand());
-            // Utility commands usable in autos or named sequences
-            NamedCommands.registerCommand("ClimbHome", this.climbSubsystem.getHomingCommand());
-            NamedCommands.registerCommand("ClimbExtend", this.climbSubsystem.getExtendToBarCommand());
-            NamedCommands.registerCommand("ClimbNextBar", this.climbSubsystem.getClimbNextBarCommand());
-            NamedCommands.registerCommand("ClimbStop", this.climbSubsystem.getStopCommand());
-        }
 
         // Intake subsystem commands (only if intake is enabled)
         if (this.intakeSubsystem != null) {
@@ -286,33 +220,12 @@ public class RobotContainer {
         this.driverController.b().onTrue(this.driveTrain.resetNavXSensorModule());
         this.driverController.rightTrigger().whileTrue(alignLL);
 
-        // Turret Tracker Override test
-        this.driverController.start().toggleOnTrue(this.turretTracker.getHubCenterOverrideCommand());
-        this.driverController.x().onTrue(this.turretTracker.getHubCenterOverrideToBlueCommand());
-        this.driverController.y().onTrue(this.turretTracker.getHubCenterOverrideToRedCommand());
-
-        // Manipulator Controller - Climb Subsystem commands (only if climb is enabled)
-        // TODO: Confirm all button assignments with drive team before first climb test.
-        //
-        // A button    → climb next bar (retract to engage hooks; auto-stops)
-        // B button    → extend telescope up to next bar (position-based, auto-stops)
-        // Back button → manual re-home (use if climb drifted or auto-home didn't complete cleanly)
-        //
-        // TODO: Manual retract/extend overrides need a new home — LB and RB are now used by
-        //       intake (LB) and the future reverse-all command (RB). Candidates: chord (Back+A/B),
-        //       debug controller, or stick-click buttons.
-        if (this.climbSubsystem != null) {
-            this.manipController.a().whileTrue(this.climbSubsystem.getExtendManualCommand());
-            this.manipController.b().whileTrue(this.climbSubsystem.getRetractManualCommand());
-            // this.manipController.back().onTrue(this.climbSubsystem.getHomingCommand());
-        }
-
         // Manipulator Controller - Intake commands (only if intake is enabled)
         // TODO: Confirm all button assignments with drive team before first intake test.
         //
         // Manip LT (held)    → intake rollers spin in to collect balls
         // Manip LB (held)    → intake rollers reverse to eject
-        // Manip Y button     → raise intake to stowed position (for climb)
+        // Manip Y button     → raise intake to stowed position
         // Manip X button     → lower intake to match position
         // Manip Start button → re-home the intake lift (raises to retracted hardstop, zeros encoders)
         if (this.intakeSubsystem != null) {
@@ -334,38 +247,8 @@ public class RobotContainer {
                     .rightTrigger()
                     .whileTrue(Commands.parallel(
                             this.relaySubsystem.getAgitateCommand().beforeStarting(new WaitCommand(1)),
-                            this.indexerSubsystem.getIndexCommand().beforeStarting(new WaitCommand(1)),                     
+                            this.indexerSubsystem.getIndexCommand().beforeStarting(new WaitCommand(1)),
                             this.shooterSubsystem.getShootRPMCommand(Constants.ShooterConstants.SHOOTER_ADVANCE_RPM)));
-            // this.manipController().rightTrigger()
-
-            // this.manipController
-            //         .rightBumper()
-            //         .whileTrue(Commands.parallel(
-            //                 this.relaySubsystem.getReverseCommand(),
-            //                 this.indexerSubsystem.getReverseCommand(),
-            //                 this.shooterSubsystem.getReverseCommand()));
-        }
-
-        // Turret default command — track TurretTracker angle when both are enabled.
-        // When only the turret motor is enabled (tracker disabled), turret stays IDLE.
-        if (this.turretSubsystem != null && this.turretTracker != null) {
-            this.turretSubsystem.setDefaultCommand(
-                    this.turretSubsystem.getTrackCommand(this.turretTracker::getTurretAngleDegrees));
-            this.manipController.start().whileTrue(this.turretTracker.getTurrentEnableCommand());
-            // this.manipController.back().onTrue(this.driveTrain.getTestPoseCommand());
-        }
-
-        // Debug Controller - Turret manual jog commands (only if turret is enabled)
-        // Used during bring-up to verify motor direction and encoder sign convention.
-        //
-        // Debug D-pad left  (held) → jog turret left  (CCW; should produce positive encoder counts)
-        // Debug D-pad right (held) → jog turret right (CW;  should produce negative encoder counts)
-        //
-        // TODO: Remove or gate behind a sim/lab mode once closed-loop tracking is verified.
-        if (this.turretSubsystem != null) {
-            this.debugController.povLeft().whileTrue(this.turretSubsystem.getJogLeftCommand());
-            this.debugController.povRight().whileTrue(this.turretSubsystem.getJogRightCommand());
-            this.debugController.back().onTrue(this.turretSubsystem.getResetTurretRotationCommand());
         }
 
         // Debug Controller - Relay selective run (only if relay is enabled)
@@ -383,11 +266,6 @@ public class RobotContainer {
         // Debug Controller - Shooter flywheel speed tuning
         // Watch Shooter/SpeedSetpoint in telemetry to confirm values.
         if (this.shooterSubsystem != null) {
-            // OLD debug bindings (commented out) — replaced by tunable / vision RPM commands
-            // this.debugController.leftTrigger().whileTrue(this.shooterSubsystem.getShootCommand());
-            // this.debugController.y().onTrue(this.shooterSubsystem.getIncreaseSpeedCommand());
-            // this.debugController.a().onTrue(this.shooterSubsystem.getDecreaseSpeedCommand());
-
             // New debug bindings:
             // Button A (held) -> Run shooter closed-loop with TargetRPM read from Shuffleboard (Shooter/TargetRPM)
             this.debugController
@@ -407,24 +285,16 @@ public class RobotContainer {
         // Add subsystems
         Telemetry.putData(this.driveTrain);
         Telemetry.putData(this.driveTrain.getName() + "/Reset Pose 2D", this.driveTrain.getResetOdometryCommand());
-        if (this.climbSubsystem != null) Telemetry.putData(this.climbSubsystem);
         if (this.intakeSubsystem != null) Telemetry.putData(this.intakeSubsystem);
         if (this.relaySubsystem != null) Telemetry.putData(this.relaySubsystem);
         if (this.indexerSubsystem != null) Telemetry.putData(this.indexerSubsystem);
         if (this.shooterSubsystem != null) Telemetry.putData(this.shooterSubsystem);
-        if (this.turretSubsystem != null) Telemetry.putData(this.turretSubsystem);
         if (this.visionSubsystem != null) Telemetry.putData(this.visionSubsystem);
-        if (this.turretTracker != null) Telemetry.putData(this.turretTracker);
 
         // Vision alignment test command (for simulation testing)
         if (this.visionSubsystem != null) {
             VisionAlignmentTestCommand.create(this.driveTrain)
                     .ifPresent(cmd -> Telemetry.putData("Vision/AlignmentTest", cmd));
-        }
-
-        // Climb test command (for simulation testing)
-        if (this.climbSubsystem != null) {
-            ClimbTestCommand.create(this.climbSubsystem).ifPresent(cmd -> Telemetry.putData("Climb/ClimbTest", cmd));
         }
     }
 

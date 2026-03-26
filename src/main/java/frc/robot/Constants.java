@@ -25,16 +25,13 @@ public final class Constants {
      * true as hardware becomes available on the robot.
      */
     public static final class FeatureFlags {
-        public static final boolean ENABLE_TURRET_TRACKER = true;
         public static final boolean ENABLE_LED_STRAND = false;
         public static final boolean ENABLE_VISION = false;
 
-        public static final boolean ENABLE_CLIMB = false;
         public static final boolean ENABLE_INTAKE = true;
         public static final boolean ENABLE_RELAY = true;
         public static final boolean ENABLE_INDEXER = true;
         public static final boolean ENABLE_SHOOTER = true;
-        public static final boolean ENABLE_TURRET = true;
     }
 
     public static final class DriverLabels {
@@ -109,203 +106,12 @@ public final class Constants {
         public static final int BACK_LEFT_DRIVE_CHANNEL = 7;
         public static final int BACK_LEFT_TURN_CHANNEL = 8;
 
-        public static final int CLIMB_DRIVE_CHANNEL = 12;
-
         public static final int FRONT_LEFT_TURN_ENCODER_DIO_CHANNEL = DIOChannel.ZERO.getChannel();
         public static final int FRONT_RIGHT_TURN_ENCODER_DIO_CHANNEL = DIOChannel.ONE.getChannel();
         public static final int BACK_RIGHT_TURN_ENCODER_DIO_CHANNEL = DIOChannel.TWO.getChannel();
         public static final int BACK_LEFT_TURN_ENCODER_DIO_CHANNEL = DIOChannel.THREE.getChannel();
 
-        // DIO 4: Climb Through Bore Encoder (spool output shaft) — see ClimbConstants.
-        // DIO 5–9: Available.
-    }
-
-    public static class ClimbConstants {
-        // Motor CAN ID — matches Port.CLIMB_DRIVE_CHANNEL
-        public static final int MOTOR_ID = Port.CLIMB_DRIVE_CHANNEL; // 12
-
-        // Mechanism geometry — confirm from CAD / physical measurement
-        /** Gear ratio between motor shaft and spool. Motor rotations = spool rotations × gearRatio. */
-        public static final double GEAR_RATIO = 5.0; // TODO: 25.0
-
-        /** Circumference of the cord spool in meters (π × spool diameter). */
-        public static final double SPOOL_CIRCUMFERENCE_METERS = 0.0635; // 2.5"
-
-        // Motor output speeds [-1.0, 1.0]
-        // Convention: positive = telescope extends UP, negative = telescope retracts (toward stored / through frame)
-        /** Speed for extending telescope upward (reaching for bar). Should be positive. */
-        public static final double EXTEND_UP_SPEED = 0.5; // TODO: tune
-
-        /** Speed for retracting telescope (nesting stages / pulling through frame). Should be negative. */
-        public static final double RETRACT_SPEED = -0.5; // TODO: tune
-
-        /**
-         * Slow speed for homing (retracts telescope toward stored/ground hardstop).
-         * Kept slower than RETRACT_SPEED to avoid excessive ground impact.
-         * Robot MUST be on the ground for homing — the ground provides the hardstop.
-         */
-        public static final double HOMING_SPEED = -0.15; // TODO: tune
-
-        // Current limits
-        public static final int MOTOR_CURRENT_LIMIT = 40; // amps
-
-        /**
-         * Current threshold (amps) that signals the telescope has reached the ground-contact
-         * hardstop during homing. There is no internal mechanical hardstop between stages — the
-         * current spike occurs when the stages are nested and the ground prevents the assembly
-         * from traveling further through the frame.
-         *
-         * <p>Tune empirically: run a slow homing routine on a flat surface, watch
-         * {@code Climb/Motor/Current} in Shuffleboard, note the spike when the assembly
-         * bottoms out against the ground, then set this just below it.
-         */
-        public static final double HOMING_CURRENT_THRESHOLD_AMPS = 15.0; // TODO: tune empirically
-
-        // -------------------------------------------------------------------------
-        // Encoder setpoints — motor rotations from zero (= stored / nested / on ground)
-        //
-        // Encoder convention:
-        //   0        = stored (stages nested, assembly at lowest frame position, on ground)
-        //   positive = second stage extended upward (reaching for bar)
-        //   negative = assembly traveled through frame bottom (hooks rising toward bar)
-        //
-        // The hardstop at zero only works on the ground. When hanging, the motor
-        // overcomes the first-stage spring and the encoder freely goes negative.
-        // -------------------------------------------------------------------------
-
-        /** Encoder position at stored/nested state on the ground. Encoder is zeroed here after homing. */
-        public static final double STORED_POSITION_ROTATIONS = 0.0;
-
-        // --- Auto setpoints ---
-
-        /**
-         * Encoder position (positive) to extend to reach bar 1 during auto.
-         * Same as BAR_1_EXTEND_ROTATIONS — the top hook must reach bar 1.
-         * TODO: measure empirically.
-         */
-        public static final double AUTO_EXTEND_ROTATIONS = 50.0;
-
-        /**
-         * Encoder position for the auto lift — just enough retraction to lift the robot off the
-         * ground. This is a partial retraction (still positive or slightly negative) — hooks do
-         * NOT need to engage. Followed by getLowerToGroundCommand() at teleop start.
-         * TODO: measure empirically.
-         */
-        public static final double AUTO_ENGAGE_ROTATIONS = 20.0;
-
-        // --- Teleop per-bar setpoints ---
-        // Each bar requires two setpoints: extend (reach the bar) and engage (retract until
-        // passive hooks catch). Extend values are positive; engage values are negative.
-        // Bar 1 extend is largest because the ground-to-bar-1 distance > bar-to-bar distance.
-
-        /** Encoder position (positive) — extend UP to reach bar 1 from ground. Longest reach. */
-        public static final double BAR_1_EXTEND_ROTATIONS = 50.0; // TODO: measure
-
-        /** Encoder position (negative) — retract through frame until hooks engage bar 1. */
-        public static final double BAR_1_ENGAGE_ROTATIONS = -20.5; // TODO: measure
-
-        /** Encoder position (positive) — extend UP to reach bar 2 from bar 1. Shorter than bar 1. */
-        public static final double BAR_2_EXTEND_ROTATIONS = 35.0; // TODO: measure
-
-        /** Encoder position (negative) — retract through frame until hooks engage bar 2. */
-        public static final double BAR_2_ENGAGE_ROTATIONS = -20.5; // TODO: measure
-
-        /** Encoder position (positive) — extend UP to reach bar 3 from bar 2. Similar to bar 2. */
-        public static final double BAR_3_EXTEND_ROTATIONS = 33.0; // TODO: measure
-
-        /** Encoder position (negative) — retract through frame until hooks engage bar 3. */
-        public static final double BAR_3_ENGAGE_ROTATIONS = -20.5; // TODO: measure
-
-        /**
-         * Acceptable position error (rotations) when checking if a setpoint has been reached.
-         * Larger values complete commands sooner; smaller values are more precise.
-         * TODO: tune — start at 1.0 and tighten if position isn't accurate enough.
-         */
-        public static final double POSITION_TOLERANCE_ROTATIONS = 1.0;
-
-        // -------------------------------------------------------------------------
-        // AdvantageScope Pose3d visualization constants
-        // -------------------------------------------------------------------------
-
-        /**
-         * Telescope visual length (meters) at full upward extension.
-         * Based on 15" lower stage + 13.25" upper stage = 28.25" = 0.718 m.
-         */
-        public static final double MAX_TELESCOPE_LENGTH = 0.718;
-
-        /**
-         * Minimum visual telescope arm length (meters), used in both the stored position and the
-         * through-frame retraction regime.
-         *
-         * <p>Derived so that the telescope tip reaches {@code HOOK_MOUNT_HEIGHT_METERS} exactly when
-         * the encoder is at {@code BAR_1_ENGAGE_ROTATIONS}:
-         *
-         * <pre>
-         *   assemblyShiftAtEngage = |BAR_1_ENGAGE_ROTATIONS| × SPOOL_CIRCUMFERENCE / GEAR_RATIO
-         *                         = 20.5 × 0.0635 / 5.0 = 0.26035 m
-         *   MIN_TELESCOPE_LENGTH  = HOOK_MOUNT_HEIGHT − 0.05 + assemblyShiftAtEngage
-         *                         = 0.2667 − 0.05 + 0.26035 = 0.4771 m
-         * </pre>
-         *
-         * <p>Note: at encoder = 0 (stored), the telescope top renders at 0.05 + 0.4771 ≈ 20.75",
-         * which is an acceptable visualization approximation. This constant does not affect motor
-         * behaviour.
-         */
-        public static final double MIN_TELESCOPE_LENGTH = 0.4771;
-
-        /** Horizontal portion of the passive side hook L-shape (meters). */
-        public static final double SIDE_HOOK_HORIZONTAL_LENGTH = 0.100;
-
-        /**
-         * Height of the passive hook tip above the ground (meters) when the robot is on the floor.
-         * 10.5 inches = 10.5 × 0.0254 = 0.2667 m.
-         * At full engage (encoder = BAR_1_ENGAGE_ROTATIONS) the telescope tip descends to this
-         * same height, aligning all three hooks visually.
-         */
-        public static final double HOOK_MOUNT_HEIGHT_METERS = 0.2667;
-
-        /**
-         * Lateral distance (meters) from robot center to each passive hook for visualization.
-         * TODO: measure from CAD / physical robot.
-         */
-        public static final double HOOK_OFFSET_METERS = 0.1000;
-
-        /**
-         * Lateral distance (meters) from the robot center to the telescope arm.
-         * Positive = left in robot frame (robot approaches the tower left-side-first).
-         * TODO: measure from CAD / physical robot.
-         */
-        public static final double TELESCOPE_SIDE_OFFSET_METERS = 0.340;
-
-        // -------------------------------------------------------------------------
-        // Through-bore encoder — absolute homing reference (REV Through Bore Encoder)
-        // Wired to DIO 4 on the RoboRIO. Mounted on the spool output shaft.
-        // Used to replace current-spike detection during homing with a precise
-        // absolute angle check. DIO 0-3 = swerve turn encoders; DIO 4 = this encoder.
-        // -------------------------------------------------------------------------
-
-        /**
-         * DIO channel for the REV Through Bore Encoder mounted on the spool output shaft.
-         * TODO: confirm actual wiring after the encoder is installed.
-         */
-        public static final int THROUGH_BORE_ENCODER_DIO_CHANNEL = DIOChannel.FOUR.getChannel();
-
-        /**
-         * Absolute encoder angle [0, 1 rotation) when the mechanism is in the stored (zero)
-         * position — stages nested, assembly at the lowest frame position, on the ground.
-         *
-         * <p>Calibrate once on the physical robot: place the mechanism in the stored position,
-         * watch {@code Climb/ThroughBore/RawAngle} in the Lab tab, and enter the reading here.
-         * TODO: calibrate on physical robot.
-         */
-        public static final double THROUGH_BORE_STORED_ANGLE_ROTATIONS = 0.0; // TODO: calibrate
-
-        /**
-         * Acceptable error (rotations) when comparing the through-bore reading to
-         * {@link #THROUGH_BORE_STORED_ANGLE_ROTATIONS}. Wrap-around near the 0/1 boundary is
-         * handled in software. 0.02 rotations ≈ 7°.
-         */
-        public static final double THROUGH_BORE_ANGLE_TOLERANCE_ROTATIONS = 0.02;
+        // DIO 4–9: Available.
     }
 
     /**
@@ -399,7 +205,7 @@ public final class Constants {
         /** Encoder position at fully-lowered (match) position. Negative from homed zero. */
         public static final double LOWERED_POSITION_ROTATIONS = -50.0; // TODO: measure empirically
 
-        /** Encoder position at fully-retracted (stowed for climb) position. Established by homing. */
+        /** Encoder position at fully-retracted (stowed) position. Established by homing. */
         public static final double RAISED_POSITION_ROTATIONS = 1.0;
 
         /**
@@ -594,92 +400,6 @@ public final class Constants {
         public static final double SHOOTER_ADVANCE_RPM = 4000.0;
         public static final double SHOOTER_RPM_OFFSET = 2000.0; // RPM at zero distance (placeholder)
         public static final double SHOOTER_RPM_PER_METER = 300.0; // additional RPM per meter (placeholder)
-    }
-
-    /**
-     * Constants for the Turret subsystem — the physical motor that rotates the shooter
-     * assembly to aim at the hub.
-     *
-     * <h2>Gear Ratio</h2>
-     * <p>Full gear train: NEO → 3:1 × 3:1 gearbox → 44t→74t → 30t→120t = 666/11 ≈ 60.55:1.
-     * See {@link #TURRET_GEAR_RATIO} for the stage-by-stage breakdown.
-     *
-     * <h2>Encoder Convention</h2>
-     * <p>Zero = the turret's home position (aimed straight forward).
-     * Positive = counterclockwise (left) rotation; negative = clockwise (right) rotation.
-     * This matches the WPILib field-relative angle convention used by {@link frc.robot.subsystems.turrettracker.TurretTracker}.
-     * <b>TODO: confirm sign convention during first homing test.</b>
-     */
-    public static class TurretConstants {
-
-        // -------------------------------------------------------------------------
-        // CAN IDs — confirm with build team before first power-on
-        // -------------------------------------------------------------------------
-
-        /** CAN ID for the turret rotation motor (NEO on SparkMax). */
-        public static final int TURRET_MOTOR_ID = 15;
-
-        // -------------------------------------------------------------------------
-        // Current limits
-        // -------------------------------------------------------------------------
-
-        public static final int TURRET_CURRENT_LIMIT = 30; // amps — lighter load than flywheel
-
-        // -------------------------------------------------------------------------
-        // Gear ratio
-        // -------------------------------------------------------------------------
-
-        /**
-         * Full turret gear train reduction — NEO → output rotation.
-         *
-         * <p>Stages (motor → turret):
-         * <ol>
-         *   <li>Stacked gearbox adapters: 3:1 × 3:1 = 9:1</li>
-         *   <li>First external stage:  44-tooth → 74-tooth = 74/44</li>
-         *   <li>Second external stage: 30-tooth → 120-tooth = 120/30 = 4:1</li>
-         * </ol>
-         *
-         * <p>Total = 9 × (74/44) × (120/30) = 666/11 ≈ 60.55:1
-         */
-        public static final double TURRET_GEAR_RATIO = 9.0 * (74.0 / 44.0) * (120.0 / 30.0); // ≈ 60.55:1
-
-        // -------------------------------------------------------------------------
-        // Range of motion — asymmetric (turret home is not centered in its arc)
-        // -------------------------------------------------------------------------
-
-        /**
-         * Maximum left (CCW / positive) travel from the home position in degrees.
-         * Must match {@link frc.robot.subsystems.turrettracker.TurretTrackerContext#maxLeftDegrees}.
-         */
-        public static final double TURRET_MAX_LEFT_DEGREES = 200.0;
-
-        /**
-         * Maximum right (CW) travel from the home position in degrees (positive magnitude).
-         * The minimum turret angle is {@code -TURRET_MAX_RIGHT_DEGREES}.
-         * Must match {@link frc.robot.subsystems.turrettracker.TurretTrackerContext#maxRightDegrees}.
-         */
-        public static final double TURRET_MAX_RIGHT_DEGREES = 100.0;
-
-        // -------------------------------------------------------------------------
-        // Manual jog speed — for initial testing only
-        // -------------------------------------------------------------------------
-
-        /**
-         * Open-loop speed for manual jog commands during bring-up testing.
-         * Kept slow to avoid hitting mechanical stops at speed.
-         * <b>TODO: remove or gate behind a test mode once closed-loop tracking is working.</b>
-         */
-        public static final double TURRET_JOG_SPEED = 0.15; // TODO: tune
-
-        // -------------------------------------------------------------------------
-        // Position tolerance
-        // -------------------------------------------------------------------------
-
-        /**
-         * Acceptable position error (degrees) when checking if the turret is on target.
-         * <b>TODO: tighten after PID tuning with the physical robot.</b>
-         */
-        public static final double TURRET_POSITION_TOLERANCE_DEGREES = 2.0; // TODO: tune
     }
 
     public class TurnEncoderOffsets {
