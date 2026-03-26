@@ -300,7 +300,7 @@ public class ShooterSubsystem extends SubsystemBase {
         Telemetry.record(prefix + "/State", currentState.name(), TelemetryLevel.MATCH);
         Telemetry.publish(prefix + "/State", currentState.name(), TelemetryLevel.MATCH);
         Telemetry.publish(prefix + "/OutputPercent", motor.getAppliedOutput(), TelemetryLevel.MATCH);
-        Telemetry.publish(prefix + "DistanceToTag", getDistanceToTag(), TelemetryLevel.NONE);
+        Telemetry.publish(prefix + "/DistanceToTag", getDistanceToTag(), TelemetryLevel.NONE);
         // LAB level
         Telemetry.record(prefix + "/Current", motor.getOutputCurrent(), TelemetryLevel.LAB);
         Telemetry.publish(prefix + "/SpeedSetpoint", speedSetpoint, TelemetryLevel.LAB);
