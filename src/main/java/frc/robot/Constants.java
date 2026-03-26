@@ -397,7 +397,7 @@ public final class Constants {
 
         // Mapping from Limelight-measured distance (meters) to RPM: RPM = OFFSET + PER_METER * distance
         // These defaults are placeholders; tune on the robot or provide a lookup table for accuracy.
-        public static final double SHOOTER_ADVANCE_RPM = 4000.0;
+        public static final double SHOOTER_ADVANCE_RPM = 3700;
         public static final double SHOOTER_RPM_OFFSET = 2000.0; // RPM at zero distance (placeholder)
         public static final double SHOOTER_RPM_PER_METER = 300.0; // additional RPM per meter (placeholder)
     }

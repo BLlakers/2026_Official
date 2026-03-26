@@ -281,6 +281,11 @@ public class ShooterSubsystem extends SubsystemBase {
         return Commands.runOnce(() -> adjustSpeed(-SPEED_STEP)).withName("Shooter.Speed-");
     }
 
+    private double getDistanceToTag() {
+        var pose3d = frc.robot.support.limelight.LimelightHelpers.getTargetPose3d_RobotSpace("limelight-front");
+        return pose3d.getTranslation().getNorm();
+    }
+
     // -------------------------------------------------------------------------
     // Telemetry
     // -------------------------------------------------------------------------
@@ -295,7 +300,7 @@ public class ShooterSubsystem extends SubsystemBase {
         Telemetry.record(prefix + "/State", currentState.name(), TelemetryLevel.MATCH);
         Telemetry.publish(prefix + "/State", currentState.name(), TelemetryLevel.MATCH);
         Telemetry.publish(prefix + "/OutputPercent", motor.getAppliedOutput(), TelemetryLevel.MATCH);
-
+        Telemetry.publish(prefix + "DistanceToTag", getDistanceToTag(), TelemetryLevel.NONE);
         // LAB level
         Telemetry.record(prefix + "/Current", motor.getOutputCurrent(), TelemetryLevel.LAB);
         Telemetry.publish(prefix + "/SpeedSetpoint", speedSetpoint, TelemetryLevel.LAB);
@@ -374,10 +379,13 @@ public class ShooterSubsystem extends SubsystemBase {
                             try {
                                 if (frc.robot.support.limelight.LimelightHelpers.getTargetCount("limelight-front")
                                         > 0) {
-                                    var pose3d =
-                                            frc.robot.support.limelight.LimelightHelpers.getTargetPose3d_RobotSpace(
-                                                    "limelight-front");
-                                    double distance = pose3d.getTranslation().getNorm();
+                                    //                                    var pose3d =
+                                    //
+                                    // frc.robot.support.limelight.LimelightHelpers.getTargetPose3d_RobotSpace(
+                                    //                                                    "limelight-front");
+                                    //                                    double distance =
+                                    // pose3d.getTranslation().getNorm();
+                                    double distance = getDistanceToTag();
                                     double rpm = frc.robot.Constants.ShooterConstants.SHOOTER_RPM_OFFSET
                                             + frc.robot.Constants.ShooterConstants.SHOOTER_RPM_PER_METER * distance;
                                     setTargetRPM(rpm);
