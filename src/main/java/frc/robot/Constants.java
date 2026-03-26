@@ -25,7 +25,7 @@ public final class Constants {
      * true as hardware becomes available on the robot.
      */
     public static final class FeatureFlags {
-        public static final boolean ENABLE_TURRET_TRACKER = false;
+        public static final boolean ENABLE_TURRET_TRACKER = true;
         public static final boolean ENABLE_LED_STRAND = false;
         public static final boolean ENABLE_VISION = false;
 
@@ -34,7 +34,7 @@ public final class Constants {
         public static final boolean ENABLE_RELAY = true;
         public static final boolean ENABLE_INDEXER = true;
         public static final boolean ENABLE_SHOOTER = true;
-        public static final boolean ENABLE_TURRET = false;
+        public static final boolean ENABLE_TURRET = true;
     }
 
     public static final class DriverLabels {
@@ -518,7 +518,7 @@ public final class Constants {
         // -------------------------------------------------------------------------
 
         /** Speed for indexing balls toward the . Positive. */
-        public static final double INDEXER_SPEED = 0.45;
+        public static final double INDEXER_SPEED = 0.65;
 
         /** Speed for reversing to clear jams. Negative. */
         public static final double INDEXER_REVERSE_SPEED = -0.47;
@@ -563,7 +563,7 @@ public final class Constants {
          * Open-loop speed for the flywheel when shooting. Positive.
          * <b>TODO: replace with physics-solver RPM target after calibration sessions.</b>
          */
-        public static final double SHOOTER_SPEED = 0.68; // TODO: tune
+        public static final double SHOOTER_SPEED = 1.0; // TODO: tune
 
         /**
          * Open-loop speed for the flywheel when reversing. Negative.
@@ -579,18 +579,19 @@ public final class Constants {
         public static final double SHOOTER_KS = 0.0;
 
         /** Velocity gain (volts per rad/s) — measured from V vs omega data. */
-        public static final double SHOOTER_KV = 0.0;
+        public static final double SHOOTER_KV = 0.0180;
 
         /** Acceleration gain (volts per rad/s^2) — optional for aggressive control. */
         public static final double SHOOTER_KA = 0.0;
 
         // PID gains (units: volts per RPM for P, etc.). Start at zero and tune on robot.
-        public static final double SHOOTER_kP = 0.0;
-        public static final double SHOOTER_kI = 0.0;
+        public static final double SHOOTER_kP = 0.0022;
+        public static final double SHOOTER_kI = 0.0015;
         public static final double SHOOTER_kD = 0.0;
 
         // Mapping from Limelight-measured distance (meters) to RPM: RPM = OFFSET + PER_METER * distance
         // These defaults are placeholders; tune on the robot or provide a lookup table for accuracy.
+        public static final double SHOOTER_ADVANCE_RPM = 3000.0;
         public static final double SHOOTER_RPM_OFFSET = 2000.0; // RPM at zero distance (placeholder)
         public static final double SHOOTER_RPM_PER_METER = 300.0; // additional RPM per meter (placeholder)
     }

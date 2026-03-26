@@ -334,8 +334,8 @@ public class RobotContainer {
                     .rightTrigger()
                     .whileTrue(Commands.parallel(
                             this.relaySubsystem.getAgitateCommand().beforeStarting(new WaitCommand(1)),
-                            this.indexerSubsystem.getIndexCommand().beforeStarting(new WaitCommand(1)),
-                            this.shooterSubsystem.getShootCommand()));
+                            this.indexerSubsystem.getIndexCommand().beforeStarting(new WaitCommand(1)),                     
+                            this.shooterSubsystem.getShootRPMCommand(Constants.ShooterConstants.SHOOTER_ADVANCE_RPM)));
             // this.manipController().rightTrigger()
 
             // this.manipController
@@ -394,7 +394,7 @@ public class RobotContainer {
                     .a()
                     .whileTrue(this.shooterSubsystem.getShootRPMCommand(
                             () -> edu.wpi.first.wpilibj.smartdashboard.SmartDashboard.getNumber(
-                                    "Shooter/TargetRPM", 3000.0)));
+                                    "Shooter/TargetRPM", Constants.ShooterConstants.SHOOTER_ADVANCE_RPM)));
 
             // Button B (held) -> Vision (Limelight)-guided shooter closed-loop
             this.debugController.b().whileTrue(this.shooterSubsystem.getShootWithLimelightCommand());

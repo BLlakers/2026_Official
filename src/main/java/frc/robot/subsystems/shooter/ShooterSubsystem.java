@@ -24,6 +24,7 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import frc.robot.Constants;
 import frc.robot.support.Telemetry;
 import frc.robot.support.TelemetryLevel;
 import java.util.function.DoubleSupplier;
@@ -190,7 +191,7 @@ public class ShooterSubsystem extends SubsystemBase {
     // -------------------------------------------------------------------------
 
     private void runForward() {
-        motor.set(speedSetpoint);
+        motor.set(Constants.ShooterConstants.SHOOTER_SPEED);
     }
 
     private void adjustSpeed(double delta) {
