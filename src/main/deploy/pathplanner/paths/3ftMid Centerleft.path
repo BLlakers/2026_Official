@@ -8,8 +8,8 @@
       },
       "prevControl": null,
       "nextControl": {
-        "x": 3.0697741552538615,
-        "y": 4.040026434716506
+        "x": 2.3745,
+        "y": 4.7770909090909095
       },
       "isLocked": false,
       "linkedName": "3ft"
@@ -152,7 +152,7 @@
   "pointTowardsZones": [
     {
       "fieldPosition": {
-        "x": 7.66,
+        "x": 7.61,
         "y": 10.0
       },
       "rotationOffset": 0.0,
@@ -182,7 +182,7 @@
   },
   "goalEndState": {
     "velocity": 0,
-    "rotation": -57.73868142071906
+    "rotation": 123.31063082456085
   },
   "reversed": false,
   "folder": null,
