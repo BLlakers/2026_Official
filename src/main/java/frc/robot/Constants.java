@@ -160,6 +160,8 @@ public final class Constants {
         /** Intake speed — rollers spin inward to collect balls. Positive. */
         public static final double INTAKE_SPEED = 0.7; // TDO: tune
 
+        public static final double INTAKE_AGITATE_SPEED = 0.2;
+
         /** Reverse speed — rollers spin outward to eject. Negative. */
         public static final double REVERSE_SPEED = -0.6; // TODO: tune
 
@@ -400,6 +402,7 @@ public final class Constants {
         public static final double SHOOTER_ADVANCE_RPM = 3250;
         public static final double SHOOTER_RPM_OFFSET = 2000.0; // RPM at zero distance (placeholder)
         public static final double SHOOTER_RPM_PER_METER = 300.0; // additional RPM per meter (placeholder)
+        public static final double SHOOTER_RPM_PER_METER_SQUARED = 32.420;
     }
 
     public class TurnEncoderOffsets {

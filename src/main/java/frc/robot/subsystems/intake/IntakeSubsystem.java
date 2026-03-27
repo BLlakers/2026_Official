@@ -254,15 +254,16 @@ public class IntakeSubsystem extends SubsystemBase {
     private boolean atTarget(double target) {
         return Math.abs(getLiftPosition() - target) <= context.getPositionToleranceRotations();
     }
-    
+
     /**
      * Returns the current position of the intake mechanism in encoder rotations.
      * @return Average of the two lift encoders' positions in rotations
      */
     private double getIntakePosition() {
-        return (this.liftMotor1.getEncoder().getPosition() + this.liftMotor2.getEncoder().getPosition()) / 2.0;
+        return (this.liftMotor1.getEncoder().getPosition()
+                        + this.liftMotor2.getEncoder().getPosition())
+                / 2.0;
     }
-
 
     // -------------------------------------------------------------------------
     // Motor actions (private — exposed through command factories)
@@ -298,8 +299,8 @@ public class IntakeSubsystem extends SubsystemBase {
     private void lowerLift() {
         if (getIntakePosition() > context.getLoweredPositionRotations() + context.getPositionToleranceRotations()) {
             // If we're not at the lowered position, apply lower speed to move down
-             liftMotor1.set(context.getLowerSpeed());
-             liftMotor2.set(context.getLowerSpeed());
+            liftMotor1.set(context.getLowerSpeed());
+            liftMotor2.set(context.getLowerSpeed());
         } else {
             // If we're at or below the lowered position, hold to maintain position
             holdLift();
