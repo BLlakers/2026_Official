@@ -169,13 +169,13 @@ public final class Constants {
         // -------------------------------------------------------------------------
 
         /** Speed for raising intake to stowed position. Positive. */
-        public static final double RAISE_SPEED = 0.1; // TODO: tune
+        public static final double RAISE_SPEED = 0.25; // TODO: tune
 
         /**
          * Speed for lowering intake to match position.
          * Negative; kept slower than raise since gravity assists.
          */
-        public static final double LOWER_SPEED = -0.1; // TODO: tune
+        public static final double LOWER_SPEED = -0.2; // TODO: tune
 
         /**
          * Speed for homing — slow upward creep until the retracted hardstop is detected via current.
