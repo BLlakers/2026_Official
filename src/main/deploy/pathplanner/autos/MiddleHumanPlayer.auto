@@ -11,21 +11,47 @@
           }
         },
         {
-          "type": "named",
+          "type": "parallel",
           "data": {
-            "name": "Shoot"
+            "commands": [
+              {
+                "type": "named",
+                "data": {
+                  "name": "IntakeLowerManual"
+                }
+              },
+              {
+                "type": "named",
+                "data": {
+                  "name": "Shoot"
+                }
+              }
+            ]
           }
         },
         {
-          "type": "path",
+          "type": "parallel",
           "data": {
-            "pathName": "3ftHumanPlayer"
-          }
-        },
-        {
-          "type": "wait",
-          "data": {
-            "waitTime": 4.0
+            "commands": [
+              {
+                "type": "path",
+                "data": {
+                  "pathName": "3ftHumanPlayer"
+                }
+              },
+              {
+                "type": "wait",
+                "data": {
+                  "waitTime": 2.4
+                }
+              },
+              {
+                "type": "named",
+                "data": {
+                  "name": "IntakeIntake"
+                }
+              }
+            ]
           }
         },
         {
