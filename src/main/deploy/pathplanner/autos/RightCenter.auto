@@ -5,38 +5,13 @@
     "data": {
       "commands": [
         {
-          "type": "path",
-          "data": {
-            "pathName": "HubBack"
-          }
-        },
-        {
-          "type": "parallel",
-          "data": {
-            "commands": [
-              {
-                "type": "named",
-                "data": {
-                  "name": "Shoot"
-                }
-              },
-              {
-                "type": "named",
-                "data": {
-                  "name": "IntakeLowerManual"
-                }
-              }
-            ]
-          }
-        },
-        {
           "type": "parallel",
           "data": {
             "commands": [
               {
                 "type": "path",
                 "data": {
-                  "pathName": "3ft Depot"
+                  "pathName": "CenterRight"
                 }
               },
               {
@@ -46,7 +21,7 @@
                     {
                       "type": "wait",
                       "data": {
-                        "waitTime": 2.0
+                        "waitTime": 2.4
                       }
                     },
                     {
@@ -58,7 +33,7 @@
                     {
                       "type": "wait",
                       "data": {
-                        "waitTime": 2.1
+                        "waitTime": 3.71
                       }
                     },
                     {

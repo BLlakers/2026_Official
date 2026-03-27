@@ -21,7 +21,7 @@
                     {
                       "type": "wait",
                       "data": {
-                        "waitTime": 3.1
+                        "waitTime": 3.0
                       }
                     },
                     {
