@@ -160,6 +160,9 @@ public final class Constants {
         /** Intake speed — rollers spin inward to collect balls. Positive. */
         public static final double INTAKE_SPEED = 0.7; // TDO: tune
 
+        // Intake Agitate speed — rollers spin inward at low speed to agitate jammed balls. Positive.
+        public static final double INTAKE_AGITATE_SPEED = 0.2; // TDO: tune
+
         /** Reverse speed — rollers spin outward to eject. Negative. */
         public static final double REVERSE_SPEED = -0.6; // TODO: tune
 
@@ -398,8 +401,9 @@ public final class Constants {
         // Mapping from Limelight-measured distance (meters) to RPM: RPM = OFFSET + PER_METER * distance
         // These defaults are placeholders; tune on the robot or provide a lookup table for accuracy.
         public static final double SHOOTER_ADVANCE_RPM = 3700;
-        public static final double SHOOTER_RPM_OFFSET = 2000.0; // RPM at zero distance (placeholder)
-        public static final double SHOOTER_RPM_PER_METER = 300.0; // additional RPM per meter (placeholder)
+        public static final double SHOOTER_RPM_OFFSET = 2874.784; // RPM at zero distance
+        public static final double SHOOTER_RPM_PER_METER = 299.403; // additional RPM per meter
+        public static final double SHOOTER_RPM_PER_METER_SQUARED = 32.820; // additional RPM per meter^2
     }
 
     public class TurnEncoderOffsets {

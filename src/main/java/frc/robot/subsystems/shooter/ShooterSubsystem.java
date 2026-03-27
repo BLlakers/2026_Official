@@ -1,6 +1,7 @@
 package frc.robot.subsystems.shooter;
 
 import static edu.wpi.first.math.system.plant.LinearSystemId.createDCMotorSystem;
+import static frc.robot.Constants.ShooterConstants.*;
 import static java.util.Objects.requireNonNull;
 
 import com.revrobotics.sim.SparkMaxSim;
@@ -379,15 +380,10 @@ public class ShooterSubsystem extends SubsystemBase {
                             try {
                                 if (frc.robot.support.limelight.LimelightHelpers.getTargetCount("limelight-front")
                                         > 0) {
-                                    //                                    var pose3d =
-                                    //
-                                    // frc.robot.support.limelight.LimelightHelpers.getTargetPose3d_RobotSpace(
-                                    //                                                    "limelight-front");
-                                    //                                    double distance =
-                                    // pose3d.getTranslation().getNorm();
                                     double distance = getDistanceToTag();
-                                    double rpm = frc.robot.Constants.ShooterConstants.SHOOTER_RPM_OFFSET
-                                            + frc.robot.Constants.ShooterConstants.SHOOTER_RPM_PER_METER * distance;
+                                    double rpm = SHOOTER_RPM_OFFSET
+                                            + SHOOTER_RPM_PER_METER * distance
+                                            + SHOOTER_RPM_PER_METER_SQUARED * distance * distance;
                                     setTargetRPM(rpm);
                                 }
                             } catch (Exception ignore) {

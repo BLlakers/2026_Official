@@ -83,6 +83,8 @@ public class IntakeSubsystem extends SubsystemBase {
         RAISING,
         /** Intake at raised (stowed) position; all motors holding. */
         RAISED,
+        /** Intake at any position; rollers spinning inward at low speed to agitate jammed balls. */
+        AGITATING
     }
 
     private final IntakeSubsystemContext context;
@@ -252,6 +254,15 @@ public class IntakeSubsystem extends SubsystemBase {
     private boolean atTarget(double target) {
         return Math.abs(getLiftPosition() - target) <= context.getPositionToleranceRotations();
     }
+    
+    /**
+     * Returns the current position of the intake mechanism in encoder rotations.
+     * @return Average of the two lift encoders' positions in rotations
+     */
+    private double getIntakePosition() {
+        return (this.liftMotor1.getEncoder().getPosition() + this.liftMotor2.getEncoder().getPosition()) / 2.0;
+    }
+
 
     // -------------------------------------------------------------------------
     // Motor actions (private — exposed through command factories)
@@ -259,6 +270,10 @@ public class IntakeSubsystem extends SubsystemBase {
 
     private void spinRollersIn() {
         rollerMotor.set(context.getIntakeSpeed());
+    }
+
+    private void spinRollersAgitate() {
+        rollerMotor.set(context.getIntakeAgitateSpeed());
     }
 
     private void spinRollersOut() {
@@ -270,13 +285,25 @@ public class IntakeSubsystem extends SubsystemBase {
     }
 
     private void raiseLift() {
-        liftMotor1.set(context.getRaiseSpeed());
-        liftMotor2.set(context.getRaiseSpeed());
+        if (getIntakePosition() < context.getRaisedPositionRotations() - context.getPositionToleranceRotations()) {
+            // If we're not at the raised position, apply raise speed to move up
+            liftMotor1.set(context.getRaiseSpeed());
+            liftMotor2.set(context.getRaiseSpeed());
+        } else {
+            // If we're at or above the raised position, hold to maintain position
+            holdLift();
+        }
     }
 
     private void lowerLift() {
-        liftMotor1.set(context.getLowerSpeed());
-        liftMotor2.set(context.getLowerSpeed());
+        if (getIntakePosition() > context.getLoweredPositionRotations() + context.getPositionToleranceRotations()) {
+            // If we're not at the lowered position, apply lower speed to move down
+             liftMotor1.set(context.getLowerSpeed());
+             liftMotor2.set(context.getLowerSpeed());
+        } else {
+            // If we're at or below the lowered position, hold to maintain position
+            holdLift();
+        }
     }
 
     private void homingRaiseLift() {
@@ -452,6 +479,23 @@ public class IntakeSubsystem extends SubsystemBase {
                             if (currentState == State.FEEDING) setState(State.LOWERED);
                         })
                 .withName("Intake.Intake");
+    }
+
+    /**
+     * Agitate command — runs the rollers inward at low speed to agitate jammed balls.
+     * @return
+     */
+    public Command getAgitateCommand() {
+        return this.runEnd(
+                        () -> {
+                            setState(State.AGITATING);
+                            spinRollersAgitate();
+                        },
+                        () -> {
+                            stopRollers();
+                            if (currentState == State.AGITATING) setState(State.LOWERED);
+                        })
+                .withName("Intake.Agitate");
     }
 
     /**
