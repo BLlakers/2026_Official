@@ -270,12 +270,17 @@ public class RobotContainer {
             // Button A (held) -> Run shooter closed-loop with TargetRPM read from Shuffleboard (Shooter/TargetRPM)
             this.debugController
                     .a()
-                    .whileTrue(this.shooterSubsystem.getShootRPMCommand(
-                            () -> edu.wpi.first.wpilibj.smartdashboard.SmartDashboard.getNumber(
-                                    "Shooter/TargetRPM", Constants.ShooterConstants.SHOOTER_ADVANCE_RPM)));
+                    .whileTrue(
+                            this.shooterSubsystem.getShootRPMCommand(Constants.ShooterConstants.SHOOTER_ADVANCE_RPM));
 
             // Button B (held) -> Vision (Limelight)-guided shooter closed-loop
-            this.debugController.b().whileTrue(this.shooterSubsystem.getShootWithLimelightCommand());
+            this.debugController
+                    .b()
+                    .whileTrue(Commands.parallel(
+                            this.relaySubsystem.getAgitateCommand().beforeStarting(new WaitCommand(1)),
+                            this.indexerSubsystem.getIndexCommand().beforeStarting(new WaitCommand(1)),
+                            this.intakeSubsystem.getAgitateCommand().beforeStarting(new WaitCommand(1)),
+                            this.shooterSubsystem.getShootWithLimelightCommand()));
         }
     }
 

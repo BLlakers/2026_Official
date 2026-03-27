@@ -124,6 +124,13 @@ public class IntakeSubsystemContext {
     private final double intakeSpeed = INTAKE_SPEED;
 
     /**
+     * Roller speed for agitating jammed balls. Positive = rollers spin inward.
+     * <b>TODO: tune.</b>
+     */
+    @Builder.Default
+    private final double intakeAgitateSpeed = INTAKE_AGITATE_SPEED;
+
+    /**
      * Roller speed for ejecting balls. Negative = rollers spin outward.
      * <b>TODO: tune.</b>
      */
