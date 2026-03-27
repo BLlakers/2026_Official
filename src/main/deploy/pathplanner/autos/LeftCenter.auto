@@ -11,7 +11,7 @@
               {
                 "type": "path",
                 "data": {
-                  "pathName": "HubBack"
+                  "pathName": "Centerleft"
                 }
               },
               {
@@ -21,13 +21,25 @@
                     {
                       "type": "wait",
                       "data": {
-                        "waitTime": 0.5
+                        "waitTime": 3.1
                       }
                     },
                     {
                       "type": "named",
                       "data": {
-                        "name": "IntakeLowerManual"
+                        "name": "IntakeIntake"
+                      }
+                    },
+                    {
+                      "type": "wait",
+                      "data": {
+                        "waitTime": 3.71
+                      }
+                    },
+                    {
+                      "type": "named",
+                      "data": {
+                        "name": "IntakeStop"
                       }
                     }
                   ]
@@ -43,9 +55,9 @@
           }
         },
         {
-          "type": "path",
+          "type": "named",
           "data": {
-            "pathName": "3ft2Center"
+            "name": "Shoot"
           }
         }
       ]

@@ -8,8 +8,8 @@
       },
       "prevControl": null,
       "nextControl": {
-        "x": 1.579,
-        "y": 0.6520000000000001
+        "x": 3.1990454545454536,
+        "y": 1.489215909090909
       },
       "isLocked": false,
       "linkedName": null
@@ -20,12 +20,12 @@
         "y": 4.025
       },
       "prevControl": {
-        "x": 1.5699999999999998,
-        "y": 4.025
+        "x": 2.044681818181818,
+        "y": 3.5918068181818184
       },
       "nextControl": null,
       "isLocked": false,
-      "linkedName": null
+      "linkedName": "3ft"
     }
   ],
   "rotationTargets": [],
