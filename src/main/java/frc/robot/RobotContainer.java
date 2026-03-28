@@ -179,7 +179,8 @@ public class RobotContainer {
                 Commands.parallel(
                                 this.relaySubsystem.getRunCommand().beforeStarting(new WaitCommand(1)),
                                 this.indexerSubsystem.getIndexCommand().beforeStarting(new WaitCommand(1)),
-                                this.shooterSubsystem.getShootCommand())
+                                this.shooterSubsystem.getShootRPMCommand(
+                                        Constants.ShooterConstants.SHOOTER_ADVANCE_RPM))
                         .withTimeout(6));
     }
 
@@ -248,7 +249,17 @@ public class RobotContainer {
                     .whileTrue(Commands.parallel(
                             this.relaySubsystem.getAgitateCommand().beforeStarting(new WaitCommand(1)),
                             this.indexerSubsystem.getIndexCommand().beforeStarting(new WaitCommand(1)),
+                            this.intakeSubsystem.getAgitateCommand().beforeStarting(new WaitCommand(1)),
+                            this.shooterSubsystem.getShootWithLimelightCommand()));
+
+            this.manipController
+                    .a()
+                    .whileTrue(Commands.parallel(
+                            this.relaySubsystem.getAgitateCommand().beforeStarting(new WaitCommand(1)),
+                            this.indexerSubsystem.getIndexCommand().beforeStarting(new WaitCommand(1)),
+                            this.intakeSubsystem.getAgitateCommand().beforeStarting(new WaitCommand(1)),
                             this.shooterSubsystem.getShootRPMCommand(Constants.ShooterConstants.SHOOTER_ADVANCE_RPM)));
+            // this.shooterSubsystem.getShootRPMCommand(Constants.ShooterConstants.SHOOTER_ADVANCE_RPM)));
         }
 
         // Debug Controller - Relay selective run (only if relay is enabled)
