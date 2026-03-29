@@ -106,7 +106,7 @@ public final class Constants {
         public static final int BACK_LEFT_DRIVE_CHANNEL = 7;
         public static final int BACK_LEFT_TURN_CHANNEL = 8;
 
-        public static final int CLIMB_DRIVE_CHANNEL = 9;
+        public static final int CLIMB_DRIVE_CHANNEL = 12;
 
         public static final int FRONT_LEFT_TURN_ENCODER_DIO_CHANNEL = DIOChannel.ZERO.getChannel();
         public static final int FRONT_RIGHT_TURN_ENCODER_DIO_CHANNEL = DIOChannel.ONE.getChannel();
@@ -118,7 +118,7 @@ public final class Constants {
 
     public static class ClimbConstants {
         // Motor CAN ID — matches Port.CLIMB_DRIVE_CHANNEL
-        public static final int MOTOR_ID = Port.CLIMB_DRIVE_CHANNEL; // 9
+        public static final int MOTOR_ID = Port.CLIMB_DRIVE_CHANNEL;
 
         // Mechanism geometry — confirm from CAD / physical measurement
         /** Gear ratio between motor shaft and spool. Motor rotations = spool rotations × gearRatio. */
