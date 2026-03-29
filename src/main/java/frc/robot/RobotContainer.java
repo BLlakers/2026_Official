@@ -16,6 +16,8 @@ import frc.robot.commands.swervedrive.SwerveDriveCommand;
 import frc.robot.subsystems.LedStrand;
 import frc.robot.subsystems.drivetrain.Drivetrain;
 import frc.robot.subsystems.drivetrain.DrivetrainContext;
+import frc.robot.subsystems.climb.ClimbSubsystem;
+import frc.robot.subsystems.climb.ClimbSubsystemContext;
 import frc.robot.support.Telemetry;
 import java.util.ArrayList;
 import java.util.List;
@@ -27,6 +29,10 @@ public class RobotContainer {
     private final DrivetrainContext drivetrainContext = DrivetrainContext.defaults();
 
     private final Drivetrain driveTrain = new Drivetrain(drivetrainContext);
+
+    private final ClimbSubsystemContext climbSubsystemContext = ClimbSubsystemContext.defaults();
+
+    private final ClimbSubsystem climbSubsystem = new ClimbSubsystem(climbSubsystemContext);
 
     private final Command resetPoseAuto =
             Commands.runOnce(() -> this.driveTrain.resetOdometry(this.currentPath.get(0)), this.driveTrain);
@@ -107,6 +113,7 @@ public class RobotContainer {
         NamedCommands.registerCommand("ResetOdom", this.driveTrain.getResetOdometryCommand());
         NamedCommands.registerCommand("ToggleFieldRelative", this.driveTrain.getToggleFieldRelativeCommand());
         NamedCommands.registerCommand("StopDrive", this.driveTrain.getStopModulesCommand());
+        this.climbSubsystem.getExtendToBarCommand()
     }
 
     /**
