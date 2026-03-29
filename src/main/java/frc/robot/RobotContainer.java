@@ -123,7 +123,6 @@ public class RobotContainer {
         if (this.climbSubsystem != null) {
             this.climbSubsystem
                     .getLowerToGroundCommand()
-                    .andThen(this.climbSubsystem.getHomingCommand())
                     .schedule();
         }
     }
@@ -176,6 +175,7 @@ public class RobotContainer {
 
         this.manipController.x().onTrue(this.climbSubsystem.getManualExtendCommand());
         this.manipController.y().onTrue(this.climbSubsystem.getManualRetractCommand());
+        this.manipController.back().onTrue(this.climbSubsystem.getHomingCommand());
     }
 
     private void configureShuffleboard() {
