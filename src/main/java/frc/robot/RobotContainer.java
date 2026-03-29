@@ -182,6 +182,17 @@ public class RobotContainer {
                                 this.shooterSubsystem.getShootRPMCommand(
                                         Constants.ShooterConstants.SHOOTER_ADVANCE_RPM))
                         .withTimeout(6));
+
+        NamedCommands.registerCommand(
+                "ShootAndAgitate",
+                Commands.parallel(
+                                this.relaySubsystem.getAgitateAutoCommand().beforeStarting(new WaitCommand(1)),
+                                this.indexerSubsystem.getIndexCommand().beforeStarting(new WaitCommand(1)),
+                                this.shooterSubsystem.getShootRPMCommand(
+                                        Constants.ShooterConstants.SHOOTER_ADVANCE_RPM))
+                        .withTimeout(6));
+
+        NamedCommands.registerCommand("HomeRelay", this.relaySubsystem.getHommingCommand());
     }
 
     /**
@@ -244,6 +255,9 @@ public class RobotContainer {
         // TODO: Once the physics-based inverse solver (SHOOTER.md) is integrated, the shooter
         //       command will accept a distance-to-target supplier instead of running open-loop.
         if (this.relaySubsystem != null && this.indexerSubsystem != null && this.shooterSubsystem != null) {
+
+            this.manipController.b().whileTrue(this.indexerSubsystem.getReverseCommand());
+
             this.manipController
                     .rightTrigger()
                     .whileTrue(Commands.parallel(

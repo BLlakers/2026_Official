@@ -255,6 +255,20 @@ public class RelaySubsystem extends SubsystemBase {
                 .withName("Relay.Agitate");
     }
 
+    /**
+     * Agitate Auto command — spins the relay rollers in reverse to clear jams.
+     *
+     * <p>Held-button command: rollers spin in reverse while held, stop on release.
+     *
+     * @return Command that agitates the relay while held
+     */
+    public Command getAgitateAutoCommand() {
+        return Commands.repeatingSequence(
+                        getRunCommand().until(() -> relayAtTop()),
+                        getReverseCommand().until(() -> relayAtMiddle()))
+                .withName("Relay.Agitate");
+    }
+
     public Command getHommingCommand() {
         return getReverseCommand().until(() -> relayAtBottom()).withName("Relay.Homing");
     }
