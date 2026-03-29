@@ -173,9 +173,9 @@ public class RobotContainer {
         this.driverController.b().onTrue(this.driveTrain.resetNavXSensorModule());
         this.driverController.rightTrigger().whileTrue(alignLL);
 
-        this.manipController.x().onTrue(this.climbSubsystem.getManualExtendCommand());
-        this.manipController.y().onTrue(this.climbSubsystem.getManualRetractCommand());
-        this.manipController.back().onTrue(this.climbSubsystem.getHomingCommand());
+        this.manipController.x().whileTrue(this.climbSubsystem.getManualExtendCommand());
+        this.manipController.y().whileTrue(this.climbSubsystem.getManualRetractCommand());
+        this.manipController.back().whileTrue(this.climbSubsystem.getHomingCommand());
     }
 
     private void configureShuffleboard() {

@@ -113,6 +113,8 @@ public class SwerveModule extends SubsystemBase {
                 .feedbackSensor(FeedbackSensor.kPrimaryEncoder)
                 .pid(pidSettings.p(), pidSettings.i(), pidSettings.d());
 
+        // NOTE: Added per FRC (Sophia recommendation)
+        config.smartCurrentLimit(this.context.getDriveMotorStallCurrentLimit());
         return config;
     }
 

@@ -62,6 +62,10 @@ public class SwerveModuleContext {
     @Builder.Default
     private int turnMotorCurrentLimit = 25;
 
+    @Getter
+    @Builder.Default
+    private int driveMotorStallCurrentLimit = 65; // NOTE: Tune this down from default of 80amps
+
     // Drive motor: NEO Vortex on SPARK Flex
     @Getter(lazy = true)
     private final TeamSpark driveMotor = createDriveMotor(driveMotorId, MotorType.kBrushless);
