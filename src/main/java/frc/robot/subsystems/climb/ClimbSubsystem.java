@@ -10,13 +10,8 @@ import com.revrobotics.spark.SparkLowLevel.MotorType;
 import com.revrobotics.spark.SparkMax;
 import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 import com.revrobotics.spark.config.SparkMaxConfig;
-import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.wpilibj.DutyCycleEncoder;
 import edu.wpi.first.wpilibj.RobotBase;
-import edu.wpi.first.wpilibj.RobotController;
-import edu.wpi.first.wpilibj.Timer;
-import edu.wpi.first.wpilibj.simulation.DCMotorSim;
-import edu.wpi.first.wpilibj.simulation.DutyCycleEncoderSim;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.subsystems.drivetrain.Drivetrain;
@@ -106,7 +101,6 @@ public class ClimbSubsystem extends SubsystemBase {
         this.throughBoreEncoder = new DutyCycleEncoder(this.context.getThroughBoreEncoderDioChannel());
 
         configureMotor();
-
 
         // Boot-time absolute seeding: on a real robot the through-bore encoder always knows
         // the spool angle. If the mechanism is already at the stored position (normal at match
@@ -536,77 +530,5 @@ public class ClimbSubsystem extends SubsystemBase {
     @Override
     public void periodic() {
         // Telemetry is captured by the registered subsystem callback via Telemetry.periodic()
-    }
-
-    // -------------------------------------------------------------------------
-    // Simulation
-    // -------------------------------------------------------------------------
-
-    /**
-     * Advances the simulated winch motor physics each tick when running in simulation.
-     *
-     * <p>This method is called automatically by the {@link edu.wpi.first.wpilibj2.command.CommandScheduler}
-     * for every registered subsystem when {@link RobotBase#isSimulation()} is true.
-     *
-     * <h3>Physics model</h3>
-     * <ol>
-     *   <li>Read the duty-cycle output that commands have set via {@code winchMotor.set()}</li>
-     *   <li>Convert to voltage and feed into a {@link DCMotorSim} (NEO motor model)</li>
-     *   <li>Integrate position and velocity over dt</li>
-     *   <li>Write results to {@link #simPosition} and {@link #simCurrent} so that
-     *       {@link #getEncoderPosition()} and {@link #getMotorCurrent()} return correct values</li>
-     * </ol>
-     *
-     * <h3>Ground hardstop simulation</h3>
-     * <p>When the robot is on the ground (states: {@code HOMING}, {@code STORED}, {@code IDLE}),
-     * the encoder position is clamped at 0 — simulating the ground blocking further retraction.
-     * The through-bore encoder sim is initialized at the stored angle, so
-     * {@link #isAbsoluteAtStoredPosition()} returns {@code true} immediately and the homing
-     * command completes without needing to drive to the hardstop.
-     *
-     * <p>When hanging from a bar (states: {@code EXTENDING}, {@code RETRACTING}, {@code HOLDING}),
-     * the ground stop is inactive and the encoder can freely go negative (assembly through frame).
-     */
-    @Override
-    public void simulationPeriodic() {
-        double now = Timer.getFPGATimestamp();
-        double dt = now - lastSimTime;
-        lastSimTime = now;
-
-        // Applied motor output as voltage (duty cycle × battery voltage)
-        double voltage = winchSparkMaxSim.getAppliedOutput() * RobotController.getBatteryVoltage();
-
-        // Ground hardstop is active when the robot is on the ground (not hanging from a bar).
-        // In these states, position cannot go below 0 — the ground blocks retraction.
-        boolean groundStopActive =
-                currentState == State.HOMING || currentState == State.STORED || currentState == State.IDLE;
-        double currentPos = winchMotorSim.getAngularPositionRotations();
-
-        if (groundStopActive && currentPos <= 0.0 && voltage < 0.0) {
-            // At ground — clamp position at 0, velocity at 0. The motor stalls against the ground,
-            // producing a high current that triggers homing detection.
-            winchMotorSim.setState(VecBuilder.fill(0.0, 0.0));
-            winchSparkMaxSim.iterate(0.0, RobotController.getBatteryVoltage(), dt);
-            simPosition = 0.0;
-        } else {
-            // Free motion — feed voltage into the motor model and advance physics
-            winchMotorSim.setInputVoltage(voltage);
-            winchMotorSim.update(dt);
-            winchSparkMaxSim.iterate(winchMotorSim.getAngularVelocityRPM(), RobotController.getBatteryVoltage(), dt);
-            simPosition = winchMotorSim.getAngularPositionRotations();
-        }
-
-        // Update simulated current for homing detection via isAtHardstop()
-        simCurrent = winchSparkMaxSim.getMotorCurrent();
-
-        // Keep the through-bore encoder sim in sync with spool position.
-        // The encoder wraps at 1.0 revolution — add the stored angle offset so that simPosition=0
-        // maps to the configured stored angle, matching what the real encoder does.
-        if (throughBoreEncoderSim != null) {
-            double spoolRotations = simPosition / context.getGearRatio();
-            double encoderAngle = (spoolRotations + context.getThroughBoreStoredAngleRotations()) % 1.0;
-            if (encoderAngle < 0.0) encoderAngle += 1.0; // keep in [0, 1)
-            throughBoreEncoderSim.set(encoderAngle);
-        }
     }
 }

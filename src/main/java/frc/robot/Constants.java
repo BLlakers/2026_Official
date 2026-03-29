@@ -122,7 +122,7 @@ public final class Constants {
 
         // Mechanism geometry — confirm from CAD / physical measurement
         /** Gear ratio between motor shaft and spool. Motor rotations = spool rotations × gearRatio. */
-        public static final double GEAR_RATIO = 5.0; // TODO: 25.0
+        public static final double GEAR_RATIO = 36.0;
 
         /** Circumference of the cord spool in meters (π × spool diameter). */
         public static final double SPOOL_CIRCUMFERENCE_METERS = 0.0635; // 2.5"
@@ -228,6 +228,7 @@ public final class Constants {
          * Based on 15" lower stage + 13.25" upper stage = 28.25" = 0.718 m.
          */
         public static final double MAX_TELESCOPE_LENGTH = 0.718;
+
         public static final double MIN_TELESCOPE_LENGTH = 0.4771;
         public static final double SIDE_HOOK_HORIZONTAL_LENGTH = 0.100;
         public static final double HOOK_MOUNT_HEIGHT_METERS = 0.2667;
@@ -239,7 +240,6 @@ public final class Constants {
 
         public static final double THROUGH_BORE_ANGLE_TOLERANCE_ROTATIONS = 0.02;
     }
-
 
     /**
      * Constants for the Intake subsystem.
