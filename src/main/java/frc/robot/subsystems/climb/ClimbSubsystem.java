@@ -1,6 +1,5 @@
 package frc.robot.subsystems.climb;
 
-import static edu.wpi.first.math.system.plant.LinearSystemId.createDCMotorSystem;
 import static java.util.Objects.requireNonNull;
 
 import com.revrobotics.RelativeEncoder;
@@ -12,10 +11,6 @@ import com.revrobotics.spark.SparkMax;
 import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 import com.revrobotics.spark.config.SparkMaxConfig;
 import edu.wpi.first.math.VecBuilder;
-import edu.wpi.first.math.numbers.N1;
-import edu.wpi.first.math.numbers.N2;
-import edu.wpi.first.math.system.LinearSystem;
-import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.wpilibj.DutyCycleEncoder;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.RobotController;
@@ -28,51 +23,6 @@ import frc.robot.subsystems.drivetrain.Drivetrain;
 import frc.robot.support.Telemetry;
 import frc.robot.support.TelemetryLevel;
 
-/**
- * Climb subsystem for the 2-stage telescoping ratchet climb mechanism.
- *
- * <h2>Mechanism Overview</h2>
- * <p>A single NEO motor winds a cord on a spool to control a 2-stage telescope. The second stage
- * extends <em>upward</em> out of the first stage, with a <strong>top hook/catch</strong> that grabs
- * a bar above the robot. Retraction first nests the stages, then pulls the entire telescope assembly
- * upward through the robot frame until <strong>passive ratcheting hooks</strong> (on the assembly)
- * engage the bar. The first-stage spring provides higher resistance during the through-frame phase.
- *
- * <h2>Climb Cycle (teleop)</h2>
- * <ol>
- *   <li>Arm extends upward — top hook reaches the next bar ({@link #getExtendToBarCommand})</li>
- *   <li>Arm retracts — stages nest, then assembly travels through frame, passive hooks catch the
- *       bar, robot lifts ({@link #getClimbNextBarCommand})</li>
- *   <li>Repeat for each bar until bar 3 (top). Hold until match end.</li>
- * </ol>
- *
- * <h2>Auto</h2>
- * <p>{@link #getRetractToAutoHeightCommand} extends the telescope to reach bar 1, then partially
- * retracts to lift the robot off the ground (hooks do not need to engage). At teleop start,
- * {@link #getLowerToGroundCommand} returns the robot to ground so it can drive, followed by
- * re-homing.
- *
- * <h2>Encoder Convention</h2>
- * <ul>
- *   <li>Homing retracts the telescope until the <strong>REV Through Bore Encoder</strong> on the
- *       spool shaft reads the calibrated stored angle, then the relative encoder is zeroed.</li>
- *   <li>If the mechanism is at the stored position when the robot boots, homing is skipped
- *       (the subsystem auto-seeds from the absolute encoder in the constructor).</li>
- *   <li>Encoder = 0 = stored (stages nested, assembly at lowest frame position)</li>
- *   <li>Encoder positive = second stage extending upward (reaching for bar)</li>
- *   <li>Encoder negative = assembly traveling through frame bottom (hooks rising toward bar).
- *       Only possible when hanging — the motor overcomes the first-stage spring.</li>
- * </ul>
- *
- * <h2>Build Team TODOs</h2>
- * <ul>
- *   <li>Confirm motor inversion — positive output should extend telescope <strong>upward</strong></li>
- *   <li>Calibrate {@code throughBoreStoredAngleRotations}: place in stored position, watch
- *       {@code Climb/ThroughBore/RawAngle} in the Lab tab, enter value in Constants</li>
- *   <li>Measure {@code bar1/2/3ExtendRotations} and {@code bar1/2/3EngageRotations} during testing</li>
- *   <li>Confirm {@code positionToleranceRotations}</li>
- * </ul>
- */
 public class ClimbSubsystem extends SubsystemBase {
 
     private static final String TELEMETRY_PREFIX = "Climb";
@@ -105,8 +55,6 @@ public class ClimbSubsystem extends SubsystemBase {
      */
     private final DutyCycleEncoder throughBoreEncoder;
 
-    private final ClimbVisualizer visualizer;
-
     private State currentState = State.IDLE;
 
     /**
@@ -118,28 +66,6 @@ public class ClimbSubsystem extends SubsystemBase {
 
     /** The encoder target currently being sought by a position command. Used for telemetry. */
     private double targetRotations = 0.0;
-
-    // -------------------------------------------------------------------------
-    // Simulation fields (only initialized when RobotBase.isSimulation())
-    // -------------------------------------------------------------------------
-
-    /** Motor dynamics engine for integrating position from applied voltage. */
-    private DCMotorSim winchMotorSim;
-
-    /** REV sim bridge — provides simulated motor current for homing detection. */
-    private SparkMaxSim winchSparkMaxSim;
-
-    /** Tracked encoder position in simulation (since the HAL bridge does not relay sim values). */
-    private double simPosition = 0.0;
-
-    /** Tracked motor current in simulation (since getOutputCurrent() returns 0 without sim). */
-    private double simCurrent = 0.0;
-
-    /** Timestamp of the last simulation tick, for computing dt. */
-    private double lastSimTime = 0.0;
-
-    /** Sim bridge for the through-bore encoder — drives the duty-cycle value in simulation. */
-    private DutyCycleEncoderSim throughBoreEncoderSim;
 
     // -------------------------------------------------------------------------
     // Construction
@@ -181,22 +107,6 @@ public class ClimbSubsystem extends SubsystemBase {
 
         configureMotor();
 
-        this.visualizer = new ClimbVisualizer(context, drivetrain);
-
-        // Initialize simulation physics when running in sim
-        if (RobotBase.isSimulation()) {
-            this.winchSparkMaxSim = new SparkMaxSim(winchMotor, DCMotor.getNEO(1));
-            // Build a state-space motor model: NEO motor, placeholder inertia, configured gear ratio.
-            // The inertia value (0.01 kg·m²) is a sim-only placeholder — it controls how quickly the
-            // motor accelerates in simulation but has no effect on real robot behavior.
-            LinearSystem<N2, N1, N2> plant = createDCMotorSystem(DCMotor.getNEO(1), 0.01, context.getGearRatio());
-            this.winchMotorSim = new DCMotorSim(plant, DCMotor.getNEO(1));
-            this.lastSimTime = Timer.getFPGATimestamp();
-            // Initialize through-bore encoder sim at the stored angle so homing completes
-            // immediately in simulation (mechanism always starts stored in sim).
-            this.throughBoreEncoderSim = new DutyCycleEncoderSim(this.throughBoreEncoder);
-            this.throughBoreEncoderSim.set(this.context.getThroughBoreStoredAngleRotations());
-        }
 
         // Boot-time absolute seeding: on a real robot the through-bore encoder always knows
         // the spool angle. If the mechanism is already at the stored position (normal at match
@@ -235,7 +145,7 @@ public class ClimbSubsystem extends SubsystemBase {
      * {@link RelativeEncoder}, so we track position in {@link #simPosition} instead.
      */
     private double getEncoderPosition() {
-        return RobotBase.isSimulation() ? simPosition : encoder.getPosition();
+        return encoder.getPosition();
     }
 
     /**
@@ -244,7 +154,7 @@ public class ClimbSubsystem extends SubsystemBase {
      * the motor-model current computed by {@link SparkMaxSim} instead.
      */
     private double getMotorCurrent() {
-        return RobotBase.isSimulation() ? simCurrent : winchMotor.getOutputCurrent();
+        return winchMotor.getOutputCurrent();
     }
 
     // -------------------------------------------------------------------------
@@ -371,10 +281,6 @@ public class ClimbSubsystem extends SubsystemBase {
     private void completeHoming() {
         winchMotor.set(0);
         encoder.setPosition(0.0);
-        if (RobotBase.isSimulation()) {
-            simPosition = 0.0;
-            winchMotorSim.setState(VecBuilder.fill(0.0, 0.0));
-        }
         currentBar = 0;
         targetRotations = 0.0;
         setState(State.STORED);
@@ -607,7 +513,6 @@ public class ClimbSubsystem extends SubsystemBase {
 
     private void captureTelemetry(String prefix) {
         double position = getEncoderPosition();
-        visualizer.update(position, isHomed());
         Telemetry.record(prefix + "/State", currentState.name(), TelemetryLevel.MATCH);
         Telemetry.record(prefix + "/CurrentBar", currentBar, TelemetryLevel.MATCH);
         Telemetry.publish(prefix + "/State", currentState.name(), TelemetryLevel.MATCH);
