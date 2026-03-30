@@ -14,8 +14,6 @@ import frc.robot.commands.LimelightAlignCommand;
 import frc.robot.commands.swervedrive.ControllerDelegate;
 import frc.robot.commands.swervedrive.SwerveDriveCommand;
 import frc.robot.subsystems.LedStrand;
-import frc.robot.subsystems.climb.ClimbSubsystem;
-import frc.robot.subsystems.climb.ClimbSubsystemContext;
 import frc.robot.subsystems.drivetrain.Drivetrain;
 import frc.robot.subsystems.drivetrain.DrivetrainContext;
 import frc.robot.support.Telemetry;
@@ -29,10 +27,6 @@ public class RobotContainer {
     private final DrivetrainContext drivetrainContext = DrivetrainContext.defaults();
 
     private final Drivetrain driveTrain = new Drivetrain(drivetrainContext);
-
-    private final ClimbSubsystemContext climbSubsystemContext = ClimbSubsystemContext.defaults();
-
-    private final ClimbSubsystem climbSubsystem = new ClimbSubsystem(climbSubsystemContext);
 
     private final Command resetPoseAuto =
             Commands.runOnce(() -> this.driveTrain.resetOdometry(this.currentPath.get(0)), this.driveTrain);
@@ -108,32 +102,11 @@ public class RobotContainer {
         // us trying to set pose for field2d
     }
 
-    /**
-     * Called by {@link Robot#teleopInit()} to schedule any subsystem init routines for teleop.
-     *
-     * <p>For the climb subsystem: first lowers the robot to the ground (in case it was lifted
-     * during auto), then re-homes the encoder so it is valid for the full teleop climb cycle.
-     * If the robot was never lifted, the lower command exits immediately and homing proceeds.
-     *
-     * <p><strong>The lower step is required, not just convenient</strong> — there is no internal
-     * hardstop between the telescope stages. Homing relies on ground contact to produce the
-     * current spike that zeroes the encoder.
-     */
-    public void scheduleTeleopInit() {
-        if (this.climbSubsystem != null) {
-            this.climbSubsystem
-                    .getLowerToGroundCommand()
-                    .schedule();
-        }
-    }
-
     private void registerCommands() {
         // Register commands for autonomous routines
         NamedCommands.registerCommand("ResetOdom", this.driveTrain.getResetOdometryCommand());
         NamedCommands.registerCommand("ToggleFieldRelative", this.driveTrain.getToggleFieldRelativeCommand());
         NamedCommands.registerCommand("StopDrive", this.driveTrain.getStopModulesCommand());
-        NamedCommands.registerCommand("ExtendToBar1", this.climbSubsystem.getExtendToBarCommand());
-        NamedCommands.registerCommand("LiftToBar1", this.climbSubsystem.getClimbNextBarCommand());
     }
 
     /**
@@ -172,10 +145,6 @@ public class RobotContainer {
         this.driverController.rightStick().onTrue(this.driveTrain.toggleWheelLockCommand()); // lock wheels
         this.driverController.b().onTrue(this.driveTrain.resetNavXSensorModule());
         this.driverController.rightTrigger().whileTrue(alignLL);
-
-        this.manipController.x().whileTrue(this.climbSubsystem.getManualExtendCommand());
-        this.manipController.y().whileTrue(this.climbSubsystem.getManualRetractCommand());
-        this.manipController.back().whileTrue(this.climbSubsystem.getHomingCommand());
     }
 
     private void configureShuffleboard() {
